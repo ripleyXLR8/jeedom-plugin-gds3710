@@ -1,0 +1,20 @@
+{
+	"id" : "gds3710",
+	"name" : "GDS 3710",
+	"description" : "Plugin permetant l'intégration du portier GrandStream GDS3710",
+	"licence" : "AGPL",
+	"author" : "Richard Perez",
+	"require" : "3.2",
+	"category" : "security",
+	"hasDependency" : false,
+	"hasOwnDeamon" : false,
+	"maxDependancyInstallTime" : 0,
+	"changelog" : "",
+	"documentation" : "https://github.com/ripleyXLR8/jeedom-plugin-gds3710/blob/master/docs/fr_FR/index.md",
+	"link" : {
+		"forum":"",
+		"video" : ""
+	},
+	"language" : ["fr_FR"],
+	"compatibility" : ["miniplus","smart","rpi","docker","diy"]
+}
