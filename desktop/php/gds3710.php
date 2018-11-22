@@ -7,6 +7,8 @@
   $eqLogics = eqLogic::byType($plugin->getId());
 ?>
 
+<?php include_file('desktop', 'SIPml-api', 'js', 'gds3710');?>
+
 <div class="row row-overflow">
     <div class="col-lg-2 col-md-3 col-sm-4">
         <div class="bs-sidebar">
@@ -60,7 +62,7 @@
   <a class="btn btn-default eqLogicAction pull-right" data-action="configure"><i class="fa fa-cogs"></i> {{Configuration avancée}}</a>
   <ul class="nav nav-tabs" role="tablist">
     <li role="presentation"><a href="#" class="eqLogicAction" aria-controls="home" role="tab" data-toggle="tab" data-action="returnToThumbnailDisplay"><i class="fa fa-arrow-circle-left"></i></a></li>
-    <li role="presentation" class="active"><a href="#eqlogictab" aria-controls="home" role="tab" data-toggle="tab"><i class="fa fa-tachometer"></i> {{Equipement}}</a></li>
+    <li role="presentation" class="active"><a href="#eqlogictab" aria-controls="home" role="tab" data-toggle="tab"><i class="fa fa-tachometer"></i> {{Configuration}}</a></li>
     <li role="presentation"><a href="#commandtab" aria-controls="profile" role="tab" data-toggle="tab"><i class="fa fa-list-alt"></i> {{Commandes}}</a></li>
 
     <?php
@@ -131,12 +133,35 @@
 			<label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="isVisible" checked/>{{Visible}}</label>
 		</div>
 	</div>
-       <div class="form-group">
-        <label class="col-sm-3 control-label">{{Adresse MAC}}</label>
-        <div class="col-sm-3">
-            <input type="text" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="macaddress" placeholder="Adresse MAC"/>
-        </div>
+
+   <div class="form-group">
+    <label class="col-sm-3 control-label">{{Adresse MAC}}</label>
+    <div class="col-sm-3">
+        <input type="text" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="macaddress" placeholder="Adresse MAC"/>
     </div>
+  </div>
+
+  <div class="form-group">
+    <label class="col-sm-3 control-label">{{Adresse IP}}</label>
+    <div class="col-sm-3">
+        <input type="text" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="ip" placeholder="Adresse IP"/>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label class="col-sm-3 control-label">{{Mot de passe}}</label>
+    <div class="col-sm-3">
+        <input type="password" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="password" placeholder="Mot-de-passe"/>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label class="col-sm-3 control-label">{{Remote PIN}}</label>
+    <div class="col-sm-3">
+        <input type="password" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="remote_pin" placeholder="Remote PIN"/>
+    </div>
+  </div>
+
 </fieldset>
 </form>
 </div>

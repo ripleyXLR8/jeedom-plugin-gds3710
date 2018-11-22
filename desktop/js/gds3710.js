@@ -91,7 +91,6 @@ function addCmdToTable(_cmd) {
     jeedom.cmd.changeType($('#table_cmd tbody tr:last'), init(_cmd.subType));
 }
 
-
 $('.addAction').on('click', function () {
     addAction({}, $(this).attr('data-type'));
 });

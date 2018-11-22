@@ -108,7 +108,32 @@ class gds3710 extends eqLogic {
     }
 
     public function postSave() {
+        // Création de la commande open
+        $open = $this->getCmd(null, 'open');
+        if (!is_object($open)) {
+            $open = new gds3710Cmd();
+            $open->setName(__('Ouvrir la porte', __FILE__));
+        }
+        $open->setEqLogic_id($this->getId());
+        $open->setLogicalId('open');
+        $open->setType('action');
+        $open->setSubType('other');
+        $open->save();
 
+        // Création de la commande close
+        $close = $this->getCmd(null, 'close');
+        if (!is_object($close)) {
+            $close = new gds3710Cmd();
+            $close->setName(__('Fermer la porte', __FILE__));
+        }
+        $close->setEqLogic_id($this->getId());
+        $close->setLogicalId('close');
+        $close->setType('action');
+        $close->setSubType('other');
+        $close->save();
+
+
+        // Création de la commande last event
         $info = $this->getCmd('info', 'Last event');
         if (!is_object($info)) {
             $info = new gds3710Cmd();   
@@ -189,7 +214,40 @@ class gds3710Cmd extends cmd {
 
     /*     * ***********************Methode static*************************** */
 
+    private function open_door($type){
+        log::add('gds3710', 'info', 'Requesting door opening type : '.$type);
+        $gds3710 = eqLogic::byId($this->getEqLogic_id());
 
+        $ip = $gds3710->getConfiguration('ip');
+        $remote_pin = $gds3710->getConfiguration('remote_pin');
+        $password = $gds3710->getConfiguration('password');
+
+        $ch = curl_init();
+        $optArray = array(
+            CURLOPT_URL => 'https://'.$ip.'/goform/apicmd?cmd=0&user=admin',
+            CURLOPT_SSL_VERIFYPEER  => false,
+            CURLOPT_SSL_VERIFYHOST => false,
+            CURLOPT_RETURNTRANSFER => true
+        );
+        curl_setopt_array($ch, $optArray);
+        $auth_challenge = new SimpleXMLElement(curl_exec($ch));
+        $ChallengeCode = $auth_challenge->ChallengeCode[0];
+        $IDCode = $auth_challenge->IDCode[0];
+
+        $auth_response = md5($ChallengeCode.":".$remote_pin.":".$password);
+
+        $optArray = array(
+            CURLOPT_URL => 'https://'.$ip.'/goform/apicmd?cmd=1&user=admin&authcode='.$auth_response.'&idcode='.$IDCode.'&type='.$type,
+            CURLOPT_SSL_VERIFYPEER  => false,
+            CURLOPT_SSL_VERIFYHOST => false,
+            CURLOPT_RETURNTRANSFER => true
+        );
+
+        $ch = curl_init();
+        curl_setopt_array($ch, $optArray);
+        $data = curl_exec($ch);
+        log::add('gds3710', 'debug', 'result : '.print_r($data, true));
+    }
     /*     * *********************Methode d'instance************************* */
 
     /*
@@ -200,7 +258,15 @@ class gds3710Cmd extends cmd {
      */
 
     public function execute($_options = array()) {
-        
+        $eqlogic = $this->getEqLogic(); //récupère l'éqlogic de la commande $this
+        switch ($this->getLogicalId()) {    //vérifie le logicalid de la commande           
+            case 'open': // LogicalId de la commande rafraîchir que l’on a créé dans la méthode Postsave de la classe vdm . 
+                $this->open_door('1');
+                break;
+            case 'close': // LogicalId de la commande rafraîchir que l’on a créé dans la méthode Postsave de la classe vdm . 
+                $this->open_door('2');
+                break;
+        }
     }
 
     /*     * **********************Getteur Setteur*************************** */
