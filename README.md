@@ -6,7 +6,7 @@
 Ce plugin permet l'Intégration du portier GrandStream GDS3710 dans Jeedom. Dans sa version actuelle, il permet de récupérer dans Jeedom les évènements du portier dans Jeedom et de les via des scénariis ou des commandes.
 
 ## 2) Configuration du portier GrandStream GDS3710
-### a) Prérequis
+### a) Pré-requis
 Afin de récupérer les évènements générés par le portier nous allons utiliser la foncitonnalité "Event Notification" qui est disponible à partir de la version 10.0.3.32 du firmware du GrandStream GDS3710. Si vous disposez d'une version antérieure la fonctionnalité "Event notification" ne sera peut-être pas disponible et il vous faudra mettre à jour le firmware de votre GDS3710 vers la dernière version.
 ### b) Configuration de la fonctionnalité "Event Notification"
 - Rendez-vous dans l'interface de gestion de votre GDS3710 puis dans Maintenance -> Event Notification
@@ -19,16 +19,27 @@ Afin de récupérer les évènements générés par le portier nous allons utili
 
 ![GDS3710 Configuration](docs/assets/images/ConfigGDS3710.png)
 
-### c) Relevé de l'adresse Mac de votre portier
-- Rendez-vous dans l'interface de gestion de votre GDS3710 puis dans Status -> Network info
-- Relevez l'adresse Mac de votre portier, nous en aurons besoin plus tard.
+### c) Activation de l'API Http pour l'ouverture de la porte
+- Rendez-vous dans l'interface de gestion de votre GDS3710 puis dans Door System Settings -> Basic Settings.
+- Cochez la case "Enable HTTP API Remote Open Door"
+- Choisissez un PIN pour l'option "Remote PIN to Open Door"
+- Sauvegardez la configuration
 
-### d) Configuration du plugin
+NB : Assurez-vous d'avoir changer le mot-de-passe par défaut du compte admin avant d'activer cette fonctionnalité.
+
+### d) Relevé de l'adresse IP et de l'adresse Mac de votre portier
+- Rendez-vous dans l'interface de gestion de votre GDS3710 puis dans Status -> Network info
+- Relevez l'adresse Mac et l'adresse IP de votre portier, nous en aurons besoin plus tard.
+
+### e) Configuration du plugin
 - Une fois le plugins installé, créez un nouvel équipement "GDS3710", activez le.
 - Entrez l'adresse MAC (sans les ":") de votre portier dans le champs correspondant.
+- Entrez l'Adresse IP de votre portier dans le champs correspondant.
+- Saisissez le mot-de-passe du compte admin dans le champs correspondant.
+- Saisissez le Remote PIN dans le champs correspondant.
 - Sauvegardez les modifications apportées à l'équipement.
 
-**C'est terminé, votre Jeedom reçoit maintenant les notifications de votre portier.**
+**C'est terminé, tout est configuré.**
 
 ## 3) Utilisation
 ### a) Principe de fonctionnement
@@ -94,3 +105,5 @@ Lors de l'exécution du scénario, les informations reçues par jeedom seront tr
 ###  d) Utilisation de l'onglet commandes
 
 L'onglet commande contient des commandes de type info contenant pour chaque type d'évènement le dernier évènement reçue au format JSON. La commande "Last event" contient la dernier évèneement réceptionné.
+
+###  e) Ouverture et fermeture de la porte
