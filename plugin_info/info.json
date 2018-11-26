@@ -9,10 +9,10 @@
 	"hasDependency" : false,
 	"hasOwnDeamon" : false,
 	"maxDependancyInstallTime" : 0,
-	"changelog" : "",
-	"documentation" : "https://github.com/ripleyXLR8/jeedom-plugin-gds3710/blob/master/docs/fr_FR/index.md",
+	"changelog" : "https://ripleyxlr8.github.io/jeedom-plugin-gds3710/#language#/changelog",
+	"documentation" : "https://ripleyxlr8.github.io/jeedom-plugin-gds3710/#language#/",
 	"link" : {
-		"forum":"",
+		"forum":"https://www.jeedom.com/forum/viewtopic.php?t=40780",
 		"video" : ""
 	},
 	"language" : ["fr_FR"],
