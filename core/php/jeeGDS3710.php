@@ -16,13 +16,73 @@
  * along with Jeedom. If not, see <http://www.gnu.org/licenses/>.
  */
 
+
+// Avant tout on s'occupe de l'authentification du client.
+
 require_once __DIR__  . '/../../../../core/php/core.inc.php';
 
 set_time_limit(15);
 
+// Si la vérification du mot de passe est activée
+if(config::byKey('password_protection', 'gds3710', 'jeedom') == 1){
+    $realm = 'GDS3710 Jeedom Plugin Restricted area';
+    $nonce = uniqid();
+    $digest = getDigest();
+
+    if (is_null($digest)){
+        requireLogin($realm,$nonce);
+    }
+
+    $digestParts = digestParse($digest);
+
+    $validUser = config::byKey('login', 'gds3710', 'jeedom');
+    $validPass = config::byKey('password', 'gds3710', 'jeedom');
+    $A1 = md5("{$validUser}:{$realm}:{$validPass}");
+    $A2 = md5("{$_SERVER['REQUEST_METHOD']}:{$digestParts['uri']}");
+
+    $validResponse = md5("{$A1}:{$digestParts['nonce']}:{$digestParts['nc']}:{$digestParts['cnonce']}:{$digestParts['qop']}:{$A2}");
+
+    if ($digestParts['response']!=$validResponse){
+        log::add('gds3710', 'error', 'Authentification failed with data :'.print_r($_SERVER, true));
+        requireLogin($realm,$nonce);
+    } 
+}
+
 if ((php_sapi_name() != 'cli' || isset($_SERVER['REQUEST_METHOD']) || !isset($_SERVER['argc'])) && (config::byKey('api') != init('api') && init('api') != '')) {
-    echo 'Clef API non valide, vous n\'êtes pas autorisé à effectuer cette action (jeeTeleinfo)';
+    echo 'Clef API non valide, vous n\'êtes pas autorisé à effectuer cette action (jeeGDS3710)';
     die();
+}
+
+function getDigest() {
+    if (isset($_SERVER['PHP_AUTH_DIGEST'])) {
+        $digest = $_SERVER['PHP_AUTH_DIGEST'];
+    } elseif (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+        if (strpos(strtolower($_SERVER['HTTP_AUTHORIZATION']),'digest')===0)
+            $digest = substr($_SERVER['HTTP_AUTHORIZATION'], 7);
+    }
+    return $digest;
+}
+
+function requireLogin($realm,$nonce) {
+    header('WWW-Authenticate: Digest realm="' . $realm . '",qop="auth",nonce="' . $nonce . '",opaque="' . md5($realm) . '"');
+    header('HTTP/1.0 401 Unauthorized');
+    echo 'Vous n\'êtes pas autorisé à effectuer cette action (jeeGDS3710)';
+    die();
+}
+
+function digestParse($digest) {
+    // protect against missing data
+    $needed_parts = array('nonce'=>1, 'nc'=>1, 'cnonce'=>1, 'qop'=>1, 'username'=>1, 'uri'=>1, 'response'=>1);
+    $data = array();
+
+    preg_match_all('@(\w+)=(?:(?:")([^"]+)"|([^\s,$]+))@', $digest, $matches, PREG_SET_ORDER);
+
+    foreach ($matches as $m) {
+        $data[$m[1]] = $m[2] ? $m[2] : $m[3];
+        unset($needed_parts[$m[1]]);
+    }
+
+    return $needed_parts ? false : $data;
 }
 
 function getTypeFromLogicalID($type_requested){
