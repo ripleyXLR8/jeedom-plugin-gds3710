@@ -31,7 +31,7 @@ NB : Assurez-vous d'avoir changer le mot-de-passe par défaut du compte admin av
 - Rendez-vous dans l'interface de gestion de votre GDS3710 puis dans Status -> Network info
 - Relevez l'adresse Mac et l'adresse IP de votre portier, nous en aurons besoin plus tard.
 
-### f) Configuration du plugin
+### e) Configuration du plugin
 - Allez à la page de configuration du plugin et saisissez l'identifiant et le mot-de-passe que vous avez choisis à l'étape 2 - b.
 
 ### f) Configuration de votre équipement
