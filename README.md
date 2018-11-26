@@ -12,7 +12,7 @@ Afin de récupérer les évènements générés par le portier nous allons utili
 - Rendez-vous dans l'interface de gestion de votre GDS3710 puis dans Maintenance -> Event Notification
 - Cochez la case "Enable Event Notification"
 - Sélectionnez le type de communication avec le serveur "Http" ou "Https" selon la configuration de votre serveur Jeedom.
-- Laissez les champs Username et Password vierge.
+- Optionnel mais fortement recommandé : Saisissez un identifiant et un mot de passe que votre portier devra fournir a Jeedom pour publier un évènement.
 - Dans champs "HTTP/HTTPS Server", entrez la chaine suivante en remplacant IP_DE_VOTRE_JEEDOM par l'adresse IP de votre serveur Jeedom : `"IP_DE_VOTRE_JEEDOM/plugins/gds3710/core/php/jeeGDS3710.php"`
 - Dans le champs URL Template, entrez la chaine suivante : `mac=${MAC}&content=${WARNING_MSG}&type=${TYPE}&date=${DATE}&card=${CARDID}&sip=${SIPNUM}`
 - Sauvegarder la configuration.
@@ -31,7 +31,10 @@ NB : Assurez-vous d'avoir changer le mot-de-passe par défaut du compte admin av
 - Rendez-vous dans l'interface de gestion de votre GDS3710 puis dans Status -> Network info
 - Relevez l'adresse Mac et l'adresse IP de votre portier, nous en aurons besoin plus tard.
 
-### e) Configuration du plugin
+### f) Configuration du plugin
+- Allez à la page de configuration du plugin et saisissez l'identifiant et le mot-de-passe que vous avez choisis à l'étape 2 - b.
+
+### f) Configuration de votre équipement
 - Une fois le plugins installé, créez un nouvel équipement "GDS3710", activez le.
 - Entrez l'adresse MAC (sans les ":") de votre portier dans le champs correspondant.
 - Entrez l'Adresse IP de votre portier dans le champs correspondant.
