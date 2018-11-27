@@ -118,6 +118,7 @@ class gds3710 extends eqLogic {
         $open->setLogicalId('open');
         $open->setType('action');
         $open->setSubType('other');
+        $open->setIsVisible(1);
         $open->save();
 
         // Création de la commande close
@@ -130,6 +131,7 @@ class gds3710 extends eqLogic {
         $close->setLogicalId('close');
         $close->setType('action');
         $close->setSubType('other');
+        $close->setIsVisible(0);
         $close->save();
 
 
@@ -141,6 +143,7 @@ class gds3710 extends eqLogic {
             $info->setType('info');
             $info->setSubType('string');
             $info->setLogicalId('Last event');
+            $info->setIsVisible(0);
             $info->setEqLogic_id($this->getId());
             $info->save();
         }
@@ -154,6 +157,7 @@ class gds3710 extends eqLogic {
                 $info->setName(__($row['type'], __FILE__));
                 $info->setType('info');
                 $info->setSubType('string');
+                $info->setIsVisible(0);
                 $info->setLogicalId($row['short_name']);
                 $info->setEqLogic_id($this->getId());
                 $info->save();

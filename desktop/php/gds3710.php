@@ -37,7 +37,7 @@
       <div class="cursor eqLogicAction" data-action="gotoPluginConf" style="text-align: center; background-color : #ffffff; height : 120px;margin-bottom : 10px;padding : 5px;border-radius: 2px;width : 160px;margin-left : 10px;">
       <i class="fa fa-wrench" style="font-size : 6em;color:#767676;"></i>
     <br>
-    <span style="font-size : 1.1em;position:relative; top : 15px;word-break: break-all;white-space: pre-wrap;word-wrap: break-word;color:#767676">{{Configuration}}</span>
+    <span style="font-size : 1.1em;position:relative; top : 23px;word-break: break-all;white-space: pre-wrap;word-wrap: break-word;color:#767676">{{Configuration}}</span>
   </div>
   </div>
   <legend><i class="fa fa-table"></i> {{Liste des équipements}}</legend>
@@ -170,7 +170,11 @@
   <table id="table_cmd" class="table table-bordered table-condensed">
       <thead>
           <tr>
-              <th style="width:250px;">{{Type d'évènement}}</th><th style="width:250px;">{{Type}}</th><th>{{Dernier évènement}}</th><th style="width:150px;">{{Action}}</th>
+              <th style="width:250px;">{{Type d'évènement}}</th>
+              <th style="width:250px;">{{Type}}</th>
+              <th>{{Dernier évènement}}</th>
+              <th style="width:250px;">{{Paramètres}}</th>
+              <th style="width:150px;">{{Action}}</th>
           </tr>
       </thead>
       <tbody>
