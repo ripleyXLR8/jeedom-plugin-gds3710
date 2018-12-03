@@ -1,5 +1,8 @@
 # Change Log - Plugin GDS 3710
 
+### 27/11/2018
+- Ajout de la possibilité de masquer une commande dans la liste des commandes.
+
 ### 26/11/2018
 - Sécurisation de la communication entre le portier et Jeedom via l'authentification http du portier.
 
