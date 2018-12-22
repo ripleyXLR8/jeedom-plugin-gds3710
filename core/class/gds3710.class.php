@@ -108,6 +108,13 @@ class gds3710 extends eqLogic {
     }
 
     public function postSave() {
+
+        $MAC = $this->getConfiguration('macaddress');
+        if($MAC != ''){
+            $this->setLogicalId(strtolower($MAC));
+            $this->save(true);
+        }
+
         // Création de la commande open
         $open = $this->getCmd(null, 'open');
         if (!is_object($open)) {
@@ -133,6 +140,22 @@ class gds3710 extends eqLogic {
         $close->setSubType('other');
         $close->setIsVisible(0);
         $close->save();
+
+        // Création de la commande stream_mjpeg
+        $stream_mjpeg = $this->getCmd('info', 'stream_mjpeg');
+        if (!is_object($stream_mjpeg)) {
+            $stream_mjpeg = new gds3710Cmd();
+            $stream_mjpeg->setName(__('Stream MJPEG', __FILE__));
+        }
+        $stream_mjpeg->setEqLogic_id($this->getId());
+        $stream_mjpeg->setLogicalId('stream_mjpeg');
+        $stream_mjpeg->setType('info');
+        $stream_mjpeg->setSubType('string');
+        $stream_mjpeg->setTemplate('dashboard', 'mjpegstream');
+        $stream_mjpeg->setTemplate('mobile', 'mjpegstream');
+        $stream_mjpeg->setIsVisible(1);
+        $stream_mjpeg->event('/plugins/gds3710/core/php/camera.php?mac='.$MAC);
+        $stream_mjpeg->save();
 
 
         // Création de la commande last event
@@ -164,13 +187,6 @@ class gds3710 extends eqLogic {
             } 
         }
 
-        $MAC = $this->getConfiguration('macaddress');
-        if($MAC != ''){
-            $this->setLogicalId(strtolower($MAC));
-            $this->save(true);
-        }
-
-
         return;
     }
 
@@ -191,41 +207,41 @@ class gds3710 extends eqLogic {
     }
 
 
-    public function toHtml($_version = 'dashboard') {
-         $replace = $this->preToHtml($_version);
-         if (!is_array($replace)) {
-             return $replace;
-         }
-         $version = jeedom::versionAlias($_version);
-         if ($this->getDisplay('hideOn' . $version) == 1) {
-             return '';
-         }
-        /* ------------ Ajouter votre code ici ------------*/
+    // public function toHtml($_version = 'dashboard') {
+    //      $replace = $this->preToHtml($_version);
+    //      if (!is_array($replace)) {
+    //          return $replace;
+    //      }
+    //      $version = jeedom::versionAlias($_version);
+    //      if ($this->getDisplay('hideOn' . $version) == 1) {
+    //          return '';
+    //      }
+    //     /* ------------ Ajouter votre code ici ------------*/
 
-        $replace['#MAC#'] = $this->getLogicalId();
+    //     $replace['#MAC#'] = $this->getLogicalId();
 
-        foreach ($this->getCmd('info') as $cmd) {
+    //     foreach ($this->getCmd('info') as $cmd) {
 
-            //return $cmd->getLogicalId();
-            // $replace['#' . $cmd->getLogicalId() . '_history#'] = '';
-            // $replace['#' . $cmd->getLogicalId() . '_id#'] = $cmd->getId();
-            // $replace['#' . $cmd->getLogicalId() . '#'] = $cmd->execCmd();
-            // $replace['#' . $cmd->getLogicalId() . '_collect#'] = $cmd->getCollectDate();
-            // if ($cmd->getLogicalId() == 'encours'){
-            //     $replace['#thumbnail#'] = $cmd->getDisplay('icon');
-            // }
-            // if ($cmd->getIsHistorized() == 1) {
-            //     $replace['#' . $cmd->getLogicalId() . '_history#'] = 'history cursor';
-            // }
-        }
+    //         //return $cmd->getLogicalId();
+    //         // $replace['#' . $cmd->getLogicalId() . '_history#'] = '';
+    //         // $replace['#' . $cmd->getLogicalId() . '_id#'] = $cmd->getId();
+    //         // $replace['#' . $cmd->getLogicalId() . '#'] = $cmd->execCmd();
+    //         // $replace['#' . $cmd->getLogicalId() . '_collect#'] = $cmd->getCollectDate();
+    //         // if ($cmd->getLogicalId() == 'encours'){
+    //         //     $replace['#thumbnail#'] = $cmd->getDisplay('icon');
+    //         // }
+    //         // if ($cmd->getIsHistorized() == 1) {
+    //         //     $replace['#' . $cmd->getLogicalId() . '_history#'] = 'history cursor';
+    //         // }
+    //     }
 
-        foreach ($this->getCmd('action') as $cmd) {
-            //$replace['#' . $cmd->getLogicalId() . '_id#'] = $cmd->getId();
-        }
-        /* ------------ N'ajouter plus de code apres ici------------ */
+    //     foreach ($this->getCmd('action') as $cmd) {
+    //         //$replace['#' . $cmd->getLogicalId() . '_id#'] = $cmd->getId();
+    //     }
+    //     /* ------------ N'ajouter plus de code apres ici------------ */
 
-         return $this->postToHtml($_version, template_replace($replace, getTemplate('core', $version, 'gds3710', 'gds3710')));
-    }
+    //      return $this->postToHtml($_version, template_replace($replace, getTemplate('core', $version, 'gds3710', 'gds3710')));
+    // }
      
 
     
@@ -306,5 +322,7 @@ class gds3710Cmd extends cmd {
 
     /*     * **********************Getteur Setteur*************************** */
 }
+
+
 
 
