@@ -141,6 +141,19 @@ class gds3710 extends eqLogic {
         $close->setIsVisible(0);
         $close->save();
 
+        // Création de la commande snapshot
+        // $snapshot = $this->getCmd(null, 'snapshot');
+        // if (!is_object($snapshot)) {
+        //     $snapshot = new gds3710Cmd();
+        //     $snapshot->setName(__('Prendre un snapshot', __FILE__));
+        // }
+        // $snapshot->setEqLogic_id($this->getId());
+        // $snapshot->setLogicalId('snapshot');
+        // $snapshot->setType('action');
+        // $snapshot->setSubType('other');
+        // $snapshot->setIsVisible(1);
+        // $snapshot->save();
+
         // Création de la commande stream_mjpeg
         $stream_mjpeg = $this->getCmd('info', 'stream_mjpeg');
         if (!is_object($stream_mjpeg)) {
@@ -299,6 +312,91 @@ class gds3710Cmd extends cmd {
         $data = curl_exec($ch);
         log::add('gds3710', 'debug', 'result : '.print_r($data, true));
     }
+
+    private function take_snapshot(){
+        log::add('gds3710', 'debug', 'Requesting snapshot');
+
+        $gds3710 = eqLogic::byId($this->getEqLogic_id());
+
+        $ip = $gds3710->getConfiguration('ip');
+        $password = $gds3710->getConfiguration('password');
+        $salt = 'GDS3710lDyTlHwNgZ';
+
+        $ch = curl_init();
+        $optArray = array(
+            CURLOPT_URL => 'https://'.$ip.'/goform/login?cmd=login&user=admin&type=1',   
+            CURLOPT_SSL_VERIFYPEER  => false,
+            CURLOPT_SSL_VERIFYHOST => false,
+            CURLOPT_RETURNTRANSFER => true
+        );
+        curl_setopt_array($ch, $optArray);
+        $data = curl_exec($ch);
+        $auth_challenge = new SimpleXMLElement($data);
+        $ChallengeCode = $auth_challenge->ChallengeCode[0];
+        $string_to_be_hashed = $ChallengeCode.":".$salt.":".$password;
+        $auth_response = md5($string_to_be_hashed);
+        $url ='https://'.$ip.'/goform/login?cmd=login&user=admin&authcode='.$auth_response.'&type=1';
+
+        $optArray = array(
+            CURLOPT_URL => $url,         
+            CURLOPT_SSL_VERIFYPEER  => false,
+            CURLOPT_SSL_VERIFYHOST => false,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HEADER => true
+        );
+
+        $ch = curl_init();
+        curl_setopt_array($ch, $optArray);
+        $data = curl_exec($ch);
+        preg_match_all('/^Set-Cookie:\s*([^;]*)/mi', $data, $matches);
+        $cookies = array();
+        foreach($matches[1] as $item) {
+            parse_str($item, $cookie);
+            $cookies = array_merge($cookies, $cookie);
+        }
+
+        $cookies_string = '';
+        foreach($cookies as $key => $value){
+            $cookies_string=$cookies_string.$key."=".$value.";";
+        }
+        $cookies_string = rtrim($cookies_string,';');
+        log::add('gds3710', 'debug',$cookies_string);
+
+        $url ='https://'.$ip.'/snapshot/view0.jpg';
+
+        $fp = fopen(realpath(dirname(__FILE__)).'/test.jpeg','x');
+
+        $optArray = array(
+            CURLOPT_URL => $url,         
+            CURLOPT_SSL_VERIFYPEER  => false,
+            CURLOPT_SSL_VERIFYHOST => false,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_COOKIE => $cookies_string,
+            CURLOPT_HEADER => false,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_BINARYTRANSFER => true,
+            CURLOPT_FILE => $fp
+        );
+
+        $ch = curl_init();
+        curl_setopt_array($ch, $optArray);
+        $data = curl_exec($ch);
+        curl_close ($ch);
+        fclose($fp);
+
+
+        //fwrite($fp, $data);
+        //fclose($fp);
+        //log::add('gds3710', 'debug', 'result : '.print_r($data, true));
+        log::add('gds3710', 'debug', basename(__DIR__));
+        //
+        //log::add('gds3710', 'debug', 'result : '.print_r($cookies, true));
+
+        //curl_setopt($ch, CURLOPT_COOKIE, "CookieName=CookieValue;anotherCookieName=anotherCookieValue");
+
+
+
+    }
     /*     * *********************Methode d'instance************************* */
 
     /*
@@ -316,6 +414,9 @@ class gds3710Cmd extends cmd {
                 break;
             case 'close': // LogicalId de la commande rafraîchir que l’on a créé dans la méthode Postsave de la classe vdm . 
                 $this->open_door('2');
+                break;
+            case 'snapshot':
+                $this->take_snapshot();
                 break;
         }
     }
