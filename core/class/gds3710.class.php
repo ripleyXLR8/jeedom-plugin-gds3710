@@ -364,7 +364,8 @@ class gds3710Cmd extends cmd {
 
         $url ='https://'.$ip.'/snapshot/view0.jpg';
 
-        $fp = fopen(realpath(dirname(__FILE__)).'/test.jpeg','x');
+        $filename='snapshot_'.date('d-m-Y-h:ia');
+        $fp = fopen(realpath(dirname(__FILE__)).'/../template/'.$filename.'.jpeg','x');
 
         $optArray = array(
             CURLOPT_URL => $url,         
@@ -388,7 +389,10 @@ class gds3710Cmd extends cmd {
         //fwrite($fp, $data);
         //fclose($fp);
         //log::add('gds3710', 'debug', 'result : '.print_r($data, true));
-        log::add('gds3710', 'debug', basename(__DIR__));
+        
+        
+        log::add('gds3710', 'debug', $name);
+
         //
         //log::add('gds3710', 'debug', 'result : '.print_r($cookies, true));
 
