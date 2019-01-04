@@ -136,7 +136,9 @@ if(isset($_POST['type']) && $_POST['type'] != ''){ // On vérifie qu'un type a b
 
     $action_list = $gds3710->getConfiguration($logical_id); // On récupère la configuration à partir du type
     log::add('gds3710', 'debug', "Action list for the command has been retrieved");
+    log::add('gds3710', 'debug', "Action list is : ".print_r($action_list, true));
     foreach ($action_list as $action) { // On va itérer sur la liste des commandes présentes dans la configuration
+    	log::add('gds3710', 'debug', "Trying to execute action : ".print_r($action, true));
         try {
             $cmd = cmd::byId(str_replace('#', '', $action['cmd']));
             $options = array();
@@ -146,11 +148,9 @@ if(isset($_POST['type']) && $_POST['type'] != ''){ // On vérifie qu'un type a b
                 if(isset($action['options']['scenario_id'])){
                     $options['tags'] = $options['tags'].' mac="'.$_POST['mac'].'" content="'.$_POST['content'].'" type="'.$_POST['type'].'" warning="'.$_POST['warning'].'" date="'.$_POST["date"].'" card="'.$_POST['card'].'" sip="'.$_POST['sip'].'"';
                 }
-                //foreach ($options as $key => $value) {
-                    //log::add('gds3710','debug',$key.' : '.$value);
-                //}
+
             }
-            //log::add('gds3710', 'debug', "Commande ".print_r($action['cmd'],true)." will be executed with option.".print_r($options, true));
+            log::add('gds3710', 'debug', "with options : ".print_r($options, true));
             scenarioExpression::createAndExec('action', $action['cmd'], $options);
             log::add('gds3710', 'debug', "Commande ".print_r($action['cmd'],true)." has been executed with option.".print_r($options, true));
 

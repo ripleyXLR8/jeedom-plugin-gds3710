@@ -142,17 +142,32 @@ class gds3710 extends eqLogic {
         $close->save();
 
         // Création de la commande snapshot
-        // $snapshot = $this->getCmd(null, 'snapshot');
-        // if (!is_object($snapshot)) {
-        //     $snapshot = new gds3710Cmd();
-        //     $snapshot->setName(__('Prendre un snapshot', __FILE__));
-        // }
-        // $snapshot->setEqLogic_id($this->getId());
-        // $snapshot->setLogicalId('snapshot');
-        // $snapshot->setType('action');
-        // $snapshot->setSubType('other');
-        // $snapshot->setIsVisible(1);
-        // $snapshot->save();
+        //  $snapshot = $this->getCmd(null, 'snapshot');
+        //  if (!is_object($snapshot)) {
+        //      $snapshot = new gds3710Cmd();
+        //      $snapshot->setName(__('Prendre un snapshot', __FILE__));
+        //  }
+        //  $snapshot->setEqLogic_id($this->getId());
+        //  $snapshot->setLogicalId('snapshot');
+        //  $snapshot->setType('action');
+        //  $snapshot->setSubType('other');
+        //  $snapshot->setTemplate('dashboard', 'snapshot');
+        //  $snapshot->setIsVisible(1);
+        //  $snapshot->save();
+
+        // // Création de la commande d'historique
+        //  $history = $this->getCmd(null, 'Open_Snapshots_Folder');
+        //  if (!is_object($history)) {
+        //      $history = new gds3710Cmd();
+        //      $history->setName(__('Ouvrir le dossier des captures', __FILE__));
+        //  }
+        //  $history->setEqLogic_id($this->getId());
+        //  $history->setLogicalId('Open_Snapshots_Folder');
+        //  $history->setType('action');
+        //  $history->setSubType('other');
+        //  $history->setTemplate('dashboard', 'snapshot_folder');
+        //  $history->setIsVisible(1);
+        //  $history->save();
 
         // Création de la commande stream_mjpeg
         $stream_mjpeg = $this->getCmd('info', 'stream_mjpeg');

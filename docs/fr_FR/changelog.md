@@ -1,5 +1,14 @@
 # Change Log - Plugin GDS 3710
 
+### 04/01/2019
+- Ajout de ligne de debug lors de l'éxécution des actions
+
+### 01/01/2019
+- Correction d'un bug d'éxécution des actions détecté par @moicphil
+
+### 27/12/2018
+- Correction d'un bug d'affichage du flux MJPEG detecté par @xiringuito
+
 ### 22/12/2018
 - Amélioration du widget dashboard et mobile.
 
