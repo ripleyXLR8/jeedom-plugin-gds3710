@@ -26,7 +26,13 @@ try {
     
     ajax::init();
 
-
+    if (init('action') == 'removeRecord') {
+		$file = init('file');
+		$file = str_replace('..', '', $file);
+		$record_dir = calculPath(config::byKey('recdir', 'gds3710'));
+		shell_exec('rm -rf ' . $record_dir . '/' . $file);
+		ajax::success();
+	}
 
     throw new Exception(__('Aucune méthode correspondante à : ', __FILE__) . init('action'));
     /*     * *********Catch exeption*************** */

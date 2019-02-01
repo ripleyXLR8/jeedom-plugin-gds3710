@@ -329,7 +329,7 @@ class gds3710Cmd extends cmd {
     }
 
     private function take_snapshot(){
-        log::add('gds3710', 'debug', 'Requesting snapshot');
+        log::add('gds3710', 'debug', 'Snapshot has been requested');
 
         $gds3710 = eqLogic::byId($this->getEqLogic_id());
 
@@ -375,12 +375,20 @@ class gds3710Cmd extends cmd {
             $cookies_string=$cookies_string.$key."=".$value.";";
         }
         $cookies_string = rtrim($cookies_string,';');
-        log::add('gds3710', 'debug',$cookies_string);
 
         $url ='https://'.$ip.'/snapshot/view0.jpg';
 
-        $filename='snapshot_'.date('d-m-Y-h:ia');
-        $fp = fopen(realpath(dirname(__FILE__)).'/../template/'.$filename.'.jpeg','x');
+        $filename=$gds3710->getName()."_".date('Y-m-d_H-i-s');
+
+        $dir = calculPath(config::byKey('recdir', 'gds3710')) . '/' . $gds3710->getId();
+
+        if (!file_exists($dir)) {
+            log::add('gds3710', 'debug', "Directory doesn't exist, creating : ".$dir);
+            mkdir($dir, 0777, true);
+        }
+
+        $fp = fopen($dir.'/'.$filename.'.jpg','x');
+        log::add('gds3710', 'debug', 'Trying to create the capture under : '.$dir.'/'.$filename.'.jpg');
 
         $optArray = array(
             CURLOPT_URL => $url,         
@@ -399,22 +407,7 @@ class gds3710Cmd extends cmd {
         $data = curl_exec($ch);
         curl_close ($ch);
         fclose($fp);
-
-
-        //fwrite($fp, $data);
-        //fclose($fp);
-        //log::add('gds3710', 'debug', 'result : '.print_r($data, true));
-        
-        
-        log::add('gds3710', 'debug', $name);
-
-        //
-        //log::add('gds3710', 'debug', 'result : '.print_r($cookies, true));
-
-        //curl_setopt($ch, CURLOPT_COOKIE, "CookieName=CookieValue;anotherCookieName=anotherCookieValue");
-
-
-
+        log::add('gds3710', 'debug', 'Closing the file');
     }
     /*     * *********************Methode d'instance************************* */
 

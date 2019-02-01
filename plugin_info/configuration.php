@@ -28,7 +28,7 @@ if (!isConnect()) {
         <legend>{{Configuration du serveur}}</legend>
         <div class="form-group">
             <label class="col-lg-3 control-label">Activer la protection par mot de passe</label>
-            <div id="div_password_protection" class="col-lg-3 tooltips" title="{{ Veuillez regarder la documentation pour identifier votre compteur }}">
+            <div id="div_password_protection" class="col-lg-3 tooltips" title="{{ IMPORTANT : Veuillez lire la documentation pour en savoir plus }}">
                 <input type="checkbox" id="password_protection" class="configKey" data-l1key="password_protection" placeholder="{{}}"/>
                 <label for="password_protection">  </label>
                 <label id="label_password_protection" style="color:red;margin-left:100px;margin-top:-15px;display:none">ATTENTION : l'activation de cette option est très fortement encouragée. Elle est obligatoire dans le cas ou des actions critiques de sécurité sont déclenchées lors d'évènements générés par le portier.</label>
@@ -58,6 +58,11 @@ if (!isConnect()) {
            <label class="col-lg-3 control-label">{{Mot de passe }}<sup><i class="fa fa-question-circle tooltips" title="{{Il s'agit du mot de passe que votre portier devra fournir pour publier ses évènements dans Jeedom.}}" style="font-size : 1em;color:grey;"></i></sup></label>
            <div class="col-lg-2">
             <input type="password" class="configKey" data-l1key="password" />
+        </div>
+        <div id="reddir-form-group" class="form-group">
+           <label class="col-lg-3 control-label">{{Répertoire d'enregistrement des captures }}<sup><i class="fa fa-question-circle tooltips" title="{{Il s'agit du répertoire dans lequel seront enregistré les captures.}}" style="font-size : 1em;color:grey;"></i></sup></label>
+           <div class="col-lg-2">
+            <input type="text" class="configKey" data-l1key="recdir" />
         </div>
     </div>
 </fieldset>

@@ -2,11 +2,11 @@
         <a class="btn btn-sm btn-default action cmdName tooltips" title="#name#" style="background-color:#cmdColor# !important;border-color : transparent !important;">
             <span class="iconCmd"></span>
         </a>
-        <div class="snapshot_folder" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" title="#name_display#">
+<!--         <div class="snapshot_folder" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" title="#name_display#">
             <span>test</span>
-        </div>
+        </div> -->
     <script>
-        $(".snapshot_folder[data-eqLogic_uid=#uid#]").dialog({
+        /*$(".snapshot_folder[data-eqLogic_uid=#uid#]").dialog({
           autoOpen: false,
           modal: true,
           resizable: false,
@@ -29,7 +29,7 @@
           beforeClose: function (event, ui) {
             $("body").css({overflow: 'inherit'});
             }
-        });
+        });*/
 
         jeedom.cmd.update['#id#'] = function(_options){
             console.log(_options);
@@ -49,12 +49,21 @@
                 }
             }
         }
+
         jeedom.cmd.update['#id#']({display_value:'#state#'});
-        $('.cmd[data-cmd_uid=#uid#] .action').off().on('click', function () {
-            //jeedom.cmd.execute({id: '#id#'});
-            $(".snapshot_folder[data-eqLogic_uid=#uid#]").dialog("open");
-            //console.log('test');
+
+        $('.cmd[data-cmd_id=#id#]').off().on('click', function () {
+          $('#md_modal').dialog({title: "Historique"});
+          $('#md_modal').load('index.php?v=d&plugin=gds3710&modal=gds3710.history&id=#id#').dialog('open');
         });
+
+/*        $('.cmd[data-cmd_uid=#uid#] .action').off().on('click', function () {
+            //jeedom.cmd.execute({id: '#id#'});
+            //$(".snapshot_folder[data-eqLogic_uid=#uid#]").dialog("open");
+            $(".snapshot_folder[data-eqLogic_uid=#uid#]").load('index.php?v=d&plugin=gds3710&modal=modal.gds3710&id=#id#').dialog('open');
+            //console.log('test');
+        });*/
+
         if ($('.cmd[data-cmd_uid=#uid#]:last').prev().data('subtype') != undefined && $('.cmd[data-cmd_id=#id#]:last').prev().data('subtype') != 'other'
                 && $('.cmd[data-cmd_uid=#uid#]:last').prev().css('display') != 'block') {
             $('.cmd[data-cmd_uid=#uid#]:last').prepend('<br/>');
