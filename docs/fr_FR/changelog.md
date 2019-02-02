@@ -1,5 +1,11 @@
 # Change Log - Plugin GDS 3710
 
+### 02//02/2019
+- Correction d'un bug empêchant l'apparation des commandes "Prendre un snapshot" et "Historique des snapshopt"
+
+### 01/02/2019
+- Ajout des commandes "Prendre un snapshot" et "Historique des snapshopt"
+
 ### 04/01/2019
 - Ajout de ligne de debug lors de l'éxécution des actions
 
