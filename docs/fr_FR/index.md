@@ -1,4 +1,4 @@
-Plugin GDS 3710
+# Plugin GDS 3710
 > Version du 5 mars 2019
 > by Richard Perez | richard@perez-mail.fr
 
@@ -7,20 +7,20 @@ Ce plugin permet l'intégration du portier GrandStream GDS3710 dans Jeedom. Dans
 - Récupérer es évènements du portier et de les gérer via des scénariis ou des commandes.
 - D'afficher le flux MJPEG du portier dans un widget de dashboard ou de mobile.
 - D'enregistrer des images extraites du flux MJPEG.
-- De consulter les images enregistrées via un explorateur.
-- D'envoyer des images enregistrées via une autre commmandes (testé avec le plugin Telegram).
+- De consulter les images enregistrées via une bibliothèque intégrée.
+- D'envoyer des images enregistrées via une autre commmande (testé avec le plugin Telegram).
 
 # Configuration du portier GrandStream GDS3710
-## Prérequis
+## Pré-requis
 Afin de récupérer les évènements générés par le portier nous allons utiliser la foncitonnalité "Event Notification" qui est disponible à partir de la version 10.0.3.32 du firmware du GrandStream GDS3710. Si vous disposez d'une version antérieure la fonctionnalité "Event notification" ne sera peut-être pas disponible et il vous faudra mettre à jour le firmware de votre GDS3710 vers la dernière version.
 
 ## Configuration de la fonctionnalité "Event Notification"
-- Rendez-vous dans l'interface de gestion de votre GDS3710 puis dans Maintenance -> Event Notification
-- Cochez la case "Enable Event Notification"
+- Rendez-vous dans l'interface de gestion de votre GDS3710 puis dans Maintenance -> Event Notification.
+- Cochez la case "Enable Event Notification".
 - Sélectionnez le type de communication avec le serveur "http" ou "https" selon la configuration de votre serveur Jeedom.
 - Optionnel mais fortement recommandé : Saisissez un identifiant et un mot de passe que votre portier devra fournir a Jeedom pour publier un évènement.
-- Dans champs "HTTP/HTTPS Server", entrez la chaine suivante en remplacant IP_DE_VOTRE_JEEDOM par l'adresse IP de votre serveur Jeedom : `"IP_DE_VOTRE_JEEDOM/plugins/gds3710/core/php/jeeGDS3710.php"`
-- Dans le champs URL Template, entrez la chaine suivante : `mac=${MAC}&content=${WARNING_MSG}&type=${TYPE}&date=${DATE}&card=${CARDID}&sip=${SIPNUM}`
+- Dans champs "HTTP/HTTPS Server", entrez la chaine suivante en remplacant IP_DE_VOTRE_JEEDOM par l'adresse IP de votre serveur Jeedom : `"IP_DE_VOTRE_JEEDOM/plugins/gds3710/core/php/jeeGDS3710.php"`.
+- Dans le champs URL Template, entrez la chaine suivante : `mac=${MAC}&content=${WARNING_MSG}&type=${TYPE}&date=${DATE}&card=${CARDID}&sip=${SIPNUM}`.
 - Sauvegarder la configuration.
 
 ![GDS3710 Configuration](../assets/images/ConfigGDS3710.png)
@@ -31,20 +31,20 @@ Afin de récupérer les évènements générés par le portier nous allons utili
 
 ## Activation de l'API HTTP pour l'ouverture de la porte
 - Rendez-vous dans l'interface de gestion de votre GDS3710 puis dans Door System Settings -> Basic Settings.
-- Cochez la case "Enable HTTP API Remote Open Door"
-- Choisissez un PIN pour l'option "Remote PIN to Open Door"
-- Sauvegardez la configuration
+- Cochez la case "Enable HTTP API Remote Open Door".
+- Choisissez un PIN pour l'option "Remote PIN to Open Door".
+- Sauvegardez la configuration.
 
 NB : Assurez-vous d'avoir changer le mot-de-passe par défaut du compte admin avant d'activer cette fonctionnalité.
 
 ## Relevez de l'adresse IP et de l'adresse Mac de votre portier
-- Rendez-vous dans l'interface de gestion de votre GDS3710 puis dans Status -> Network info
+- Rendez-vous dans l'interface de gestion de votre GDS3710 puis dans Status -> Network info.
 - Relevez l'adresse Mac et l'adresse IP de votre portier, nous en aurons besoin plus tard.
 
 # Configuration du plugin GDS3710
 ## Configuration générale
-- Allez à la page de configuration du plugin et saisissez l'identifiant et le mot-de-passe que vous avez choisis à l'étape "Configuration de la fonctionnalité "Event Notification"".
-- Renseignez un répertoire pour le stockage des captures d'écran par défaut ce répertoire est : "plugins/gds3710/data/records".
+- Allez à la page de configuration du plugin et saisissez l'identifiant et le mot-de-passe que vous avez choisis à l'étape "Configuration de la fonctionnalité 'Event Notification'".
+- Renseignez un répertoire pour le stockage des captures d'écran. Par défaut ce répertoire est : "plugins/gds3710/data/records".
 
 ## Création et configuration de votre équipement
 - Une fois le plugins installé, créez un nouvel équipement "GDS3710" et activez le.
@@ -117,7 +117,7 @@ Lors de l'exécution du scénario, les informations reçues par jeedom seront tr
 |#card#|Contient le numéro de la carte relatif à la notification|
 
 ## Utilisation des commandes de type INFO de l'équipement
-L'onglet commandes contient des commandes de type info contenant pour chaque type d'évènement le dernier évènement reçue au format JSON. La commande "Last event" contient la dernier évèneement réceptionné.
+L'onglet "commandes" contient des commandes de type info contenant pour chaque type d'évènement le dernier évènement reçue au format JSON. La commande "Last event" contient la dernier évèneement réceptionné.
 
 ## Utilisation des commandes de type ACTION de l'équipement
 L'équipement dispose de commandes de type ACTION permettant de réaliser les actions suivantes :
@@ -125,10 +125,10 @@ L'équipement dispose de commandes de type ACTION permettant de réaliser les ac
 - Fermeture de la porte.
 - Réalisation d'une capture d'écran.
 
-## Envoi de capture du flux MJPEG via un scénario
+## Envoi de captures du flux MJPEG via un scénario
 Le plugin vous permet de transmettre des captures du flux MJPEG par l'intermédiaire d'un plugin tiers (testé avec Telegram).
-- Ajoutez un bloc d'action dans un scénario et sélectionnez la commande [Envoyer un snapshot] de votre équipement GDS3710.
-- Dans le champs "Nombre captures ou options" entrez le nombre de capture a envoyer.
-- Dans le champs "Commande message d'envoi des captures" sélectionner la commande pour envoyer la capture (votre bot Telegram).
+- Ajoutez un bloc d'action dans un scénario et sélectionnez la commande "[Envoyer un snapshot]" de votre équipement GDS3710.
+- Dans le champs "Nombre captures ou options" entrez le nombre de captures à envoyer.
+- Dans le champs "Commande message d'envoi des captures" sélectionner la commande pour envoyer la ou les captures (il s'agit de la commande de votre bot Telegram).
 
 ![Envoyer un snapshot dans un scénario](../assets/images/EnvoyerCaptureGDS3710.png)
