@@ -1,17 +1,23 @@
-# Plugin GDS 3710
+Plugin GDS 3710
+> Version du 5 mars 2019
 > by Richard Perez | richard@perez-mail.fr
 
-## 1) Introduction
+# Introduction
+Ce plugin permet l'intégration du portier GrandStream GDS3710 dans Jeedom. Dans sa version actuelle (5 mars 2019), il permet de :
+- Récupérer es évènements du portier et de les gérer via des scénariis ou des commandes.
+- D'afficher le flux MJPEG du portier dans un widget de dashboard ou de mobile.
+- D'enregistrer des images extraites du flux MJPEG.
+- De consulter les images enregistrées via un explorateur.
+- D'envoyer des images enregistrées via une autre commmandes (testé avec le plugin Telegram).
 
-Ce plugin permet l'Intégration du portier GrandStream GDS3710 dans Jeedom. Dans sa version actuelle, il permet de récupérer dans Jeedom les évènements du portier dans Jeedom et de les via des scénariis ou des commandes.
-
-## 2) Configuration du portier GrandStream GDS3710
-### a) Prérequis
+# Configuration du portier GrandStream GDS3710
+## Prérequis
 Afin de récupérer les évènements générés par le portier nous allons utiliser la foncitonnalité "Event Notification" qui est disponible à partir de la version 10.0.3.32 du firmware du GrandStream GDS3710. Si vous disposez d'une version antérieure la fonctionnalité "Event notification" ne sera peut-être pas disponible et il vous faudra mettre à jour le firmware de votre GDS3710 vers la dernière version.
-### b) Configuration de la fonctionnalité "Event Notification"
+
+## Configuration de la fonctionnalité "Event Notification"
 - Rendez-vous dans l'interface de gestion de votre GDS3710 puis dans Maintenance -> Event Notification
 - Cochez la case "Enable Event Notification"
-- Sélectionnez le type de communication avec le serveur "Http" ou "Https" selon la configuration de votre serveur Jeedom.
+- Sélectionnez le type de communication avec le serveur "http" ou "https" selon la configuration de votre serveur Jeedom.
 - Optionnel mais fortement recommandé : Saisissez un identifiant et un mot de passe que votre portier devra fournir a Jeedom pour publier un évènement.
 - Dans champs "HTTP/HTTPS Server", entrez la chaine suivante en remplacant IP_DE_VOTRE_JEEDOM par l'adresse IP de votre serveur Jeedom : `"IP_DE_VOTRE_JEEDOM/plugins/gds3710/core/php/jeeGDS3710.php"`
 - Dans le champs URL Template, entrez la chaine suivante : `mac=${MAC}&content=${WARNING_MSG}&type=${TYPE}&date=${DATE}&card=${CARDID}&sip=${SIPNUM}`
@@ -19,7 +25,11 @@ Afin de récupérer les évènements générés par le portier nous allons utili
 
 ![GDS3710 Configuration](../assets/images/ConfigGDS3710.png)
 
-### c) Activation de l'API Http pour l'ouverture de la porte
+## Configuration de l'authentification pour le flux MJPEG
+- Rendez-vous dans l'interface de gestion de votre GDS3710 puis dans System Settings -> Access Settings.
+- Sélectionnez le mode d'authentification du flux MJPEG (MJPEG Authentication Mode). Nous vous conseillons le mode "Challenge+Response" pour plus de sécurité.
+
+## Activation de l'API HTTP pour l'ouverture de la porte
 - Rendez-vous dans l'interface de gestion de votre GDS3710 puis dans Door System Settings -> Basic Settings.
 - Cochez la case "Enable HTTP API Remote Open Door"
 - Choisissez un PIN pour l'option "Remote PIN to Open Door"
@@ -27,25 +37,28 @@ Afin de récupérer les évènements générés par le portier nous allons utili
 
 NB : Assurez-vous d'avoir changer le mot-de-passe par défaut du compte admin avant d'activer cette fonctionnalité.
 
-### d) Relevé de l'adresse IP et de l'adresse Mac de votre portier
+## Relevez de l'adresse IP et de l'adresse Mac de votre portier
 - Rendez-vous dans l'interface de gestion de votre GDS3710 puis dans Status -> Network info
 - Relevez l'adresse Mac et l'adresse IP de votre portier, nous en aurons besoin plus tard.
 
-### e) Configuration du plugin
-- Allez à la page de configuration du plugin et saisissez l'identifiant et le mot-de-passe que vous avez choisis à l'étape 2 - b.
+# Configuration du plugin GDS3710
+## Configuration générale
+- Allez à la page de configuration du plugin et saisissez l'identifiant et le mot-de-passe que vous avez choisis à l'étape "Configuration de la fonctionnalité "Event Notification"".
+- Renseignez un répertoire pour le stockage des captures d'écran par défaut ce répertoire est : "plugins/gds3710/data/records".
 
-### f) Configuration de votre équipement
-- Une fois le plugins installé, créez un nouvel équipement "GDS3710", activez le.
+## Création et configuration de votre équipement
+- Une fois le plugins installé, créez un nouvel équipement "GDS3710" et activez le.
 - Entrez l'adresse MAC (sans les ":") de votre portier dans le champs correspondant.
 - Entrez l'Adresse IP de votre portier dans le champs correspondant.
 - Saisissez le mot-de-passe du compte admin dans le champs correspondant.
-- Saisissez le Remote PIN dans le champs correspondant.
+- Saisissez le remote PIN dans le champs correspondant (il s'agit du PIN permettant d'ouvrir la porte).
+- Sélectionnez le mode d'authentification du flux MJPEG que vous avez choisis précédement.
 - Sauvegardez les modifications apportées à l'équipement.
 
 **C'est terminé, tout est configuré.**
 
-## 3) Utilisation
-### a) Principe de fonctionnement
+# Utilisation
+## Principe de fonctionnement
 Chaque évènement envoyé par le GDS3710 comporte un type dont voici la liste (extrait de la documentation du GDS3710 sur la fonctionnalité "event notification", disponible ici : http://www.grandstream.com/sites/default/files/Resources/gds_event_logs_guide.pdf):
 
 | Type d'évènement | Nom | Description de l'évènement|
@@ -74,24 +87,22 @@ Chaque évènement envoyé par le GDS3710 comporte un type dont voici la liste (
 |1104 |Reset (Retain Network Data Only) |Factory reset (Retain Network Data Only) has been performed.|
 |1105|Reset (Retain Only Card Information)|Factory reset (Retain Only Card Information) has been performed.|
 |1106|Reset (Retain Network Data and Card Information) |Factory reset (Retain Network Data and Card Information) has been performed.|
-|1107 |Reset (Wiegand) |Factory reset using Wiegand module has been performed on the unit.
-|1108 |Config Update |Indicates that the system’s configuration has been updated.
+|1107 |Reset (Wiegand) |Factory reset using Wiegand module has been performed on the unit.|
+|1108 |Config Update |Indicates that the system’s configuration has been updated.|
 |1109 |Firmware Update (1.0.0.0)|Indicates that the system’s firmware has been upgraded.|
 |1200 |Hostage Alarm |Indicates that someone has entered the hostage alarm PIN code to open the door.|
 |1300 |Invalid Password |Indicates that someone has entered wrong password PIN code to open the door for 5 attempts and corresponding alarm action has been triggered.|
 |1400|Mainboard Temperature(32°C) Normal |Indicates that device’s mainboard temperature is normal, (around 32°C).|
 |1401|Mainboard Temperature(32°C) Too Low |Indicates that device’s mainboard temperature is too low.|
 |1402|Mainboard Temperature(32°C) Too high |Indicates that device’s mainboard temperature is too high.|
-|1403 |Sensor Temperature(32°C) Normal |Indicates that device's sensor temperature is normal, (around 32°C).•
+|1403 |Sensor Temperature(32°C) Normal |Indicates that device's sensor temperature is normal, (around 32°C).|
 |1404 |Sensor Temperature(32°C) Too Low |Indicates that device's sensor temperature is normal too low.|
 |1405 |Sensor Temperature(32°C) Too High |Indicates that device's sensor temperature is normal too high.|
 
-### b) Utilisation avec des commandes d'actions
-
+## Utilisation des évènements déclenchés avec des commandes d'actions
 Pour chaque code d'évènement vous avez la possibilité dans les onglets "Appel", "Ouverture Porte", "Maintient de l'ouverture", "Sécurité", "Surveillance Matériel" et "Surveillance Logiciel" de créer une liste de commandes qui seront exécutées lors de la réception de ces évènements. Utilisez simplement le bouton "Ajouter une action", présent à coté de chaque type d'évènement puis sélectionner l'action à réaliser. Une fois les actions ajoutées, vous avez la possibilité de changer l'ordre d'éxécution en les faisant glisser.
 
-### c) Utilisation avec des scénarii
-
+## Utilisation des évènements déclenchés avec des scénarios
 L'ajout d'un scénario en réponse à un évènement reçu se fait en saisissant "scenario" dans le champs "action" après avoir cliqué sur le bouton "Ajouter une action". Une nouvelle boite de dialogue vous permettra alors de sélectionner le scénario à exécuter.
 
 Lors de l'exécution du scénario, les informations reçues par jeedom seront transmises au scénario par les biais des Tags suivant :
@@ -105,6 +116,19 @@ Lors de l'exécution du scénario, les informations reçues par jeedom seront tr
 |#sip#|Contient le numéro SIP relatif à la notification|
 |#card#|Contient le numéro de la carte relatif à la notification|
 
-###  d) Utilisation de l'onglet commandes
+## Utilisation des commandes de type INFO de l'équipement
+L'onglet commandes contient des commandes de type info contenant pour chaque type d'évènement le dernier évènement reçue au format JSON. La commande "Last event" contient la dernier évèneement réceptionné.
 
-L'onglet commande contient des commandes de type info contenant pour chaque type d'évènement le dernier évènement reçue au format JSON. La commande "Last event" contient la dernier évèneement réceptionné.
+## Utilisation des commandes de type ACTION de l'équipement
+L'équipement dispose de commandes de type ACTION permettant de réaliser les actions suivantes :
+- Ouverture de la porte.
+- Fermeture de la porte.
+- Réalisation d'une capture d'écran.
+
+## Utilisation des commandes de type ACTION de l'équipement
+Le plugin vous permet de transmettre des captures du flux MJPEG par l'intermédiaire d'un plugin tiers (testé avec Telegram).
+- Ajoutez un bloc d'action dans un scénario et sélectionnez la commande [Envoyer un snapshot] de votre équipement GDS3710.
+- Dans le champs "Nombre captures ou options" entrez le nombre de capture a envoyer.
+- Dans le champs "Commande message d'envoi des captures" sélectionner la commande pour envoyer la capture (votre bot Telegram).
+
+![Envoyer un snapshot dans un scénario](../assets/images/EnvoyerCaptureGDS3710.png)
