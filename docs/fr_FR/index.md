@@ -125,7 +125,7 @@ L'équipement dispose de commandes de type ACTION permettant de réaliser les ac
 - Fermeture de la porte.
 - Réalisation d'une capture d'écran.
 
-## Utilisation des commandes de type ACTION de l'équipement
+## Envoi de capture du flux MJPEG via un scénario
 Le plugin vous permet de transmettre des captures du flux MJPEG par l'intermédiaire d'un plugin tiers (testé avec Telegram).
 - Ajoutez un bloc d'action dans un scénario et sélectionnez la commande [Envoyer un snapshot] de votre équipement GDS3710.
 - Dans le champs "Nombre captures ou options" entrez le nombre de capture a envoyer.
