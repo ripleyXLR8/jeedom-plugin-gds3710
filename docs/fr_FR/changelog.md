@@ -1,6 +1,9 @@
 # Change Log - Plugin GDS 3710
 
-### 02//02/2019
+### 05/03/2019
+- Ajout de la possibilité d'envoyer les snapshots via une autre commande.
+
+### 02/02/2019
 - Correction d'un bug empêchant l'apparation des commandes "Prendre un snapshot" et "Historique des snapshopt"
 
 ### 01/02/2019

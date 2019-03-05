@@ -109,13 +109,12 @@ class gds3710 extends eqLogic {
 
     public function postSave() {
 
+        // On utilise la MAC pour créer le logical ID de l'équipement
         $MAC = $this->getConfiguration('macaddress');
-        if($MAC != ''){
-            $this->setLogicalId(strtolower($MAC));
-            $this->save(true);
-        }
+        $this->setLogicalId(strtolower($MAC));
+        $this->save(true);
 
-        // Création de la commande open
+        // Création de la commande open si elle n'existe pas dèjà
         $open = $this->getCmd(null, 'open');
         if (!is_object($open)) {
             $open = new gds3710Cmd();
@@ -128,7 +127,7 @@ class gds3710 extends eqLogic {
         $open->setIsVisible(1);
         $open->save();
 
-        // Création de la commande close
+        // Création de la commande close si elle n'existe pas dèjà
         $close = $this->getCmd(null, 'close');
         if (!is_object($close)) {
             $close = new gds3710Cmd();
@@ -154,6 +153,24 @@ class gds3710 extends eqLogic {
         $snapshot->setTemplate('dashboard', 'snapshot');
         $snapshot->setIsVisible(1);
         $snapshot->save();
+
+        // Création de la commande Send SnapShot
+        $sendSnapshot = $this->getCmd(null, 'sendSnapshot');
+        if (!is_object($sendSnapshot)) {
+            $sendSnapshot = new gds3710Cmd();
+        }
+        $sendSnapshot->setName(__('Envoyer un snapshot', __FILE__));
+        $sendSnapshot->setConfiguration('request', '-');
+        $sendSnapshot->setType('action');
+        $sendSnapshot->setLogicalId('sendSnapshot');
+        $sendSnapshot->setEqLogic_id($this->getId());
+        $sendSnapshot->setSubType('message');
+        $sendSnapshot->setIsVisible(0);
+        $sendSnapshot->setDisplay('title_placeholder', __('Nombre captures ou options', __FILE__));
+        $sendSnapshot->setDisplay('message_placeholder', __('Commande message d\'envoi des captures', __FILE__));
+        $sendSnapshot->setDisplay('message_cmd_type', 'action');
+        $sendSnapshot->setDisplay('message_cmd_subtype', 'message');
+        $sendSnapshot->save();
 
         // Création de la commande d'historique
         $history = $this->getCmd(null, 'Open_Snapshots_Folder');
@@ -233,7 +250,6 @@ class gds3710 extends eqLogic {
     public function postRemove() {
         
     }
-
 
     // public function toHtml($_version = 'dashboard') {
     //      $replace = $this->preToHtml($_version);
@@ -378,7 +394,8 @@ class gds3710Cmd extends cmd {
 
         $url ='https://'.$ip.'/snapshot/view0.jpg';
 
-        $filename=$gds3710->getName()."_".date('Y-m-d_H-i-s');
+        $now = DateTime::createFromFormat('U.u', microtime(true));
+        $filename=$gds3710->getName()."_".$now->format("Y-m-d_H-i-s-u");
 
         $dir = calculPath(config::byKey('recdir', 'gds3710')) . '/' . $gds3710->getId();
 
@@ -388,7 +405,8 @@ class gds3710Cmd extends cmd {
         }
 
         $fp = fopen($dir.'/'.$filename.'.jpg','x');
-        log::add('gds3710', 'debug', 'Trying to create the capture under : '.$dir.'/'.$filename.'.jpg');
+        $output_file = $dir.'/'.$filename.'.jpg';
+        log::add('gds3710', 'debug', 'Trying to create the capture under : '.$output_file);
 
         $optArray = array(
             CURLOPT_URL => $url,         
@@ -408,7 +426,50 @@ class gds3710Cmd extends cmd {
         curl_close ($ch);
         fclose($fp);
         log::add('gds3710', 'debug', 'Closing the file');
+        return $output_file;
     }
+
+    // Take a number of snapshot and send them to a command.
+    private function send_snapshot($nbsnap, $sendto){
+
+        log::add('gds3710', 'debug', 'Starting sending '.$nbsnap.' snapshot(s) to command(s) '.$sendto);
+
+        if ($nbsnap == '' || $nbsnap == 0) {
+            log::add('gds3710', 'debug', 'Number of snapshot is zero. Aborting');
+            return;
+        }
+
+        if ($sendto == '') {
+            log::add('gds3710', 'debug', 'No command to send to. Aborting');
+            return;
+        }
+
+        $files =array();
+
+        for ($i = 1; $i <= $nbsnap; $i++) {
+            array_push($files,$this->take_snapshot());            
+        }
+
+        $options = array();
+        $options['files'] = $files;
+
+        $cmds = explode('&&',  $sendto);
+
+        foreach ($cmds as $id) {
+            $cmd = cmd::byId(str_replace('#', '', $id));
+            if (!is_object($cmd)) {
+                log::add('gds3710', 'error', 'Error while sending snapshot, '.$cmd.' is not a cmd');
+                continue;
+            }
+            try {
+                $cmd->execCmd($options);
+            } catch (Exception $e) {
+                log::add('gds3710', 'error', __('[gds3710/send_snapshot] Erreur lors de l\'envoi des images : ', __FILE__) . $cmd->getHumanName() . ' => ' . log::exception($e));
+            }
+        }
+
+    }
+
     /*     * *********************Methode d'instance************************* */
 
     /*
@@ -419,23 +480,32 @@ class gds3710Cmd extends cmd {
      */
 
     public function execute($_options = array()) {
-        $eqlogic = $this->getEqLogic(); //récupère l'éqlogic de la commande $this
-        switch ($this->getLogicalId()) {    //vérifie le logicalid de la commande           
-            case 'open': // LogicalId de la commande rafraîchir que l’on a créé dans la méthode Postsave de la classe vdm . 
+
+        $eqLogic = $this->getEqLogic();
+
+        switch ($this->getLogicalId()) {
+            case 'open':
                 $this->open_door('1');
                 break;
-            case 'close': // LogicalId de la commande rafraîchir que l’on a créé dans la méthode Postsave de la classe vdm . 
+            case 'close':
                 $this->open_door('2');
                 break;
             case 'snapshot':
                 $this->take_snapshot();
+                break;
+            case 'sendSnapshot':
+                if (!isset($_options['title'])) {
+                    $_options['title'] = '';
+                }
+                if (!isset($_options['message'])) {
+                    $_options['message'] = '';
+                }
+                $this->send_snapshot($_options['title'], $_options['message']);
                 break;
         }
     }
 
     /*     * **********************Getteur Setteur*************************** */
 }
-
-
 
 
