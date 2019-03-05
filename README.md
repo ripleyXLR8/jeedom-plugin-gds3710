@@ -23,7 +23,7 @@ Afin de récupérer les évènements générés par le portier nous allons utili
 - Dans le champs URL Template, entrez la chaine suivante : `mac=${MAC}&content=${WARNING_MSG}&type=${TYPE}&date=${DATE}&card=${CARDID}&sip=${SIPNUM}`.
 - Sauvegarder la configuration.
 
-![GDS3710 Configuration](../assets/images/ConfigGDS3710.png)
+![GDS3710 Configuration](doc/assets/images/ConfigGDS3710.png)
 
 ## Configuration de l'authentification pour le flux MJPEG
 - Rendez-vous dans l'interface de gestion de votre GDS3710 puis dans System Settings -> Access Settings.
@@ -131,4 +131,4 @@ Le plugin vous permet de transmettre des captures du flux MJPEG par l'intermédi
 - Dans le champs "Nombre captures ou options" entrez le nombre de captures à envoyer.
 - Dans le champs "Commande message d'envoi des captures" sélectionner la commande pour envoyer la ou les captures (il s'agit de la commande de votre bot Telegram).
 
-![Envoyer un snapshot dans un scénario](../assets/images/EnvoyerCaptureGDS3710.png)
+![Envoyer un snapshot dans un scénario](doc/assets/images/EnvoyerCaptureGDS3710.png)
