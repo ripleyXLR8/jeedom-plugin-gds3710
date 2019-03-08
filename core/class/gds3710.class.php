@@ -186,6 +186,19 @@ class gds3710 extends eqLogic {
         $history->setIsVisible(1);
         $history->save();
 
+        // Création de la commande de récupération du dernier snapshot
+        $lastest_snapshot = $this->getCmd(null, 'Lastest_Snapshot_Path');
+        if (!is_object($lastest_snapshot)) {
+            $lastest_snapshot = new gds3710Cmd();
+            $lastest_snapshot->setName(__('Chemin du dernier snapshot', __FILE__));
+          }
+        $lastest_snapshot->setEqLogic_id($this->getId());
+        $lastest_snapshot->setLogicalId('Lastest_Snapshot_Path');
+        $lastest_snapshot->setType('info');
+        $lastest_snapshot->setSubType('string');
+        $lastest_snapshot->setIsVisible(0);
+        $lastest_snapshot->save();
+
         // Création de la commande stream_mjpeg
         $stream_mjpeg = $this->getCmd('info', 'stream_mjpeg');
         if (!is_object($stream_mjpeg)) {
@@ -426,6 +439,13 @@ class gds3710Cmd extends cmd {
         curl_close ($ch);
         fclose($fp);
         log::add('gds3710', 'debug', 'Closing the file');
+
+        log::add('gds3710', 'debug', "Registering path to lastest picture");
+        $eqLogic = $this->getEqLogic();
+        $lastest_snapshot = $eqLogic->getCmd(null, 'Lastest_Snapshot_Path');
+        $lastest_snapshot->event(realpath($output_file));
+        $lastest_snapshot->save();
+
         return $output_file;
     }
 
