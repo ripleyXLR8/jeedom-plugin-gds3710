@@ -1,5 +1,11 @@
 # Change Log - Plugin GDS 3710
 
+### 11/03/2019
+- Ajout de la commande permettant de modifier la configuration du GDS.
+
+### 09/03/2019
+- Ajout de récupérer le chemin d'accès à la dernière capture d'écran.
+
 ### 05/03/2019
 - Ajout de la possibilité d'envoyer les snapshots via une autre commande.
 

@@ -109,6 +109,14 @@ class gds3710 extends eqLogic {
 
     public function postSave() {
 
+        $KEY = $this->getConfiguration('secretkey');
+        if($KEY == ''){
+             $this->setConfiguration('secretkey',md5(microtime().rand()));
+        }
+        $KEY = $this->getConfiguration('secretkey');
+        log::add('gds3710','debug', 'test'.$KEY);
+
+
         // On utilise la MAC pour créer le logical ID de l'équipement
         $MAC = $this->getConfiguration('macaddress');
         $this->setLogicalId(strtolower($MAC));
@@ -154,12 +162,29 @@ class gds3710 extends eqLogic {
         $snapshot->setIsVisible(1);
         $snapshot->save();
 
+        // Création de la commande Modify Config
+        $modifyconfig = $this->getCmd(null, 'modifyConfig');
+        if (!is_object($modifyconfig)) {
+            $modifyconfig = new gds3710Cmd();
+            $modifyconfig->setName(__('Modifier la configuration', __FILE__));
+        }
+        $modifyconfig->setType('action');
+        $modifyconfig->setLogicalId('modifyConfig');
+        $modifyconfig->setEqLogic_id($this->getId());
+        $modifyconfig->setSubType('message');
+        $modifyconfig->setIsVisible(0);
+        $modifyconfig->setDisplay('title_placeholder', __('ID de la commande à modifier', __FILE__));
+        $modifyconfig->setDisplay('message_placeholder', __('Valeur', __FILE__));
+        $modifyconfig->setDisplay('message_cmd_type', 'action');
+        $modifyconfig->setDisplay('message_cmd_subtype', 'message');
+        $modifyconfig->save();
+
         // Création de la commande Send SnapShot
         $sendSnapshot = $this->getCmd(null, 'sendSnapshot');
         if (!is_object($sendSnapshot)) {
             $sendSnapshot = new gds3710Cmd();
+            $sendSnapshot->setName(__('Envoyer un snapshot', __FILE__));
         }
-        $sendSnapshot->setName(__('Envoyer un snapshot', __FILE__));
         $sendSnapshot->setConfiguration('request', '-');
         $sendSnapshot->setType('action');
         $sendSnapshot->setLogicalId('sendSnapshot');
@@ -357,6 +382,92 @@ class gds3710Cmd extends cmd {
         log::add('gds3710', 'debug', 'result : '.print_r($data, true));
     }
 
+    private function setConfig($id, $parameter_value){
+
+        if( $id == '' || $parameter_value == ''){
+            log::add('gds3710', 'error', 'Parameter error. Aborting.');
+            return;
+        }
+
+        $gds3710 = eqLogic::byId($this->getEqLogic_id());
+        $cookies = $this->getAuthCookies($gds3710);
+        log::add('gds3710', 'debug', 'Auth cookies is : '.print_r($cookies, true));
+
+        $cookie_string = "";
+        foreach ($cookies as $key => $value) {
+            $cookie_string.=$key."=".$value.";";
+        }
+
+        $ip = $gds3710->getConfiguration('ip');
+        $password = $gds3710->getConfiguration('password');
+        $salt = "GDS3710lZpRsFzCbM";
+
+        $ch = curl_init();
+        $url = 'https://'.$ip.'/goform/config?cmd=set&'.$id.'='.$parameter_value;
+
+        $optArray = array(
+            CURLOPT_URL => $url,
+            CURLOPT_SSL_VERIFYPEER  => false,
+            CURLOPT_SSL_VERIFYHOST => false,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_COOKIE => $cookie_string
+        );
+
+        log::add('gds3710', 'debug', 'Calling url : '.$url);
+
+        $ch = curl_init();
+        curl_setopt_array($ch, $optArray);
+
+        $result =  new SimpleXMLElement(curl_exec($ch));
+        log::add('gds3710', 'debug', 'Result is : '. print_r($result, true));
+    }
+
+    private function getAuthCookies($gds){
+
+        $ip = $gds->getConfiguration('ip');
+        $password = $gds->getConfiguration('password');
+        $salt = "GDS3710lZpRsFzCbM";
+
+        $ch = curl_init();
+
+        $optArray = array(
+            CURLOPT_URL => 'https://'.$ip.'/goform/login?cmd=login&user=admin&type=0',
+            CURLOPT_SSL_VERIFYPEER  => false,
+            CURLOPT_SSL_VERIFYHOST => false,
+            CURLOPT_RETURNTRANSFER => true
+        );
+
+        curl_setopt_array($ch, $optArray);
+        $auth_challenge = new SimpleXMLElement(curl_exec($ch));
+
+        $ChallengeCode = $auth_challenge->ChallengeCode[0];
+        $IDCode = $auth_challenge->IDCode[0];
+
+        $auth_response = md5($ChallengeCode.":"."GDS3710lZpRsFzCbM".":".$password);
+        $url = 'https://'.$ip.'/goform/login?cmd=login&user=admin&authcode='.$auth_response;
+
+        $optArray = array(
+            CURLOPT_URL => $url,
+            CURLOPT_SSL_VERIFYPEER  => false,
+            CURLOPT_SSL_VERIFYHOST => false,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HEADER => true
+        );
+        $ch = curl_init();
+        curl_setopt_array($ch, $optArray);
+        $result = curl_exec($ch);
+
+        preg_match_all('/^Set-Cookie:\s*([^;]*)/mi', $result, $matches);
+        $cookies = array();
+        foreach($matches[1] as $item) {
+            parse_str($item, $cookie);
+            $cookies = array_merge($cookies, $cookie);
+        }
+        
+        return $cookies;
+
+    }
+
     private function take_snapshot(){
         log::add('gds3710', 'debug', 'Snapshot has been requested');
 
@@ -522,10 +633,17 @@ class gds3710Cmd extends cmd {
                 }
                 $this->send_snapshot($_options['title'], $_options['message']);
                 break;
+            case 'modifyConfig':
+                if (isset($_options['title']) && isset($_options['message'])) {
+                    log::add('gds3710', 'debug', 'Trying to set config variable '.$_options['title'].' with value '.$_options['message']);
+                    $this->setConfig($_options['title'], $_options['message']);
+                }
+                break;
         }
     }
 
     /*     * **********************Getteur Setteur*************************** */
 }
+
 
 
