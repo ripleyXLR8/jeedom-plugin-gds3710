@@ -114,8 +114,6 @@ class gds3710 extends eqLogic {
              $this->setConfiguration('secretkey',md5(microtime().rand()));
         }
         $KEY = $this->getConfiguration('secretkey');
-        log::add('gds3710','debug', 'test'.$KEY);
-
 
         // On utilise la MAC pour créer le logical ID de l'équipement
         $MAC = $this->getConfiguration('macaddress');
@@ -127,118 +125,125 @@ class gds3710 extends eqLogic {
         if (!is_object($open)) {
             $open = new gds3710Cmd();
             $open->setName(__('Ouvrir la porte', __FILE__));
+            $open->setEqLogic_id($this->getId());
+            $open->setLogicalId('open');
+            $open->setType('action');
+            $open->setSubType('other');
+            $open->setIsVisible(1);
+            $open->save();
         }
-        $open->setEqLogic_id($this->getId());
-        $open->setLogicalId('open');
-        $open->setType('action');
-        $open->setSubType('other');
-        $open->setIsVisible(1);
-        $open->save();
 
         // Création de la commande close si elle n'existe pas dèjà
         $close = $this->getCmd(null, 'close');
         if (!is_object($close)) {
             $close = new gds3710Cmd();
             $close->setName(__('Fermer la porte', __FILE__));
+            $close->setEqLogic_id($this->getId());
+            $close->setLogicalId('close');
+            $close->setType('action');
+            $close->setSubType('other');
+            $close->setIsVisible(0);
+            $close->save();
         }
-        $close->setEqLogic_id($this->getId());
-        $close->setLogicalId('close');
-        $close->setType('action');
-        $close->setSubType('other');
-        $close->setIsVisible(0);
-        $close->save();
+
 
         // Création de la commande snapshot
         $snapshot = $this->getCmd(null, 'snapshot');
         if (!is_object($snapshot)) {
             $snapshot = new gds3710Cmd();
             $snapshot->setName(__('Prendre un snapshot', __FILE__));
+            $snapshot->setEqLogic_id($this->getId());
+            $snapshot->setLogicalId('snapshot');
+            $snapshot->setType('action');
+            $snapshot->setSubType('other');
+            $snapshot->setTemplate('dashboard', 'snapshot');
+            $snapshot->setIsVisible(1);
+            $snapshot->save();
         }
-        $snapshot->setEqLogic_id($this->getId());
-        $snapshot->setLogicalId('snapshot');
-        $snapshot->setType('action');
-        $snapshot->setSubType('other');
-        $snapshot->setTemplate('dashboard', 'snapshot');
-        $snapshot->setIsVisible(1);
-        $snapshot->save();
+
 
         // Création de la commande Modify Config
         $modifyconfig = $this->getCmd(null, 'modifyConfig');
         if (!is_object($modifyconfig)) {
             $modifyconfig = new gds3710Cmd();
             $modifyconfig->setName(__('Modifier la configuration', __FILE__));
+            $modifyconfig->setType('action');
+            $modifyconfig->setLogicalId('modifyConfig');
+            $modifyconfig->setEqLogic_id($this->getId());
+            $modifyconfig->setSubType('message');
+            $modifyconfig->setIsVisible(0);
+            $modifyconfig->setDisplay('title_placeholder', __('ID de la commande à modifier', __FILE__));
+            $modifyconfig->setDisplay('message_placeholder', __('Valeur', __FILE__));
+            $modifyconfig->setDisplay('message_cmd_type', 'action');
+            $modifyconfig->setDisplay('message_cmd_subtype', 'message');
+            $modifyconfig->save();
         }
-        $modifyconfig->setType('action');
-        $modifyconfig->setLogicalId('modifyConfig');
-        $modifyconfig->setEqLogic_id($this->getId());
-        $modifyconfig->setSubType('message');
-        $modifyconfig->setIsVisible(0);
-        $modifyconfig->setDisplay('title_placeholder', __('ID de la commande à modifier', __FILE__));
-        $modifyconfig->setDisplay('message_placeholder', __('Valeur', __FILE__));
-        $modifyconfig->setDisplay('message_cmd_type', 'action');
-        $modifyconfig->setDisplay('message_cmd_subtype', 'message');
-        $modifyconfig->save();
+
 
         // Création de la commande Send SnapShot
         $sendSnapshot = $this->getCmd(null, 'sendSnapshot');
         if (!is_object($sendSnapshot)) {
             $sendSnapshot = new gds3710Cmd();
             $sendSnapshot->setName(__('Envoyer un snapshot', __FILE__));
+            $sendSnapshot->setConfiguration('request', '-');
+            $sendSnapshot->setType('action');
+            $sendSnapshot->setLogicalId('sendSnapshot');
+            $sendSnapshot->setEqLogic_id($this->getId());
+            $sendSnapshot->setSubType('message');
+            $sendSnapshot->setIsVisible(0);
+            $sendSnapshot->setDisplay('title_placeholder', __('Nombre captures ou options', __FILE__));
+            $sendSnapshot->setDisplay('message_placeholder', __('Commande message d\'envoi des captures', __FILE__));
+            $sendSnapshot->setDisplay('message_cmd_type', 'action');
+            $sendSnapshot->setDisplay('message_cmd_subtype', 'message');
+            $sendSnapshot->save();
         }
-        $sendSnapshot->setConfiguration('request', '-');
-        $sendSnapshot->setType('action');
-        $sendSnapshot->setLogicalId('sendSnapshot');
-        $sendSnapshot->setEqLogic_id($this->getId());
-        $sendSnapshot->setSubType('message');
-        $sendSnapshot->setIsVisible(0);
-        $sendSnapshot->setDisplay('title_placeholder', __('Nombre captures ou options', __FILE__));
-        $sendSnapshot->setDisplay('message_placeholder', __('Commande message d\'envoi des captures', __FILE__));
-        $sendSnapshot->setDisplay('message_cmd_type', 'action');
-        $sendSnapshot->setDisplay('message_cmd_subtype', 'message');
-        $sendSnapshot->save();
+
 
         // Création de la commande d'historique
         $history = $this->getCmd(null, 'Open_Snapshots_Folder');
         if (!is_object($history)) {
             $history = new gds3710Cmd();
             $history->setName(__('Ouvrir le dossier des captures', __FILE__));
-          }
-        $history->setEqLogic_id($this->getId());
-        $history->setLogicalId('Open_Snapshots_Folder');
-        $history->setType('action');
-        $history->setSubType('other');
-        $history->setTemplate('dashboard', 'snapshot_folder');
-        $history->setIsVisible(1);
-        $history->save();
+            $history->setEqLogic_id($this->getId());
+            $history->setLogicalId('Open_Snapshots_Folder');
+            $history->setType('action');
+            $history->setSubType('other');
+            $history->setTemplate('dashboard', 'snapshot_folder');
+            $history->setIsVisible(1);
+            $history->save();
+        }
+
 
         // Création de la commande de récupération du dernier snapshot
         $lastest_snapshot = $this->getCmd(null, 'Lastest_Snapshot_Path');
         if (!is_object($lastest_snapshot)) {
             $lastest_snapshot = new gds3710Cmd();
             $lastest_snapshot->setName(__('Chemin du dernier snapshot', __FILE__));
-          }
-        $lastest_snapshot->setEqLogic_id($this->getId());
-        $lastest_snapshot->setLogicalId('Lastest_Snapshot_Path');
-        $lastest_snapshot->setType('info');
-        $lastest_snapshot->setSubType('string');
-        $lastest_snapshot->setIsVisible(0);
-        $lastest_snapshot->save();
+            $lastest_snapshot->setEqLogic_id($this->getId());
+            $lastest_snapshot->setLogicalId('Lastest_Snapshot_Path');
+            $lastest_snapshot->setType('info');
+            $lastest_snapshot->setSubType('string');
+            $lastest_snapshot->setIsVisible(0);
+            $lastest_snapshot->save();
+        }
+
 
         // Création de la commande stream_mjpeg
         $stream_mjpeg = $this->getCmd('info', 'stream_mjpeg');
         if (!is_object($stream_mjpeg)) {
             $stream_mjpeg = new gds3710Cmd();
             $stream_mjpeg->setName(__('Stream MJPEG', __FILE__));
+            $stream_mjpeg->setEqLogic_id($this->getId());
+            $stream_mjpeg->setLogicalId('stream_mjpeg');
+            $stream_mjpeg->setType('info');
+            $stream_mjpeg->setSubType('string');
+            $stream_mjpeg->setTemplate('dashboard', 'mjpegstream');
+            $stream_mjpeg->setTemplate('mobile', 'mjpegstream');
+            $stream_mjpeg->setIsVisible(1);
+            $stream_mjpeg->event('/plugins/gds3710/core/php/camera.php?mac='.$MAC);
+            $stream_mjpeg->save();
         }
-        $stream_mjpeg->setEqLogic_id($this->getId());
-        $stream_mjpeg->setLogicalId('stream_mjpeg');
-        $stream_mjpeg->setType('info');
-        $stream_mjpeg->setSubType('string');
-        $stream_mjpeg->setTemplate('dashboard', 'mjpegstream');
-        $stream_mjpeg->setTemplate('mobile', 'mjpegstream');
-        $stream_mjpeg->setIsVisible(1);
-        $stream_mjpeg->event('/plugins/gds3710/core/php/camera.php?mac='.$MAC);
-        $stream_mjpeg->save();
+
 
 
         // Création de la commande last event
@@ -478,17 +483,27 @@ class gds3710Cmd extends cmd {
         $salt = 'GDS3710lDyTlHwNgZ';
 
         $ch = curl_init();
+
         $optArray = array(
             CURLOPT_URL => 'https://'.$ip.'/goform/login?cmd=login&user=admin&type=1',   
             CURLOPT_SSL_VERIFYPEER  => false,
             CURLOPT_SSL_VERIFYHOST => false,
             CURLOPT_RETURNTRANSFER => true
         );
+
+        log::add('gds3710', 'debug', 'URL array : '.print_r($optArray, true));
+
         curl_setopt_array($ch, $optArray);
         $data = curl_exec($ch);
+
+        log::add('gds3710', 'debug', 'URL return : '.print_r($data, true));
+
         $auth_challenge = new SimpleXMLElement($data);
         $ChallengeCode = $auth_challenge->ChallengeCode[0];
         $string_to_be_hashed = $ChallengeCode.":".$salt.":".$password;
+
+        log::add('gds3710', 'debug', 'String to be hashed : '.print_r($string_to_be_hashed, true));
+
         $auth_response = md5($string_to_be_hashed);
         $url ='https://'.$ip.'/goform/login?cmd=login&user=admin&authcode='.$auth_response.'&type=1';
 
@@ -500,9 +515,14 @@ class gds3710Cmd extends cmd {
             CURLOPT_HEADER => true
         );
 
+        log::add('gds3710', 'debug', 'URL array : '.print_r($optArray, true));
+
         $ch = curl_init();
         curl_setopt_array($ch, $optArray);
         $data = curl_exec($ch);
+
+        log::add('gds3710', 'debug', 'URL return : '.print_r($data, true));
+
         preg_match_all('/^Set-Cookie:\s*([^;]*)/mi', $data, $matches);
         $cookies = array();
         foreach($matches[1] as $item) {
@@ -544,9 +564,14 @@ class gds3710Cmd extends cmd {
             CURLOPT_FILE => $fp
         );
 
+        log::add('gds3710', 'debug', 'URL array : '.print_r($optArray, true));
+
         $ch = curl_init();
         curl_setopt_array($ch, $optArray);
+
         $data = curl_exec($ch);
+        log::add('gds3710', 'debug', 'URL return : '.print_r($data, true));
+
         curl_close ($ch);
         fclose($fp);
         log::add('gds3710', 'debug', 'Closing the file');
@@ -644,6 +669,3 @@ class gds3710Cmd extends cmd {
 
     /*     * **********************Getteur Setteur*************************** */
 }
-
-
-
