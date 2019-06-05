@@ -2,6 +2,9 @@
 > Version du 5 mars 2019
 > by Richard Perez | richard@perez-mail.fr
 
+# IMPORTANT
+Il semble y avoir un problème avec les version du firmware du GDS3710 supérieur à la 1.0.4.9. Si vous voulez bénéficier de toutes les fonctionnalités, ne faites pas la mise-à-jour vers une version supérieure à la 1.0.4.9. Vous êtes prévenu.
+
 # Introduction
 Ce plugin permet l'intégration du portier GrandStream GDS3710 dans Jeedom. Dans sa version actuelle (5 mars 2019), il permet de :
 - Récupérer es évènements du portier et de les gérer via des scénariis ou des commandes.
