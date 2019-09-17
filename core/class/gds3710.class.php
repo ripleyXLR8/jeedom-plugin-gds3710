@@ -240,8 +240,8 @@ class gds3710 extends eqLogic {
             $stream_mjpeg->setTemplate('dashboard', 'mjpegstream');
             $stream_mjpeg->setTemplate('mobile', 'mjpegstream');
             $stream_mjpeg->setIsVisible(1);
-            $stream_mjpeg->event('/plugins/gds3710/core/php/camera.php?mac='.$MAC);
             $stream_mjpeg->save();
+            $stream_mjpeg->event('/plugins/gds3710/core/php/camera.php?mac='.$MAC);
         }
 
 
