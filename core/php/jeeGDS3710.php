@@ -60,7 +60,9 @@ function getDigest() {
         if (strpos(strtolower($_SERVER['HTTP_AUTHORIZATION']),'digest')===0)
             $digest = substr($_SERVER['HTTP_AUTHORIZATION'], 7);
     }
-    return $digest;
+    if(isset($digest)){
+        return $digest;
+    }
 }
 
 function requireLogin($realm,$nonce) {
