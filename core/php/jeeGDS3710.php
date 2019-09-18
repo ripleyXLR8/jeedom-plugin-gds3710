@@ -98,10 +98,10 @@ function getTypeFromLogicalID($type_requested){
     }
 }
 
+$temp = "";
 foreach ($_POST as $key => $value){
     $temp = $key.":".$value." | ".$temp;
 }
-
 $temp = "Event received : ".$temp;
 log::add('gds3710','info',$temp);
 
