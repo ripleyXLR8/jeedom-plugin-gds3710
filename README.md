@@ -1,21 +1,25 @@
 # Plugin GDS 3710
-> Version du 5 mars 2019
+> Version du 20 septembre 2019
 > by Richard Perez | richard@perez-mail.fr
 
 # IMPORTANT
-Il semble y avoir un problème avec les version du firmware du GDS3710 supérieur à la 1.0.4.9. Si vous voulez bénéficier de toutes les fonctionnalités, ne faites pas la mise-à-jour vers une version supérieure à la 1.0.4.9. Vous êtes prévenu.
+Il semble y avoir un problème avec les version 1.0.4.9 du firmware du GDS3710 (la réalisation de capture du flux échoue). Les autres version supérieures à la 10.0.3.32 fonctionnent.
 
 # Introduction
 Ce plugin permet l'intégration du portier GrandStream GDS3710 dans Jeedom. Dans sa version actuelle (5 mars 2019), il permet de :
-- Récupérer es évènements du portier et de les gérer via des scénariis ou des commandes.
+- Récupérer les évènements du portier et de les gérer via des scénariis ou des commandes.
+- De modifier la configuration du portier.
+- D'activer les contacts secs du portier permettant de manoeuvrer une porte ou autre.
 - D'afficher le flux MJPEG du portier dans un widget de dashboard ou de mobile.
 - D'enregistrer des images extraites du flux MJPEG.
 - De consulter les images enregistrées via une bibliothèque intégrée.
 - D'envoyer des images enregistrées via une autre commmande (testé avec le plugin Telegram).
 
+Ce plugin est basé sur la document fourni par GrandStream : http://www.grandstream.com/sites/default/files/Resources/gds37xx_http_api.pdf
+
 # Configuration du portier GrandStream GDS3710
 ## Pré-requis
-Afin de récupérer les évènements générés par le portier nous allons utiliser la foncitonnalité "Event Notification" qui est disponible à partir de la version 10.0.3.32 du firmware du GrandStream GDS3710. Si vous disposez d'une version antérieure la fonctionnalité "Event notification" ne sera peut-être pas disponible et il vous faudra mettre à jour le firmware de votre GDS3710 vers la dernière version. (Attention le plugin n'est pas compatible pour l'instant avec les version > 1.0.4.9)
+Afin de récupérer les évènements générés par le portier nous allons utiliser la foncitonnalité "Event Notification" qui est disponible à partir de la version 10.0.3.32 du firmware du GrandStream GDS3710. Si vous disposez d'une version antérieure la fonctionnalité "Event notification" ne sera peut-être pas disponible et il vous faudra mettre à jour le firmware de votre GDS3710 vers la dernière version.
 
 ## Configuration de la fonctionnalité "Event Notification"
 - Rendez-vous dans l'interface de gestion de votre GDS3710 puis dans Maintenance -> Event Notification.
@@ -54,7 +58,8 @@ NB : Assurez-vous d'avoir changer le mot-de-passe par défaut du compte admin av
 - Entrez l'adresse MAC (sans les ":") de votre portier dans le champs correspondant.
 - Entrez l'Adresse IP de votre portier dans le champs correspondant.
 - Saisissez le mot-de-passe du compte admin dans le champs correspondant.
-- Saisissez le remote PIN dans le champs correspondant (il s'agit du PIN permettant d'ouvrir la porte).
+- Saisissez le remote PIN dans le champs correspondant (il s'agit du PIN permettant d'ouvrir la porte 1).
+- Saisissez le remote PIN 2 dans le champs correspondant (il s'agit du PIN permettant d'ouvrir la porte 2).
 - Sélectionnez le mode d'authentification du flux MJPEG que vous avez choisis précédement.
 - Sauvegardez les modifications apportées à l'équipement.
 
