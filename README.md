@@ -2,6 +2,9 @@
 > Version du 5 mars 2019
 > by Richard Perez | richard@perez-mail.fr
 
+# IMPORTANT
+Il semble y avoir un problème avec les version du firmware du GDS3710 supérieur à la 1.0.4.9. Si vous voulez bénéficier de toutes les fonctionnalités, ne faites pas la mise-à-jour vers une version supérieure à la 1.0.4.9. Vous êtes prévenu.
+
 # Introduction
 Ce plugin permet l'intégration du portier GrandStream GDS3710 dans Jeedom. Dans sa version actuelle (5 mars 2019), il permet de :
 - Récupérer es évènements du portier et de les gérer via des scénariis ou des commandes.
@@ -12,7 +15,7 @@ Ce plugin permet l'intégration du portier GrandStream GDS3710 dans Jeedom. Dans
 
 # Configuration du portier GrandStream GDS3710
 ## Pré-requis
-Afin de récupérer les évènements générés par le portier nous allons utiliser la foncitonnalité "Event Notification" qui est disponible à partir de la version 10.0.3.32 du firmware du GrandStream GDS3710. Si vous disposez d'une version antérieure la fonctionnalité "Event notification" ne sera peut-être pas disponible et il vous faudra mettre à jour le firmware de votre GDS3710 vers la dernière version.
+Afin de récupérer les évènements générés par le portier nous allons utiliser la foncitonnalité "Event Notification" qui est disponible à partir de la version 10.0.3.32 du firmware du GrandStream GDS3710. Si vous disposez d'une version antérieure la fonctionnalité "Event notification" ne sera peut-être pas disponible et il vous faudra mettre à jour le firmware de votre GDS3710 vers la dernière version. (Attention le plugin n'est pas compatible pour l'instant avec les version > 1.0.4.9)
 
 ## Configuration de la fonctionnalité "Event Notification"
 - Rendez-vous dans l'interface de gestion de votre GDS3710 puis dans Maintenance -> Event Notification.

@@ -163,6 +163,13 @@
   </div>
 
   <div class="form-group">
+    <label class="col-sm-3 control-label">{{Remote PIN 2}}</label>
+    <div class="col-sm-3">
+        <input type="password" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="remote_pin_2" placeholder="Remote PIN 2"/>
+    </div>
+  </div>
+
+  <div class="form-group">
     <label class="col-sm-3 control-label pull-left">{{Type d'authentification MJPEG :}}</label>
     <div class="col-sm-3">
       <select class="eqLogicAttr form-control tooltips" title="{{type d'authentification pour le flux MJPEG}}" data-l1key="configuration" data-l2key="auth_type">

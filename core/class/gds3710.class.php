@@ -146,6 +146,31 @@ class gds3710 extends eqLogic {
             $close->save();
         }
 
+        // Création de la commande open2 si elle n'existe pas dèjà
+        $open2 = $this->getCmd(null, 'open2');
+        if (!is_object($open2)) {
+            $open2 = new gds3710Cmd();
+            $open2->setName(__('Ouvrir la porte 2', __FILE__));
+            $open2->setEqLogic_id($this->getId());
+            $open2->setLogicalId('open2');
+            $open2->setType('action');
+            $open2->setSubType('other');
+            $open2->setIsVisible(1);
+            $open2->save();
+        }
+
+        // Création de la commande close2 si elle n'existe pas dèjà
+        $close2 = $this->getCmd(null, 'close2');
+        if (!is_object($close2)) {
+            $close2 = new gds3710Cmd();
+            $close2->setName(__('Fermer la porte 2', __FILE__));
+            $close2->setEqLogic_id($this->getId());
+            $close2->setLogicalId('close2');
+            $close2->setType('action');
+            $close2->setSubType('other');
+            $close2->setIsVisible(0);
+            $close2->save();
+        }
 
         // Création de la commande snapshot
         $snapshot = $this->getCmd(null, 'snapshot');
@@ -240,8 +265,8 @@ class gds3710 extends eqLogic {
             $stream_mjpeg->setTemplate('dashboard', 'mjpegstream');
             $stream_mjpeg->setTemplate('mobile', 'mjpegstream');
             $stream_mjpeg->setIsVisible(1);
-            $stream_mjpeg->event('/plugins/gds3710/core/php/camera.php?mac='.$MAC);
             $stream_mjpeg->save();
+            $stream_mjpeg->event('/plugins/gds3710/core/php/camera.php?mac='.$MAC);
         }
 
 
@@ -353,11 +378,46 @@ class gds3710Cmd extends cmd {
     /*     * ***********************Methode static*************************** */
 
     private function open_door($type){
-        log::add('gds3710', 'info', 'Requesting door opening type : '.$type);
+        log::add('gds3710', 'info', 'Requesting door opening 1 or closing 2 of type : '.$type);
         $gds3710 = eqLogic::byId($this->getEqLogic_id());
 
         $ip = $gds3710->getConfiguration('ip');
         $remote_pin = $gds3710->getConfiguration('remote_pin');
+        $password = $gds3710->getConfiguration('password');
+
+        $ch = curl_init();
+        $optArray = array(
+            CURLOPT_URL => 'https://'.$ip.'/goform/apicmd?cmd=0&user=admin',
+            CURLOPT_SSL_VERIFYPEER  => false,
+            CURLOPT_SSL_VERIFYHOST => false,
+            CURLOPT_RETURNTRANSFER => true
+        );
+        curl_setopt_array($ch, $optArray);
+        $auth_challenge = new SimpleXMLElement(curl_exec($ch));
+        $ChallengeCode = $auth_challenge->ChallengeCode[0];
+        $IDCode = $auth_challenge->IDCode[0];
+
+        $auth_response = md5($ChallengeCode.":".$remote_pin.":".$password);
+
+        $optArray = array(
+            CURLOPT_URL => 'https://'.$ip.'/goform/apicmd?cmd=1&user=admin&authcode='.$auth_response.'&idcode='.$IDCode.'&type='.$type,
+            CURLOPT_SSL_VERIFYPEER  => false,
+            CURLOPT_SSL_VERIFYHOST => false,
+            CURLOPT_RETURNTRANSFER => true
+        );
+
+        $ch = curl_init();
+        curl_setopt_array($ch, $optArray);
+        $data = curl_exec($ch);
+        log::add('gds3710', 'debug', 'result : '.print_r($data, true));
+    }
+
+    private function open_door_2($type){
+        log::add('gds3710', 'info', 'Requesting door opening 2 or closing 2 of type : '.$type);
+        $gds3710 = eqLogic::byId($this->getEqLogic_id());
+
+        $ip = $gds3710->getConfiguration('ip');
+        $remote_pin = $gds3710->getConfiguration('remote_pin_2');
         $password = $gds3710->getConfiguration('password');
 
         $ch = curl_init();
@@ -645,6 +705,12 @@ class gds3710Cmd extends cmd {
                 break;
             case 'close':
                 $this->open_door('2');
+                break;
+            case 'open2':
+                $this->open_door_2('1');
+                break;
+            case 'close2':
+                $this->open_door_2('2');
                 break;
             case 'snapshot':
                 $this->take_snapshot();

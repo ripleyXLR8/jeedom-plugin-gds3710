@@ -60,7 +60,9 @@ function getDigest() {
         if (strpos(strtolower($_SERVER['HTTP_AUTHORIZATION']),'digest')===0)
             $digest = substr($_SERVER['HTTP_AUTHORIZATION'], 7);
     }
-    return $digest;
+    if(isset($digest)){
+        return $digest;
+    }
 }
 
 function requireLogin($realm,$nonce) {
@@ -96,10 +98,10 @@ function getTypeFromLogicalID($type_requested){
     }
 }
 
+$temp = "";
 foreach ($_POST as $key => $value){
     $temp = $key.":".$value." | ".$temp;
 }
-
 $temp = "Event received : ".$temp;
 log::add('gds3710','info',$temp);
 
@@ -146,7 +148,7 @@ if(isset($_POST['type']) && $_POST['type'] != ''){ // On vérifie qu'un type a b
                 $options = $action['options'];
 
                 if(isset($action['options']['scenario_id'])){
-                    $options['tags'] = $options['tags'].' mac="'.$_POST['mac'].'" content="'.$_POST['content'].'" type="'.$_POST['type'].'" warning="'.$_POST['warning'].'" date="'.$_POST["date"].'" card="'.$_POST['card'].'" sip="'.$_POST['sip'].'"';
+                    $options['tags'] = $options['tags'].' mac="'.$_POST['mac'].'" content="'.$_POST['content'].'" type="'.$_POST['type'].'" date="'.$_POST["date"].'" card="'.$_POST['card'].'" sip="'.$_POST['sip'].'"';
                 }
 
             }
