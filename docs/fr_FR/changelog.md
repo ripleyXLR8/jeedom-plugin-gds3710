@@ -1,5 +1,8 @@
 # Change Log - Plugin GDS 3710
 
+### 20/09/2019
+- Correction de bugs + ajout de la possibilité d'activer le second contact sec.
+
 ### 11/03/2019
 - Ajout de la commande permettant de modifier la configuration du GDS.
 
