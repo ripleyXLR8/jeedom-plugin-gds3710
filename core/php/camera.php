@@ -39,8 +39,7 @@ if($auth_type == 'challenge'){
 	    CURLOPT_RETURNTRANSFER => true
 	);
 	curl_setopt_array($ch, $optArray);
-	$auth_challenge = new SimpleXMLElement(curl_exec($ch));
-	curl_setopt_array($ch, $optArray);
+	$auth_challenge = n@simplexml_load_string(curl_exec($ch));
 	$ChallengeCode = $auth_challenge->ChallengeCode[0];
 	$IDCode = $auth_challenge->IDCode[0];
 
