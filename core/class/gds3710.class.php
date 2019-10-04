@@ -73,22 +73,22 @@ class gds3710 extends eqLogic {
             "1200" => array("section" =>'Sécurité', 'section_icon'=>'securite-key1', "type" => 1200, "short_name" => "HostageAlarm", "message" => "Hostage Alarm", "use_case" => "Indicates that someone has entered the hostage alarm PIN code to open the door."),
             "1300" => array("section" =>'Sécurité', 'section_icon'=>'securite-key1', "type" => 1300, "short_name" => "InvalidPassword", "message" => "Invalid Password", "use_case" => "Indicates that someone has entered wrong password PIN code to open the door for 5 attempts and corresponding alarm action has been triggered."),
             
-            "1101" => array("section" =>'Surveillance Logiciel', 'section_icon'=>'fa-exclamation-triangle', "type" => 1101, "short_name" => "SystemUp", "message" => "System up", "use_case" => "Indicates that the system is UP."),
-            "1102" => array("section" =>'Surveillance Logiciel', 'section_icon'=>'fa-exclamation-triangle', "type" => 1102, "short_name" => "Reboot", "message" => "Reboot", "use_case" => "Indicates that the GDS unit has been rebooted."),
-            "1103" => array("section" =>'Surveillance Logiciel', 'section_icon'=>'fa-exclamation-triangle', "type" => 1103, "short_name" => "ResetClearAllData", "message" => "Reset (Clear All Data) ", "use_case" => "Factory reset (clear all data) has been performed."),
-            "1104" => array("section" =>'Surveillance Logiciel', 'section_icon'=>'fa-exclamation-triangle', "type" => 1104, "short_name" => "ResetRetainNetworkDataOnly", "message" => "Reset (Retain Network Data Only)", "use_case" => "Factory reset (Retain Network Data Only) has been performed."),
-            "1105" => array("section" =>'Surveillance Logiciel', 'section_icon'=>'fa-exclamation-triangle', "type" => 1105, "short_name" => "ResetRetainOnlyCardInformation)", "message" => "Reset (Retain Only Card Information)", "use_case" => "Factory reset (Retain Only Card Information) has been performed."),
-            "1106" => array("section" =>'Surveillance Logiciel', 'section_icon'=>'fa-exclamation-triangle', "type" => 1106, "short_name" => "ResetRetainNetworkDataAndCardInformation)", "message" => "Reset (Retain Network Data and Card Information)", "use_case" => "Factory reset (Retain Network Data and Card Information) has been performed."),
-            "1107" => array("section" =>'Surveillance Logiciel', 'section_icon'=>'fa-exclamation-triangle', "type" => 1107, "short_name" => "ResetWiegand", "message" => "Reset (Wiegand)", "use_case" => "Factory reset using Wiegand module has been performed on the unit"),
-            "1108" => array("section" =>'Surveillance Logiciel', 'section_icon'=>'fa-exclamation-triangle', "type" => 1108, "short_name" => "ConfigUpdate", "message" => "Config Update", "use_case" => "Indicates that the system’s configuration has been updated."),
-            "1109" => array("section" =>'Surveillance Logiciel', 'section_icon'=>'fa-exclamation-triangle', "type" => 1109, "short_name" => "FirmwareUpdate", "message" => "Firmware Update (1.0.0.0)", "use_case" => "Indicates that the system’s firmware has been upgraded."),
+            "1101" => array("section" =>'Surveillance Logiciel', 'section_icon'=>'fas fa-exclamation-triangle', "type" => 1101, "short_name" => "SystemUp", "message" => "System up", "use_case" => "Indicates that the system is UP."),
+            "1102" => array("section" =>'Surveillance Logiciel', 'section_icon'=>'fas fa-exclamation-triangle', "type" => 1102, "short_name" => "Reboot", "message" => "Reboot", "use_case" => "Indicates that the GDS unit has been rebooted."),
+            "1103" => array("section" =>'Surveillance Logiciel', 'section_icon'=>'fas fa-exclamation-triangle', "type" => 1103, "short_name" => "ResetClearAllData", "message" => "Reset (Clear All Data) ", "use_case" => "Factory reset (clear all data) has been performed."),
+            "1104" => array("section" =>'Surveillance Logiciel', 'section_icon'=>'fas fa-exclamation-triangle', "type" => 1104, "short_name" => "ResetRetainNetworkDataOnly", "message" => "Reset (Retain Network Data Only)", "use_case" => "Factory reset (Retain Network Data Only) has been performed."),
+            "1105" => array("section" =>'Surveillance Logiciel', 'section_icon'=>'fas fa-exclamation-triangle', "type" => 1105, "short_name" => "ResetRetainOnlyCardInformation)", "message" => "Reset (Retain Only Card Information)", "use_case" => "Factory reset (Retain Only Card Information) has been performed."),
+            "1106" => array("section" =>'Surveillance Logiciel', 'section_icon'=>'fas fa-exclamation-triangle', "type" => 1106, "short_name" => "ResetRetainNetworkDataAndCardInformation)", "message" => "Reset (Retain Network Data and Card Information)", "use_case" => "Factory reset (Retain Network Data and Card Information) has been performed."),
+            "1107" => array("section" =>'Surveillance Logiciel', 'section_icon'=>'fas fa-exclamation-triangle', "type" => 1107, "short_name" => "ResetWiegand", "message" => "Reset (Wiegand)", "use_case" => "Factory reset using Wiegand module has been performed on the unit"),
+            "1108" => array("section" =>'Surveillance Logiciel', 'section_icon'=>'fas fa-exclamation-triangle', "type" => 1108, "short_name" => "ConfigUpdate", "message" => "Config Update", "use_case" => "Indicates that the system’s configuration has been updated."),
+            "1109" => array("section" =>'Surveillance Logiciel', 'section_icon'=>'fas fa-exclamation-triangle', "type" => 1109, "short_name" => "FirmwareUpdate", "message" => "Firmware Update (1.0.0.0)", "use_case" => "Indicates that the system’s firmware has been upgraded."),
             
-            "1400" => array("section" =>'Surveillance Matériel', 'section_icon'=>'fa-thermometer-full', "type" => 1400, "short_name" => "MainboardTemperatureNormal", "message" => "Mainboard Temperature(32°C) Normal", "use_case" => "Indicates that device’s mainboard temperature is normal, (around 32°C)."),
-            "1401" => array("section" =>'Surveillance Matériel', 'section_icon'=>'fa-thermometer-full', "type" => 1401, "short_name" => "MainboardTemperatureTooLow", "message" => "Mainboard Temperature(32°C) Too Low", "use_case" => "Indicates that device’s mainboard temperature is too low."),
-            "1402" => array("section" =>'Surveillance Matériel', 'section_icon'=>'fa-thermometer-full', "type" => 1402, "short_name" => "MainboardTemperatureTooHigh", "message" => "Mainboard Temperature(32°C) Too High", "use_case" => "Indicates that device’s mainboard temperature is too high."),
-            "1403" => array("section" =>'Surveillance Matériel', 'section_icon'=>'fa-thermometer-full', "type" => 1403, "short_name" => "SensorTemperatureNormal", "message" => "Sensor Temperature(32°C) Normal", "use_case" => "Indicates that device's sensor temperature is normal, (around 32°C)."),
-            "1404" => array("section" =>'Surveillance Matériel', 'section_icon'=>'fa-thermometer-full', "type" => 1404, "short_name" => "SensorTemperatureTooLow", "message" => "Sensor Temperature(32°C) Too Low", "use_case" => "Indicates that device's sensor temperature is normal too low."),
-            "1405" => array("section" =>'Surveillance Matériel', 'section_icon'=>'fa-thermometer-full', "type" => 1405, "short_name" => "SensorTemperatureTooHigh", "message" => "Sensor Temperature(32°C) Too High", "use_case" => "Indicates that device's sensor temperature is normal too high."),
+            "1400" => array("section" =>'Surveillance Matériel', 'section_icon'=>'fas fa-thermometer-full', "type" => 1400, "short_name" => "MainboardTemperatureNormal", "message" => "Mainboard Temperature(32°C) Normal", "use_case" => "Indicates that device’s mainboard temperature is normal, (around 32°C)."),
+            "1401" => array("section" =>'Surveillance Matériel', 'section_icon'=>'fas fa-thermometer-full', "type" => 1401, "short_name" => "MainboardTemperatureTooLow", "message" => "Mainboard Temperature(32°C) Too Low", "use_case" => "Indicates that device’s mainboard temperature is too low."),
+            "1402" => array("section" =>'Surveillance Matériel', 'section_icon'=>'fas fa-thermometer-full', "type" => 1402, "short_name" => "MainboardTemperatureTooHigh", "message" => "Mainboard Temperature(32°C) Too High", "use_case" => "Indicates that device’s mainboard temperature is too high."),
+            "1403" => array("section" =>'Surveillance Matériel', 'section_icon'=>'fas fa-thermometer-full', "type" => 1403, "short_name" => "SensorTemperatureNormal", "message" => "Sensor Temperature(32°C) Normal", "use_case" => "Indicates that device's sensor temperature is normal, (around 32°C)."),
+            "1404" => array("section" =>'Surveillance Matériel', 'section_icon'=>'fas fa-thermometer-full', "type" => 1404, "short_name" => "SensorTemperatureTooLow", "message" => "Sensor Temperature(32°C) Too Low", "use_case" => "Indicates that device's sensor temperature is normal too low."),
+            "1405" => array("section" =>'Surveillance Matériel', 'section_icon'=>'fas fa-thermometer-full', "type" => 1405, "short_name" => "SensorTemperatureTooHigh", "message" => "Sensor Temperature(32°C) Too High", "use_case" => "Indicates that device's sensor temperature is normal too high."),
         );
         return $return;
     }
@@ -109,202 +109,200 @@ class gds3710 extends eqLogic {
 
     public function postSave() {
 
+        // On vérifie que la clef secrète à bien été créée sinon, on la génère.
         $KEY = $this->getConfiguration('secretkey');
         if($KEY == ''){
-             $this->setConfiguration('secretkey',md5(microtime().rand()));
+            log::add('gds3710', 'debug', 'No secretkey has been detected... creating a new one.');
+            $this->setConfiguration('secretkey',md5(microtime().rand()));
         }
-        $KEY = $this->getConfiguration('secretkey');
 
         // On utilise la MAC pour créer le logical ID de l'équipement
         $MAC = $this->getConfiguration('macaddress');
         $this->setLogicalId(strtolower($MAC));
-        $this->save(true);
-
+            
         // Création de la commande open si elle n'existe pas dèjà
         $open = $this->getCmd(null, 'open');
         if (!is_object($open)) {
             $open = new gds3710Cmd();
-            $open->setName(__('Ouvrir la porte', __FILE__));
-            $open->setEqLogic_id($this->getId());
-            $open->setLogicalId('open');
-            $open->setType('action');
-            $open->setSubType('other');
-            $open->setIsVisible(1);
-            $open->save();
         }
-
-        // Création de la commande close si elle n'existe pas dèjà
-        $close = $this->getCmd(null, 'close');
-        if (!is_object($close)) {
-            $close = new gds3710Cmd();
-            $close->setName(__('Fermer la porte', __FILE__));
-            $close->setEqLogic_id($this->getId());
-            $close->setLogicalId('close');
-            $close->setType('action');
-            $close->setSubType('other');
-            $close->setIsVisible(0);
-            $close->save();
-        }
+        $open->setName(__('Ouvrir la porte', __FILE__));
+        $open->setEqLogic_id($this->getId());
+        $open->setLogicalId('open');
+        $open->setType('action');
+        $open->setSubType('other');
+        $open->setIsVisible(1);
+        $open->save();
 
         // Création de la commande open2 si elle n'existe pas dèjà
         $open2 = $this->getCmd(null, 'open2');
         if (!is_object($open2)) {
             $open2 = new gds3710Cmd();
-            $open2->setName(__('Ouvrir la porte 2', __FILE__));
-            $open2->setEqLogic_id($this->getId());
-            $open2->setLogicalId('open2');
-            $open2->setType('action');
-            $open2->setSubType('other');
-            $open2->setIsVisible(1);
-            $open2->save();
         }
+        $open2->setName(__('Ouvrir la porte 2', __FILE__));
+        $open2->setEqLogic_id($this->getId());
+        $open2->setLogicalId('open2');
+        $open2->setType('action');
+        $open2->setSubType('other');
+        $open2->setIsVisible(1);
+        $open2->save();
+        
+        // Création de la commande close si elle n'existe pas dèjà
+        $close = $this->getCmd(null, 'close');
+        if (!is_object($close)) {
+            $close = new gds3710Cmd();
+        }
+        $close->setName(__('Fermer la porte', __FILE__));
+        $close->setEqLogic_id($this->getId());
+        $close->setLogicalId('close');
+        $close->setType('action');
+        $close->setSubType('other');
+        $close->setIsVisible(0);
+        $close->save();
 
         // Création de la commande close2 si elle n'existe pas dèjà
         $close2 = $this->getCmd(null, 'close2');
         if (!is_object($close2)) {
             $close2 = new gds3710Cmd();
-            $close2->setName(__('Fermer la porte 2', __FILE__));
-            $close2->setEqLogic_id($this->getId());
-            $close2->setLogicalId('close2');
-            $close2->setType('action');
-            $close2->setSubType('other');
-            $close2->setIsVisible(0);
-            $close2->save();
         }
+        $close2->setName(__('Fermer la porte 2', __FILE__));
+        $close2->setEqLogic_id($this->getId());
+        $close2->setLogicalId('close2');
+        $close2->setType('action');
+        $close2->setSubType('other');
+        $close2->setIsVisible(0);
+        $close2->save();
 
         // Création de la commande snapshot
         $snapshot = $this->getCmd(null, 'snapshot');
         if (!is_object($snapshot)) {
             $snapshot = new gds3710Cmd();
-            $snapshot->setName(__('Prendre un snapshot', __FILE__));
-            $snapshot->setEqLogic_id($this->getId());
-            $snapshot->setLogicalId('snapshot');
-            $snapshot->setType('action');
-            $snapshot->setSubType('other');
-            $snapshot->setTemplate('dashboard', 'snapshot');
-            $snapshot->setIsVisible(1);
-            $snapshot->save();
         }
-
+        $snapshot->setName(__('Prendre un snapshot', __FILE__));
+        $snapshot->setEqLogic_id($this->getId());
+        $snapshot->setLogicalId('snapshot');
+        $snapshot->setType('action');
+        $snapshot->setSubType('other');
+        $snapshot->setTemplate('dashboard', 'snapshot');
+        $snapshot->setIsVisible(1);
+        $snapshot->save();
 
         // Création de la commande Modify Config
         $modifyconfig = $this->getCmd(null, 'modifyConfig');
         if (!is_object($modifyconfig)) {
             $modifyconfig = new gds3710Cmd();
-            $modifyconfig->setName(__('Modifier la configuration', __FILE__));
-            $modifyconfig->setType('action');
-            $modifyconfig->setLogicalId('modifyConfig');
-            $modifyconfig->setEqLogic_id($this->getId());
-            $modifyconfig->setSubType('message');
-            $modifyconfig->setIsVisible(0);
-            $modifyconfig->setDisplay('title_placeholder', __('ID de la commande à modifier', __FILE__));
-            $modifyconfig->setDisplay('message_placeholder', __('Valeur', __FILE__));
-            $modifyconfig->setDisplay('message_cmd_type', 'action');
-            $modifyconfig->setDisplay('message_cmd_subtype', 'message');
-            $modifyconfig->save();
         }
-
+        $modifyconfig->setName(__('Modifier la configuration', __FILE__));
+        $modifyconfig->setType('action');
+        $modifyconfig->setLogicalId('modifyConfig');
+        $modifyconfig->setEqLogic_id($this->getId());
+        $modifyconfig->setSubType('message');
+        $modifyconfig->setIsVisible(0);
+        $modifyconfig->setDisplay('title_placeholder', __('ID de la commande à modifier', __FILE__));
+        $modifyconfig->setDisplay('message_placeholder', __('Valeur', __FILE__));
+        $modifyconfig->setDisplay('message_cmd_type', 'action');
+        $modifyconfig->setDisplay('message_cmd_subtype', 'message');
+        $modifyconfig->save();
 
         // Création de la commande Send SnapShot
         $sendSnapshot = $this->getCmd(null, 'sendSnapshot');
         if (!is_object($sendSnapshot)) {
             $sendSnapshot = new gds3710Cmd();
-            $sendSnapshot->setName(__('Envoyer un snapshot', __FILE__));
-            $sendSnapshot->setConfiguration('request', '-');
-            $sendSnapshot->setType('action');
-            $sendSnapshot->setLogicalId('sendSnapshot');
-            $sendSnapshot->setEqLogic_id($this->getId());
-            $sendSnapshot->setSubType('message');
-            $sendSnapshot->setIsVisible(0);
-            $sendSnapshot->setDisplay('title_placeholder', __('Nombre captures ou options', __FILE__));
-            $sendSnapshot->setDisplay('message_placeholder', __('Commande message d\'envoi des captures', __FILE__));
-            $sendSnapshot->setDisplay('message_cmd_type', 'action');
-            $sendSnapshot->setDisplay('message_cmd_subtype', 'message');
-            $sendSnapshot->save();
         }
-
+        $sendSnapshot->setName(__('Envoyer un snapshot', __FILE__));
+        $sendSnapshot->setConfiguration('request', '-');
+        $sendSnapshot->setType('action');
+        $sendSnapshot->setLogicalId('sendSnapshot');
+        $sendSnapshot->setEqLogic_id($this->getId());
+        $sendSnapshot->setSubType('message');
+        $sendSnapshot->setIsVisible(0);
+        $sendSnapshot->setDisplay('title_placeholder', __('Nombre captures ou options', __FILE__));
+        $sendSnapshot->setDisplay('message_placeholder', __('Commande message d\'envoi des captures', __FILE__));
+        $sendSnapshot->setDisplay('message_cmd_type', 'action');
+        $sendSnapshot->setDisplay('message_cmd_subtype', 'message');
+        $sendSnapshot->save();
 
         // Création de la commande d'historique
         $history = $this->getCmd(null, 'Open_Snapshots_Folder');
         if (!is_object($history)) {
             $history = new gds3710Cmd();
-            $history->setName(__('Ouvrir le dossier des captures', __FILE__));
-            $history->setEqLogic_id($this->getId());
-            $history->setLogicalId('Open_Snapshots_Folder');
-            $history->setType('action');
-            $history->setSubType('other');
-            $history->setTemplate('dashboard', 'snapshot_folder');
-            $history->setIsVisible(1);
-            $history->save();
         }
-
+        $history->setName(__('Ouvrir le dossier des captures', __FILE__));
+        $history->setEqLogic_id($this->getId());
+        $history->setLogicalId('Open_Snapshots_Folder');
+        $history->setType('action');
+        $history->setSubType('other');
+        $history->setTemplate('dashboard', 'snapshot_folder');
+        $history->setIsVisible(1);
+        $history->save();
 
         // Création de la commande de récupération du dernier snapshot
         $lastest_snapshot = $this->getCmd(null, 'Lastest_Snapshot_Path');
         if (!is_object($lastest_snapshot)) {
             $lastest_snapshot = new gds3710Cmd();
-            $lastest_snapshot->setName(__('Chemin du dernier snapshot', __FILE__));
-            $lastest_snapshot->setEqLogic_id($this->getId());
-            $lastest_snapshot->setLogicalId('Lastest_Snapshot_Path');
-            $lastest_snapshot->setType('info');
-            $lastest_snapshot->setSubType('string');
-            $lastest_snapshot->setIsVisible(0);
-            $lastest_snapshot->save();
         }
-
+        $lastest_snapshot->setName(__('Chemin du dernier snapshot', __FILE__));
+        $lastest_snapshot->setEqLogic_id($this->getId());
+        $lastest_snapshot->setLogicalId('Lastest_Snapshot_Path');
+        $lastest_snapshot->setType('info');
+        $lastest_snapshot->setSubType('string');
+        $lastest_snapshot->setIsVisible(0);
+        $lastest_snapshot->save();
 
         // Création de la commande stream_mjpeg
         $stream_mjpeg = $this->getCmd('info', 'stream_mjpeg');
         if (!is_object($stream_mjpeg)) {
             $stream_mjpeg = new gds3710Cmd();
-            $stream_mjpeg->setName(__('Stream MJPEG', __FILE__));
-            $stream_mjpeg->setEqLogic_id($this->getId());
-            $stream_mjpeg->setLogicalId('stream_mjpeg');
-            $stream_mjpeg->setType('info');
-            $stream_mjpeg->setSubType('string');
-            $stream_mjpeg->setTemplate('dashboard', 'mjpegstream');
-            $stream_mjpeg->setTemplate('mobile', 'mjpegstream');
-            $stream_mjpeg->setIsVisible(1);
-            $stream_mjpeg->save();
-            $stream_mjpeg->event('/plugins/gds3710/core/php/camera.php?mac='.$MAC);
         }
-
-
+        $stream_mjpeg->setName(__('Stream MJPEG', __FILE__));
+        $stream_mjpeg->setEqLogic_id($this->getId());
+        $stream_mjpeg->setLogicalId('stream_mjpeg');
+        $stream_mjpeg->setType('info');
+        $stream_mjpeg->setSubType('string');
+        $stream_mjpeg->setTemplate('dashboard', 'mjpegstream');
+        $stream_mjpeg->setTemplate('mobile', 'mjpegstream');
+        $stream_mjpeg->setIsVisible(1);
+        $stream_mjpeg->save();
+        $stream_mjpeg->event('/plugins/gds3710/core/php/camera.php?mac='.$MAC);
 
         // Création de la commande last event
         $info = $this->getCmd('info', 'Last event');
         if (!is_object($info)) {
-            $info = new gds3710Cmd();   
-            $info->setName(__('Last event', __FILE__));
-            $info->setType('info');
-            $info->setSubType('string');
-            $info->setLogicalId('Last event');
-            $info->setIsVisible(0);
-            $info->setEqLogic_id($this->getId());
-            $info->save();
-        }
+            $info = new gds3710Cmd();
+        }  
+        $info->setName(__('Last event', __FILE__));
+        $info->setType('info');
+        $info->setSubType('string');
+        $info->setLogicalId('Last event');
+        $info->setIsVisible(0);
+        $info->setEqLogic_id($this->getId());
+        $info->save();
 
+        // Création des autres commandes du portier
         $cmd_array = gds3710::get_GDS3710_event_list();
-        
         foreach ($cmd_array as $row){
             $info = $this->getCmd('info', $row['short_name']);
             if (!is_object($info)) {
                 $info = new gds3710Cmd();
-                $info->setName(__($row['type'], __FILE__));
-                $info->setType('info');
-                $info->setSubType('string');
-                $info->setIsVisible(0);
-                $info->setLogicalId($row['short_name']);
-                $info->setEqLogic_id($this->getId());
-                $info->save();
-            } 
+            }
+            $info->setName(__($row['type'], __FILE__));
+            $info->setType('info');
+            $info->setSubType('string');
+            $info->setIsVisible(0);
+            $info->setLogicalId($row['short_name']);
+            $info->setEqLogic_id($this->getId());
+            $info->save(); 
         }
 
         return;
     }
 
     public function preUpdate() {
-        
+        $this->setCategory('security', 1);
+
+        // Seul le champs adresse MAC est obligatoire.
+        if ($this->getConfiguration('macaddress') == '') {
+            throw new Exception(__('L\'adresse MAC du portier ne peut être vide', __FILE__));
+        }
     }
 
     public function postUpdate() {
