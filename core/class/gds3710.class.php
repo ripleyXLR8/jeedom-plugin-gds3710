@@ -119,8 +119,8 @@ class gds3710 extends eqLogic {
         // On utilise la MAC pour créer le logical ID de l'équipement
         $MAC = $this->getConfiguration('macaddress');
         $this->setLogicalId(strtolower($MAC));
-        
-        
+        $this->save(true);
+       
         // Création de la commande reboot si elle n'existe pas dèjà
         $reboot = $this->getCmd(null, 'reboot');
         if (!is_object($reboot)) {
