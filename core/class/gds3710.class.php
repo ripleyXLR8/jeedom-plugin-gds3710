@@ -119,6 +119,20 @@ class gds3710 extends eqLogic {
         // On utilise la MAC pour créer le logical ID de l'équipement
         $MAC = $this->getConfiguration('macaddress');
         $this->setLogicalId(strtolower($MAC));
+        
+        
+        // Création de la commande reboot si elle n'existe pas dèjà
+        $reboot = $this->getCmd(null, 'reboot');
+        if (!is_object($reboot)) {
+            $reboot = new gds3710Cmd();
+        }
+        $reboot->setName(__('Reboot', __FILE__));
+        $reboot->setEqLogic_id($this->getId());
+        $reboot->setLogicalId('reboot');
+        $reboot->setType('action');
+        $reboot->setSubType('other');
+        $reboot->setIsVisible(1);
+        $reboot->save();
             
         // Création de la commande open si elle n'existe pas dèjà
         $open = $this->getCmd(null, 'open');
@@ -484,6 +498,44 @@ class gds3710Cmd extends cmd {
         $result =  new SimpleXMLElement(curl_exec($ch));
         log::add('gds3710', 'debug', 'Result is : '. print_r($result, true));
     }
+   
+    private function reboot(){
+        log::add('gds3710', 'info', 'Requesting reboot');
+
+        $gds3710 = eqLogic::byId($this->getEqLogic_id());
+        $cookies = $this->getAuthCookies($gds3710);
+        log::add('gds3710', 'debug', 'Auth cookies is : '.print_r($cookies, true));
+
+        $cookie_string = "";
+        foreach ($cookies as $key => $value) {
+            $cookie_string.=$key."=".$value.";";
+        }
+
+        $ip = $gds3710->getConfiguration('ip');
+        $password = $gds3710->getConfiguration('password');
+        $salt = "GDS3710lZpRsFzCbM";
+
+        $ch = curl_init();
+
+        $url = 'https://'.$ip.'/goform/config?cmd=reboot';
+
+        $optArray = array(
+            CURLOPT_URL => $url,
+            CURLOPT_SSL_VERIFYPEER  => false,
+            CURLOPT_SSL_VERIFYHOST => false,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_COOKIE => $cookie_string
+        );
+
+        log::add('gds3710', 'debug', 'Calling url : '.$url);
+
+        $ch = curl_init();
+        curl_setopt_array($ch, $optArray);
+
+        $result =  new SimpleXMLElement(curl_exec($ch));
+        log::add('gds3710', 'debug', 'Result is : '. print_r($result, true));
+
+    }
 
     private function getAuthCookies($gds){
 
@@ -712,6 +764,9 @@ class gds3710Cmd extends cmd {
                 break;
             case 'snapshot':
                 $this->take_snapshot();
+                break;
+            case 'reboot':
+                $this->reboot();
                 break;
             case 'sendSnapshot':
                 if (!isset($_options['title'])) {
