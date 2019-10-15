@@ -1,0 +1,147 @@
+<span class="cmd cmd-widget" data-type="info" data-subtype="string" data-cmd_id="#id#">
+  <a class="btn btn-sm btn-default action">#name#</a>
+  <audio id="remoteAudio"></audio>
+
+  <script src="/plugins/gds3710/desktop/js/jssip-3.3.9.js"></script>
+
+  <script>
+
+    sipAudio = new Audio();
+    ringtone = new Audio("plugins/gds3710/core/sound/bell.mp3");
+
+    var sipdata = JSON.parse('#state#');
+
+    var websocket = new JsSIP.WebSocketInterface(sipdata.client_sip_websocket);
+    
+    var configuration = {
+      sockets  : [websocket],
+      uri      : sipdata.client_sip_uri,
+      password : sipdata.client_sip_password
+    };
+
+    var coolPhone = new JsSIP.UA(configuration);
+
+    var isCurrentlyOnPhone = false;
+
+    function switchToRegisteredMode(){
+      $("[data-cmd_id=#id#]")[0].children[0].classList.remove('btn-default');
+      $("[data-cmd_id=#id#]")[0].children[0].classList.remove('btn-danger');
+      $("[data-cmd_id=#id#]")[0].children[0].classList.add('btn-success');
+      $("[data-cmd_id=#id#]")[0].children[0].innerHTML = "Appeler";
+    }
+
+    function switchToNotRegisteredMode(){
+      $("[data-cmd_id=#id#]")[0].children[0].classList.remove('btn-default');
+      $("[data-cmd_id=#id#]")[0].children[0].classList.add('btn-danger');
+      $("[data-cmd_id=#id#]")[0].children[0].classList.remove('btn-success');
+      $("[data-cmd_id=#id#]")[0].children[0].innerHTML = "Non connecté";
+    }
+
+    coolPhone.on('registered', function(e){
+      console.log('JsSIP : You are registered.');
+      switchToRegisteredMode();
+    });
+  
+    coolPhone.on('unregistered', function(e){
+      console.log('JsSIP : You are unregistered.');
+      switchToNotRegisteredMode();
+    });
+  
+    coolPhone.on('registrationFailed', function(e){
+      console.log('JsSIP : Registration has failed.');
+      switchToNotRegisteredMode();
+    });
+
+    coolPhone.on('newRTCSession', function(e){
+      console.log('JsSIP : New RTC Session.');
+
+      isCurrentlyOnPhone = true;
+      var session = e.session;
+      var request = e.request;
+      var originator = e.originator;
+
+      if(originator=='local'){
+
+        session.connection.onaddstream = function(e){
+          console.log('JsSip : On add stream');
+          sipAudio.srcObject = e.stream;
+          sipAudio.play();
+        }
+
+        $("[data-cmd_id=335859]")[0].children[0].classList.remove('btn-default');
+        $("[data-cmd_id=335859]")[0].children[0].classList.add('btn-danger');
+        $("[data-cmd_id=335859]")[0].children[0].classList.remove('btn-success');
+        $("[data-cmd_id=335859]")[0].children[0].innerHTML = "En ligne - raccrocher";
+      }
+
+      if(originator=='remote'){
+        ringtone.loop = true;
+        ringtone.play();
+
+        $("[data-cmd_id=335859]")[0].children[0].classList.remove('btn-default');
+        $("[data-cmd_id=335859]")[0].children[0].classList.remove('btn-danger');
+        $("[data-cmd_id=335859]")[0].children[0].classList.add('btn-success');
+        $("[data-cmd_id=335859]")[0].children[0].innerHTML = "Répondre?";
+
+      }
+
+    });
+
+    coolPhone.start();
+
+
+  $('.cmd[data-cmd_id=#id#]').on('mousedown', function () {
+
+    if(isCurrentlyOnPhone){
+
+      coolPhone.terminateSessions();
+
+    } else {
+
+      var eventHandlers = {
+        'progress': function(e) {
+          console.log('JsSIP : Call is in progress');
+          isCurrentlyOnPhone = true;
+          $("[data-cmd_id=#id#]")[0].children[0].classList.remove('btn-default');
+          $("[data-cmd_id=#id#]")[0].children[0].classList.add('btn-danger');
+          $("[data-cmd_id=#id#]")[0].children[0].classList.remove('btn-success');
+          $("[data-cmd_id=#id#]")[0].children[0].innerHTML = "En ligne - raccrocher";
+        },
+        'failed': function(e) {
+          console.log('JsSip : Call failed with cause: '+ e.cause);
+          isCurrentlyOnPhone = false;
+          $("[data-cmd_id=#id#]")[0].children[0].classList.remove('btn-default');
+          $("[data-cmd_id=#id#]")[0].children[0].classList.remove('btn-danger');
+          $("[data-cmd_id=#id#]")[0].children[0].classList.add('btn-success');
+          $("[data-cmd_id=#id#]")[0].children[0].innerHTML = "Appeler";
+        },
+        'ended': function(e) {
+          console.log('JsSip : Call ended with cause: '+ e.cause);
+          isCurrentlyOnPhone = false;
+          $("[data-cmd_id=#id#]")[0].children[0].classList.remove('btn-default');
+          $("[data-cmd_id=#id#]")[0].children[0].classList.remove('btn-danger');
+          $("[data-cmd_id=#id#]")[0].children[0].classList.add('btn-success');
+          $("[data-cmd_id=#id#]")[0].children[0].innerHTML = "Appeler";
+
+        },
+        'confirmed': function(e) {
+          console.log('JsSip : Call confirmed');
+          var localStream = session.connection.getLocalStreams()[0];
+          isCurrentlyOnPhone = true;
+          $("[data-cmd_id=#id#]")[0].children[0].classList.remove('btn-default');
+          $("[data-cmd_id=#id#]")[0].children[0].classList.add('btn-danger');
+          $("[data-cmd_id=#id#]")[0].children[0].classList.remove('btn-success');
+          $("[data-cmd_id=#id#]")[0].children[0].innerHTML = "En ligne - Raccrocher";
+        }};
+
+      var options = {
+        'eventHandlers'    : eventHandlers,
+        'mediaConstraints' : { 'audio': true, 'video': false }
+      };
+
+    session = coolPhone.call(sipdata.portier_sip_uri, options);
+
+    }
+  });
+  </script>
+</span>
