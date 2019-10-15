@@ -48,7 +48,7 @@
     });
   
     coolPhone.on('registrationFailed', function(e){
-      console.log('JsSIP : Registration has failed.');
+      console.log('JsSIP : Registration has failed with cause: '+ e.cause');
       switchToNotRegisteredMode();
     });
 
