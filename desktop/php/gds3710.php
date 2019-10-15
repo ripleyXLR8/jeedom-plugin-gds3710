@@ -88,98 +88,137 @@
 
   </ul>
   <div class="tab-content" style="height:calc(100% - 50px);overflow:auto;overflow-x: hidden;">
-    <div role="tabpanel" class="tab-pane active" id="eqlogictab">
-      <br/>
-    <form class="form-horizontal">
-        <fieldset>
-            <div class="form-group">
-                <label class="col-sm-3 control-label">{{Nom du GDS3710}}</label>
-                <div class="col-sm-3">
-                    <input type="text" class="eqLogicAttr form-control" data-l1key="id" style="display : none;" />
-                    <input type="text" class="eqLogicAttr form-control" data-l1key="name" placeholder="{{Nom de l'équipement template}}"/>
-                </div>
+  	<div role="tabpanel" class="tab-pane active" id="eqlogictab">
+     	<br/>
+  		<form class="form-horizontal">
+        	<fieldset>
+            	<div class="form-group">
+                	<label class="col-sm-3 control-label">{{Nom du GDS3710}}</label>
+	                <div class="col-sm-3">
+	                    <input type="text" class="eqLogicAttr form-control" data-l1key="id" style="display : none;" />
+	                    <input type="text" class="eqLogicAttr form-control" data-l1key="name" placeholder="{{Nom de l'équipement template}}"/>
+	                </div>
+            	</div>
+
+	            <div class="form-group">
+	                <label class="col-sm-3 control-label" >{{Objet parent}}</label>
+	                <div class="col-sm-3">
+	                    <select id="sel_object" class="eqLogicAttr form-control" data-l1key="object_id">
+	                        <option value="">{{Aucun}}</option>
+	                        <?php
+	                          foreach (jeeObject::all() as $object) {
+	                            echo '<option value="' . $object->getId() . '">' . $object->getName() . '</option>';
+	                          }
+	                        ?>
+	                   </select>
+	               </div>
+	           	</div>
+
+    			<div class="form-group">
+                	<label class="col-sm-3 control-label">{{Catégorie}}</label>
+                	<div class="col-sm-3">
+		                <?php
+		                    foreach (jeedom::getConfiguration('eqLogic:category') as $key => $value) {
+		                    echo '<label class="checkbox-inline">';
+		                    echo '<input type="checkbox" class="eqLogicAttr" data-l1key="category" data-l2key="' . $key . '" />' . $value['name'];
+		                    echo '</label>';
+		                    }
+		                ?>
+               		</div>
+           		</div>
+
+				<div class="form-group">
+    				<label class="col-sm-3 control-label"></label>
+    				<div class="col-sm-3">
+      					<label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="isEnable" checked/>{{Activer}}</label>
+      					<label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="isVisible" checked/>{{Visible}}</label>
+    				</div>
+  				</div>
+  			</fieldset>
+
+  			<fieldset>
+  				<legend>{{Configuration général}}</legend>
+
+				<div class="form-group">
+					<label class="col-sm-3 control-label">{{Adresse MAC}}</label>
+				    <div class="col-sm-3">
+				        <input type="text" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="macaddress" placeholder="Adresse MAC"/>
+				    </div>
+				</div>
+
+				<div class="form-group">
+					<label class="col-sm-3 control-label">{{Adresse IP}}</label>
+				    <div class="col-sm-3">
+				        <input type="text" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="ip" placeholder="Adresse IP"/>
+				    </div>
+				</div>
+
+				<div class="form-group">
+					<label class="col-sm-3 control-label">{{Mot de passe}}</label>
+				    <div class="col-sm-3">
+				        <input type="password" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="password" placeholder="Mot-de-passe"/>
+				    </div>
+				</div>
+
+				<div class="form-group">
+					<label class="col-sm-3 control-label">{{Remote PIN}}</label>
+				    <div class="col-sm-3">
+				        <input type="password" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="remote_pin" placeholder="Remote PIN"/>
+				    </div>
+				</div>
+
+				<div class="form-group">
+				    <label class="col-sm-3 control-label">{{Remote PIN 2}}</label>
+				    <div class="col-sm-3">
+				        <input type="password" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="remote_pin_2" placeholder="Remote PIN 2"/>
+				    </div>
+				</div>
+
+				<div class="form-group">
+				    <label class="col-sm-3 control-label pull-left">{{Type d'authentification MJPEG :}}</label>
+				    <div class="col-sm-3">
+				    	<select class="eqLogicAttr form-control tooltips" title="{{type d'authentification pour le flux MJPEG}}" data-l1key="configuration" data-l2key="auth_type">
+				        	<option value="basic">Basic</option>
+				        	<option value="challenge">Challenge-Response</option>
+				      	</select>
+				    </div>
+				</div>
+			</fieldset>
+
+			<fieldset>
+				<legend>{{Configuration client SIP (beta)}}</legend>
+
+				<div class="form-group">
+				    <label class="col-sm-3 control-label">{{Adresse du serveur SIP :}}</label>
+				    <div class="col-sm-3">
+				        <input type="text" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="client_sip_websocket" placeholder="Adresse du serveur SIP"/>
+				    </div>
+				</div>
+
+				<div class="form-group">
+				    <label class="col-sm-3 control-label">{{URI du client SIP :}}</label>
+				    <div class="col-sm-3">
+				        <input type="text" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="client_sip_uri" placeholder="URI du client SIP"/>
+				    </div>
+				</div>
+
+				<div class="form-group">
+				    <label class="col-sm-3 control-label">{{Mot-de-passe du client SIP :}}</label>
+				    <div class="col-sm-3">
+				        <input type="password" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="client_sip_password" placeholder="Mot-de-passe du client SIP"/>
+				    </div>
+				</div>
+
+        <div class="form-group">
+            <label class="col-sm-3 control-label">{{URI du portier SIP :}}</label>
+            <div class="col-sm-3">
+                <input type="text" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="portier_sip_uri" placeholder="URI du portier SIP"/>
             </div>
-            <div class="form-group">
-                <label class="col-sm-3 control-label" >{{Objet parent}}</label>
-                <div class="col-sm-3">
-                    <select id="sel_object" class="eqLogicAttr form-control" data-l1key="object_id">
-                        <option value="">{{Aucun}}</option>
-                        <?php
-                          foreach (jeeObject::all() as $object) {
-                            echo '<option value="' . $object->getId() . '">' . $object->getName() . '</option>';
-                          }
-                        ?>
-                   </select>
-               </div>
-           </div>
-     <div class="form-group">
-                <label class="col-sm-3 control-label">{{Catégorie}}</label>
-                <div class="col-sm-3">
-                 <?php
-                    foreach (jeedom::getConfiguration('eqLogic:category') as $key => $value) {
-                    echo '<label class="checkbox-inline">';
-                    echo '<input type="checkbox" class="eqLogicAttr" data-l1key="category" data-l2key="' . $key . '" />' . $value['name'];
-                    echo '</label>';
-                    }
-                  ?>
-               </div>
-           </div>
-  <div class="form-group">
-    <label class="col-sm-3 control-label"></label>
-    <div class="col-sm-3">
-      <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="isEnable" checked/>{{Activer}}</label>
-      <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="isVisible" checked/>{{Visible}}</label>
-    </div>
-  </div>
+        </div>
 
-   <div class="form-group">
-    <label class="col-sm-3 control-label">{{Adresse MAC}}</label>
-    <div class="col-sm-3">
-        <input type="text" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="macaddress" placeholder="Adresse MAC"/>
-    </div>
-  </div>
-
-  <div class="form-group">
-    <label class="col-sm-3 control-label">{{Adresse IP}}</label>
-    <div class="col-sm-3">
-        <input type="text" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="ip" placeholder="Adresse IP"/>
-    </div>
-  </div>
-
-  <div class="form-group">
-    <label class="col-sm-3 control-label">{{Mot de passe}}</label>
-    <div class="col-sm-3">
-        <input type="password" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="password" placeholder="Mot-de-passe"/>
-    </div>
-  </div>
-
-  <div class="form-group">
-    <label class="col-sm-3 control-label">{{Remote PIN}}</label>
-    <div class="col-sm-3">
-        <input type="password" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="remote_pin" placeholder="Remote PIN"/>
-    </div>
-  </div>
-
-  <div class="form-group">
-    <label class="col-sm-3 control-label">{{Remote PIN 2}}</label>
-    <div class="col-sm-3">
-        <input type="password" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="remote_pin_2" placeholder="Remote PIN 2"/>
-    </div>
-  </div>
-
-  <div class="form-group">
-    <label class="col-sm-3 control-label pull-left">{{Type d'authentification MJPEG :}}</label>
-    <div class="col-sm-3">
-      <select class="eqLogicAttr form-control tooltips" title="{{type d'authentification pour le flux MJPEG}}" data-l1key="configuration" data-l2key="auth_type">
-        <option value="basic">Basic</option>
-        <option value="challenge">Challenge-Response</option>
-      </select>
-    </div>
-  </div>
-</fieldset>
-</form>
-
-</div>
+			</fieldset>
+		</form>
+	</div>
 <div role="tabpanel" class="tab-pane" id="commandtab">
   <a class="btn btn-success btn-sm cmdAction pull-right" data-action="add" style="margin-top:5px;"><i class="fa fa-plus-circle"></i> {{Commandes}}</a><br/><br/>
   <table id="table_cmd" class="table table-bordered table-condensed">
