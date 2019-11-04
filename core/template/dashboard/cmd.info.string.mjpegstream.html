@@ -14,6 +14,10 @@
 </div>
 
 <script>
+var img = new Image();
+img.src = '#state#';
+$(".img-responsive[data-eqlogic_id='#id#']").attr('src',img.src);	
+	
 $(".md_cameraZoom[data-eqLogic_id=#id#]").dialog({
   autoOpen: false,
   modal: true,
