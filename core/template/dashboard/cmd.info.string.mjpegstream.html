@@ -14,9 +14,10 @@
 </div>
 
 <script>
-var img = new Image();
-img.src = '#state#';
-$(".img-responsive[data-eqlogic_id='#id#']").attr('src',img.src);	
+var url = window.location.href;
+var n = url.indexOf("index.php");
+url = url.substring(0, n-1).concat("#state#");
+$(".img-responsive[data-eqlogic_id='#id#']").attr('src',url);	
 	
 $(".md_cameraZoom[data-eqLogic_id=#id#]").dialog({
   autoOpen: false,
