@@ -405,6 +405,7 @@ class gds3710Cmd extends cmd {
             CURLOPT_RETURNTRANSFER => true
         );
         curl_setopt_array($ch, $optArray);
+        log::add('gds3710', 'debug', 'curl options are : '.print_r($optArray, true));
         $auth_challenge = new SimpleXMLElement(curl_exec($ch));
         $ChallengeCode = $auth_challenge->ChallengeCode[0];
         $IDCode = $auth_challenge->IDCode[0];
