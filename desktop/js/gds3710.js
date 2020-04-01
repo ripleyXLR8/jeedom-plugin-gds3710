@@ -115,6 +115,15 @@ $("body").delegate('.bt_removeAction', 'click', function () {
     });
 });
 
+$('body').off('focusout','.cmdAction.expressionAttr[data-l1key=cmd]').on('focusout','.cmdAction.expressionAttr[data-l1key=cmd]',function (event) {
+  var type = $(this).attr('data-type');
+  var expression = $(this).closest('.' + type).getValues('.expressionAttr');
+  var el = $(this);
+  jeedom.cmd.displayActionOption($(this).value(), init(expression[0].options), function (html) {
+    el.closest('.' + type).find('.actionOptions').html(html);
+  });
+});
+
 function addAction(_action, _type) {
     var div = '<div class="' + _type + '">';
     div += '<div class="form-group ">';
