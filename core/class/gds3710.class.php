@@ -263,6 +263,19 @@ class gds3710 extends eqLogic {
         $lastest_snapshot->setIsVisible(0);
         $lastest_snapshot->save();
 
+        $lastest_snapshot_URL = $this->getCmd(null, 'Lastest_Snapshot_URL');
+        if (!is_object($lastest_snapshot_URL)) {
+            $lastest_snapshot_URL = new gds3710Cmd();
+        }
+        $lastest_snapshot_URL->setName(__('Dernier snapshot', __FILE__));
+        $lastest_snapshot_URL->setEqLogic_id($this->getId());
+        $lastest_snapshot_URL->setLogicalId('Lastest_Snapshot_URL');
+        $lastest_snapshot_URL->setType('info');
+        $lastest_snapshot_URL->setSubType('string');
+        $history->setTemplate('dashboard', 'lastsnapshot');
+        $lastest_snapshot_URL->setIsVisible(1);
+        $lastest_snapshot_URL->save();
+
         // Création de la commande stream_mjpeg
         $stream_mjpeg = $this->getCmd('info', 'stream_mjpeg');
         if (!is_object($stream_mjpeg)) {
@@ -693,6 +706,12 @@ class gds3710Cmd extends cmd {
         $lastest_snapshot = $eqLogic->getCmd(null, 'Lastest_Snapshot_Path');
         $lastest_snapshot->event(realpath($output_file));
         $lastest_snapshot->save();
+
+        log::add('gds3710', 'debug', "Registering URL to the lastest snapshot");
+        $eqLogic = $this->getEqLogic();
+        $lastest_snapshot_URL = $eqLogic->getCmd(null, 'Lastest_Snapshot_URL');
+        $lastest_snapshot_URL->event(str_replace($_SERVER['DOCUMENT_ROOT'], "",realpath($output_file)) );
+        $lastest_snapshot_URL->save();
 
         return $output_file;
     }
