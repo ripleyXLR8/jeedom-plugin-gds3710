@@ -196,7 +196,8 @@ class gds3710 extends eqLogic {
         $snapshot->setLogicalId('snapshot');
         $snapshot->setType('action');
         $snapshot->setSubType('other');
-        $snapshot->setTemplate('dashboard', 'snapshot');
+        $snapshot->setDisplay('icon', '<i class="fa fa-image"></i>');
+        $snapshot->setTemplate('dashboard', '');
         $snapshot->setIsVisible(1);
         $snapshot->save();
 
