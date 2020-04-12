@@ -272,7 +272,7 @@ class gds3710 extends eqLogic {
         $lastest_snapshot_URL->setLogicalId('Lastest_Snapshot_URL');
         $lastest_snapshot_URL->setType('info');
         $lastest_snapshot_URL->setSubType('string');
-        $history->setTemplate('dashboard', 'lastsnapshot');
+        $lastest_snapshot_URL->setTemplate('dashboard', 'lastsnapshot');
         $lastest_snapshot_URL->setIsVisible(1);
         $lastest_snapshot_URL->save();
 
