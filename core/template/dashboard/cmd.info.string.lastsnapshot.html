@@ -1,4 +1,10 @@
-<div style="max-height: 100%; max-width: 100%;" class="cmd #history# tooltips cmd-widget allowResize" data-type="info" data-subtype="string" data-cmd_id="#id#" data-cmd_uid="#uid#" title="Valeur du #valueDate#, collectée le #collectDate#">
+<div style="max-height: 100%; max-width: 100%;" 
+	class="cmd #history# tooltips cmd-widget allowResize"
+	data-type="info" 
+	data-subtype="string"
+	data-cmd_id="#id#"
+	data-cmd_uid="#uid#"
+	title="Capture prise #valueDate#">
 	<center>
 		<div class="cmdName">#name#</div>
     	<div class="directDisplay zoom" id="iconCmd#uid#">
@@ -6,4 +12,13 @@
     	</div>
   	</center>
 </div>
+
+<script>
+    jeedom.cmd.update['#id#'] = function(_options){
+    	$('.imgCmd#uid#').attr('src', _options.display_value);
+    	console.log(_options.display_value);
+    }
+	
+	//jeedom.cmd.update['#id#']({display_value:'#state#',valueDate:'#valueDate#',collectDate:'#collectDate#'});
+</script>
 
