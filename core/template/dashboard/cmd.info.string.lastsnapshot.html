@@ -11,14 +11,17 @@
       		<img style="padding:10px" class="img-responsive imgCmd#uid#" data-eqLogic_id="#id#" src="#state#"/>
     	</div>
   	</center>
-</div>
 
-<script>
+  	<script>
     jeedom.cmd.update['#id#'] = function(_options){
     	$('.imgCmd#uid#').attr('src', _options.display_value);
     	//console.log(_options.display_value);
     }
 	
 	//jeedom.cmd.update['#id#']({display_value:'#state#',valueDate:'#valueDate#',collectDate:'#collectDate#'});
-</script>
+	</script>
+
+</div>
+
+
 

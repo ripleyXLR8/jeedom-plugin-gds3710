@@ -1,51 +1,59 @@
-<div style="max-height: 100%; max-width: 100%;" class="cmd #history# tooltips cmd-widget allowResize" data-type="info" data-subtype="string" data-cmd_id="#id#" data-cmd_uid="#uid#" title="Valeur du #valueDate#, collectée le #collectDate#">
-	<center>
-    	<input type="text" class="state iconCmd#id#" value="#state#" style="display:none;"/>
-    	<div class="directDisplay zoom" id="iconCmd#uid#">
-      		<img style="padding:10px" class="img-responsive imgCmd#uid#" data-eqLogic_id="#id#" src="#state#"/>
-    	</div>
+<div 
+  style="max-height: 100%; max-width: 100%;" 
+  class="cmd #history# cmd-widget allowResize"
+  data-type="info"
+  data-subtype="string"
+  data-cmd_id="#id#"
+  data-cmd_uid="#uid#">
 
-    	<div class="md_cameraZoom" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" title="#name_display#">
-			   <center>
-		    	<div class="display"><img style="max-width:100%; max-height: 100%" src="#state#" class="img-responsive" data-eqLogic_id="#id#" /></div>
-		  	 </center>
-		  </div>
-  </center>
+  <div class="cmdName">#name#</div>
+
+	<div style="padding-top:10px" class="directDisplay" id="iconCmd#uid#">
+  		<img style="max-width:100%; max-height: 100%" class="img-responsive imgCmd#uid#" data-eqLogic_id="#id#" src="#state#"/>
+	</div>
+
+  <div class="zoomDisplay" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" title="#name_display#">
+		  <div class="display">
+        <img style="max-width:100%; max-height: 100%; margin:auto" src="" class="img-responsive" data-eqLogic_id="#id#" />
+      </div>
+	</div>
+
+  <script>
+
+  var url = '#state#';
+
+  $(".zoomDisplay[data-eqLogic_id=#id#]").dialog({
+    autoOpen: false,
+    modal: true,
+    resizable: false,
+    closeText: '',
+    height: jQuery(window).height() - 65,
+    width: jQuery(window).width() - 40,
+    position: { my: "center bottom-10", at: "center bottom", of: window },
+
+    open : function () {
+      $("body").css({overflow: 'hidden'});
+      $(".zoomDisplay[data-eqLogic_uid=#uid#] .display img").height($(".zoomDisplay[data-eqLogic_uid=#uid#]").height());
+    },
+    beforeClose: function (event, ui) {
+      $("body").css({overflow: 'inherit'});
+      $(".zoomDisplay[data-eqLogic_uid=#uid#] .display img").attr('src','');
+      $(".directDisplay .img-responsive.imgCmd#uid#").attr('src',url);
+    }
+  });
+
+    // $('.cmd[data-cmd_id=#id#]').closest('.eqLogic').off('resize').on('resize',function(){
+    //   $(".zoomDisplay[data-eqLogic_uid=#uid#] .display img").css('max-height',$('.cmd[data-cmd_id=#id#]').closest('.eqLogic').height() - 60);
+    //   $(".zoomDisplay[data-eqLogic_uid=#uid#] .display img").css('max-width',$('.cmd[data-cmd_id=#id#]').closest('.eqLogic').width());
+    //   console.log('test')
+    // });
+
+  $("#iconCmd#uid#").click(function(){
+    $(".zoomDisplay[data-eqLogic_uid=#uid#]").dialog("open");
+    $(".directDisplay .img-responsive.imgCmd#uid#").attr('src','');
+    $(".zoomDisplay[data-eqLogic_uid=#uid#] .display img").attr('src',url);
+  })
+
+  </script>
+
 </div>
-
-<script>
-var url = window.location.href;
-var n = url.indexOf("index.php");
-url = url.substring(0, n-1).concat("#state#");
-$(".img-responsive[data-eqlogic_id='#id#']").attr('src',url);	
-	
-$(".md_cameraZoom[data-eqLogic_id=#id#]").dialog({
-  autoOpen: false,
-  modal: true,
-  resizable: false,
-  closeText: '',
-//   autoOpen: false,
-//   modal: true,
-//   resizable: false,
-//   closeText: '',
-   height: jQuery(window).height() - 100,
-   width: jQuery(window).width() - 100,
-   //position: { my: "center bottom-10", at: "center bottom", of: window },
-   open: function () {
-		///$("body").css({overflow: 'hidden'});
-		//$(".md_cameraZoom[data-eqLogic_uid=#uid#] .display img").height($(".md_cameraZoom[data-eqLogic_uid=#uid#]").height() - 50);
-//     // if (typeof timeoutCamera#id# !== "undefined") {
-//     //   clearTimeout(timeoutCamera#id#);
-//     // }
-//     // refreshImgCam#id#();
-   },
-  beforeClose: function (event, ui) {
- $("body").css({overflow: 'inherit'});
-}
-});
-
-$("#iconCmd#uid#").click(function(){
-	$(".md_cameraZoom[data-eqLogic_uid=#uid#]").dialog("open");
-})
-
-</script>
