@@ -662,9 +662,9 @@ class gds3710Cmd extends cmd {
         $cookies_string = rtrim($cookies_string,';');
 
         $url ='https://'.$ip.'/snapshot/view0.jpg';
-
-        $now = DateTime::createFromFormat('U.u', microtime(true));
-        $filename=$gds3710->getName()."_".$now->format("Y-m-d_H-i-s-u");
+        
+        $now = new DateTime();
+        $filename=$gds3710->getName()."_".$now->format("Y-m-d_H-i-s").'-'.mt_rand(100000, 999999);
 
         $dir = calculPath(config::byKey('recdir', 'gds3710')) . '/' . $gds3710->getId();
 
