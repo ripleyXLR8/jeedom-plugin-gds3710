@@ -5,20 +5,40 @@
 	data-cmd_id="#id#"
 	data-cmd_uid="#uid#"
 	title="Capture prise #valueDate#">
-	<center>
-		<div class="cmdName">#name#</div>
-    	<div class="directDisplay zoom" id="iconCmd#uid#">
-      		<img style="padding:10px" class="img-responsive imgCmd#uid#" data-eqLogic_id="#id#" src="#state#"/>
-    	</div>
-  	</center>
+
+
+	<div class="cmdName">#name#</div>
+    <div class="directDisplay zoom" id="iconCmd#uid#">
+      	<img style="padding-top:5px; padding-bottom: 10px" class="img-responsive imgCmd#uid#" data-eqLogic_id="#id#" src="#state#"/>
+    </div>
+
 
   	<script>
+
+  	$.ajax({
+    	url: '#state#',
+    	type:'HEAD',
+    	error: function()
+    	{
+        	$('.cmd[data-cmd_id=#id#]').hide();
+    	},
+	    success: function()
+	    {
+	        $('.cmd[data-cmd_id=#id#]').show();
+	    }
+	});
+
     jeedom.cmd.update['#id#'] = function(_options){
+    	$('.cmd[data-cmd_id=#id#]').show();
     	$('.imgCmd#uid#').attr('src', _options.display_value);
-    	//console.log(_options.display_value);
+    	$('.cmd[data-cmd_id=#id#]').attr('title', 'Capture prise '+_options.valueDate);
     }
+
+    $('.cmd[data-cmd_id=#id#]').off().on('click', function () {
+        $('#md_modal').dialog({title: "Historique"});
+        $('#md_modal').load('index.php?v=d&plugin=gds3710&modal=gds3710.history&id=#id#').dialog('open');
+    });
 	
-	//jeedom.cmd.update['#id#']({display_value:'#state#',valueDate:'#valueDate#',collectDate:'#collectDate#'});
 	</script>
 
 </div>

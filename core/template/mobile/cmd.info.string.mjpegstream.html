@@ -1,8 +1,73 @@
-<center>
-	<div style="height: 120px; padding : 0px;">
-<div class="display">
-        	<img class="img-responsive" data-eqLogic_id="#id#" src="#state#" style="width:90%;display:block;margin-bottom : 5px;"/>
-        </div>
+<div class="cmd cmd-widget" data-type="info" data-subtype="string" data-template="default" data-version="#version#" data-eqLogic_id="#eqLogic_id#" data-cmd_id="#id#" data-cmd_uid="#uid#">
+
+	<span class="cmdName #hide_name#">#name_display#</span>
+
+	<center>
+		<a href="#popupCameraZoom#id#" data-rel="popup" data-position-to="window" data-transition="none">
+	  		<img data-eqLogic_id="#id#" class="directDisplay" style="max-width:100%; max-height: 100%" src="#state#"/>
+	  	</a>
+	</center>
+	
+
+	<div data-role="popup" id="popupCameraZoom#id#" class="popup_cam">
+	    <div data-role="header">
+	    	<h1 class='nd-title'>#name_display#</h1>
+	      	<a href="#" data-rel="back" class="ui-btn ui-corner-all ui-shadow ui-btn-a ui-icon-delete ui-btn-icon-notext ui-btn-right">Close</a>
+	    </div>
+
+	    <div data-role="content">
+	    	<center>
+	        	<div class="display" style="margin-left : auto;margin-right : auto;width:auto;"><img data-eqLogic_id="#id#" style="display:block;" src="plugins/camera/core/img/no-image-noir.png"/></div>
+	      	</center>
+	    </div>
 	</div>
-        
-</center>
+
+	<script>
+		var url = '#state#';
+
+		$( "#popupCameraZoom#id#" ).bind({
+			popupafteropen: function(event, ui) {
+    			$(".directDisplay[data-eqLogic_id=#id#]").attr('src','');
+    			$(".display [data-eqLogic_id=#id#]").attr('src',url);
+
+    			if($(window).width() > $(window).height()){
+			        $("#popupCameraZoom#id# .display img").css('max-width',$(window).width() * 0.9);
+			        $("#popupCameraZoom#id# .display img").css('max-height',$(window).height()*0.70);
+			    }else{
+			        $("#popupCameraZoom#id# .display img").css('max-width',$(window).width() * 0.9);
+			        $("#popupCameraZoom#id# .display img").css('max-height',$(window).height()*0.9);
+			    }
+			    $("#popupCameraZoom#id#").popup( "reposition", {positionTo : 'origin'});
+		   }
+		});
+
+		$(window).on("resize", function (event) {
+	      if($('.cmd[data-cmd_uid=#uid#]').html() == undefined){
+	        return;
+	      }
+	      if($(window).width() > $(window).height()){
+	        $("#popupCameraZoom#id# .display img").css('max-width',$(window).width()*0.9);
+	        $("#popupCameraZoom#id# .display img").css('max-height',$(window).height()*0.70);
+	      }else{
+	        $("#popupCameraZoom#id# .display img").css('max-width',$(window).width() * 0.9);
+	        $("#popupCameraZoom#id# .display img").css('max-height',$(window).height()*0.9);
+	      }
+	      $("#popupCameraZoom#id#").popup( "reposition", {positionTo : 'origin'});
+	    });
+
+	    $( "#div_displayObject" ).scroll(function() {
+		  $("#popupCameraZoom#id#").popup( "reposition", {positionTo : 'origin'});
+		});
+
+		$( "#popupCameraZoom#id#" ).bind({
+		   popupafterclose: function(event, ui) {
+		   		$(".directDisplay[data-eqLogic_id=#id#]").attr('src',url);
+    			$(".display [data-eqLogic_id=#id#]").attr('src','');
+		   }
+		});
+
+		jeedom.cmd.update['#id#'] = function(_options){
+			
+		}
+	</script>
+</div>

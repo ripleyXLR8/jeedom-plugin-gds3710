@@ -273,6 +273,7 @@ class gds3710 extends eqLogic {
         $lastest_snapshot_URL->setType('info');
         $lastest_snapshot_URL->setSubType('string');
         $lastest_snapshot_URL->setTemplate('dashboard', 'lastsnapshot');
+        $lastest_snapshot_URL->setTemplate('mobile', 'lastsnapshot');
         $lastest_snapshot_URL->setIsVisible(0);
         $lastest_snapshot_URL->save();
 
@@ -710,7 +711,7 @@ class gds3710Cmd extends cmd {
         log::add('gds3710', 'debug', "Registering URL to the lastest snapshot");
         $eqLogic = $this->getEqLogic();
         $lastest_snapshot_URL = $eqLogic->getCmd(null, 'Lastest_Snapshot_URL');
-        $lastest_snapshot_URL->event(str_replace($_SERVER['DOCUMENT_ROOT'], "",realpath($output_file)) );
+        $lastest_snapshot_URL->event(substr($output_file, strpos($output_file, '/plugins')));
         $lastest_snapshot_URL->save();
 
         return $output_file;

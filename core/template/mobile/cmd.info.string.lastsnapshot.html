@@ -1,0 +1,27 @@
+<div class="cmd cmd-widget" data-type="info" data-subtype="string" data-template="default" data-version="#version#" data-eqLogic_id="#eqLogic_id#" data-cmd_id="#id#" data-cmd_uid="#uid#">
+	<span class="cmdName #hide_name#">#name_display#</span>
+	<img style="max-width:100%; max-height: 100%" class="img-responsive imgCmd#uid#" data-eqLogic_id="#id#" src="#state#"/>
+	<script>
+
+		// Widget Refresh Code
+	    jeedom.cmd.update['#id#'] = function(_options){
+	    	$('.cmd[data-cmd_id=#id#]').show();
+	    	$('.imgCmd#uid#').attr('src', _options.display_value);
+	    }
+
+	    // Image URL checker (hide the widget if not available)
+	    $.ajax({
+	    	url: '#state#',
+	    	type:'HEAD',
+	    	error: function()
+	    	{
+	        	$('.cmd[data-cmd_id=#id#]').hide();
+	    	},
+		    success: function()
+		    {
+		        $('.cmd[data-cmd_id=#id#]').show();
+		    }
+		});
+
+	</script>
+</div>

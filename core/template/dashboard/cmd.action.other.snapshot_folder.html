@@ -1,15 +1,26 @@
-<div class="cmd cmd-widget" data-type="action" data-subtype="other" data-template="default" data-cmd_id="#id#" data-cmd_uid="#uid#" data-version="#version#">
-  <div class="content-xs">
-    <a class="btn btn-sm btn-default action">
-        <i class="fa fa-folder-open"></i>
-    </a>
-  </div>
+<div
+	class="cmd cmd-widget"
+	data-type="action"
+	data-subtype="other"
+	data-template="default"
+	data-cmd_id="#id#"
+	data-cmd_uid="#uid#"
+	data-version="#version#">
+
+	<div class="content-xs">
+    	<a class="btn btn-sm btn-default action">
+        	<i class="fa fa-folder-open"></i>
+    	</a>
+	</div>
+
+  	<script>  
+    	$('.cmd[data-cmd_id=#id#]').off().on('click', function () {
+        	$('#md_modal').dialog({title: "Historique"});
+        	$('#md_modal').load('index.php?v=d&plugin=gds3710&modal=gds3710.history&id=#id#').dialog('open');
+    	});
+	</script>
+
 </div>
 
-<script>  
-    $('.cmd[data-cmd_id=#id#]').off().on('click', function () {
-        $('#md_modal').dialog({title: "Historique"});
-        $('#md_modal').load('index.php?v=d&plugin=gds3710&modal=gds3710.history&id=#id#').dialog('open');
-    });
-</script>
+
 

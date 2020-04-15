@@ -89,7 +89,7 @@ foreach ($files as $date => &$file) {
 		if (strpos($filename, '.mp4')) {
 			echo '<video class="displayVideo" width="150" height="100" controls loop data-src="core/php/downloadFile.php?pathfile=' . urlencode($dir . '/' . $filename) . '" style="cursor:pointer"><source src="plugins/gds3710/core/php/downloadFile.php?pathfile=' . urlencode($dir . '/' . $filename) . '">Your browser does not support the video tag.</video>';
 		} else {
-			echo '<center><img class="img-responsive cursor displayImage lazy" src="plugins/gds3710/core/img/no-image.png" data-original="plugins/gds3710/core/php/downloadFile.php?pathfile=' . urlencode($dir . '/' . $filename) . '" width="150" style="max-height:80px;/></center>';
+			echo '<center><img class="img-responsive cursor displayImage lazy" src="plugins/gds3710/core/img/no-image.png" data-original="plugins/gds3710/core/php/downloadFile.php?pathfile=' . urlencode($dir . '/' . $filename) . '" width="150" style="max-height:80px; padding-bottom: 5px;/></center>';
 		}
 		echo '<center style="margin-top:5px;"><a target="_blank" href="plugins/gds3710/core/php/downloadFile.php?pathfile=' . urlencode($dir . '/' . $filename) . '" class="btn btn-success btn-xs" style="color : white"><i class="fa fa-download"></i></a>';
 		echo ' <a class="btn btn-danger bt_removeSnapshotGDS3710File btn-xs" style="color : white" data-filename="' . $gds3710->getId() . '/' . $filename . '"><i class="fas fa-trash"></i></a></center>';
