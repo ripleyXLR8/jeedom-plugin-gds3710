@@ -16,9 +16,9 @@
 * along with Jeedom. If not, see <http://www.gnu.org/licenses/>.
 */
 
-if (!isConnect('admin')) {
-    throw new Exception('{{401 - Accès non autorisé}}');
-}
+// if (!isConnect('admin')) {
+//     throw new Exception('{{401 - Accès non autorisé}}');
+// }
 
 if (init('eqlogic') == '' && init('id') == '') {
 	throw new Exception(__('L\'id et l\'eqlogic ne peuvent etre vide en même temps', __FILE__));
