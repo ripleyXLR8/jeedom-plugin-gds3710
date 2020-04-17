@@ -6,7 +6,6 @@
 	data-cmd_uid="#uid#"
 	title="Capture prise #valueDate#">
 
-
 	<div class="cmdName">#name#</div>
     <div class="directDisplay zoom" id="iconCmd#uid#">
       	<img style="padding-top:5px; padding-bottom: 10px" class="img-responsive imgCmd#uid#" data-eqLogic_id="#id#" src="#state#"/>
@@ -15,6 +14,32 @@
 
   	<script>
 
+  	// Workaround pour adaptation à l'inclusion dans un virtuel
+  	var is_virtual#id# = false;
+  	var ID_GDS#id# = '';
+
+  	function findIdGDS(commandeID, url){
+  		if(commandeID != ''){
+	  		jeedom.cmd.byId({
+	  			id:commandeID,
+	  			success:
+	  			function(cmd){
+	  				if(cmd.eqType != 'gds3710'){
+	  					is_virtual#id# = true;
+	  				}
+	  			}
+	  		});
+	  	}
+
+	  	if(url != ''){
+	  		var split_URL = url.split("/");
+	  		ID_GDS#id# = split_URL[split_URL.length-2];
+	  	}
+  	}
+
+  	findIdGDS('#id#','#state#');
+  	// Fin
+  	
   	$.ajax({
     	url: '#state#',
     	type:'HEAD',
@@ -32,11 +57,21 @@
     	$('.cmd[data-cmd_id=#id#]').show();
     	$('.imgCmd#uid#').attr('src', _options.display_value);
     	$('.cmd[data-cmd_id=#id#]').attr('title', 'Capture prise '+_options.valueDate);
+
+    	findIdGDS(#id#, _options.display_value);
+
+
     }
 
     $('.cmd[data-cmd_id=#id#]').off().on('click', function () {
         $('#md_modal').dialog({title: "Historique"});
-        $('#md_modal').load('index.php?v=d&plugin=gds3710&modal=gds3710.history&id=#id#').dialog('open');
+        if(is_virtual#id#){
+        	// Si nous sommes dans un virtuel alors on passe manuellement l'ID de la commande du GDS
+	  		$('#md_modal').load('index.php?v=d&plugin=gds3710&modal=gds3710.history&eqlogic='+ID_GDS#id#).dialog('open');
+	  	} else {
+	  		$('#md_modal').load('index.php?v=d&plugin=gds3710&modal=gds3710.history&id=#id#').dialog('open');
+	  	}
+        
     });
 	
 	</script>

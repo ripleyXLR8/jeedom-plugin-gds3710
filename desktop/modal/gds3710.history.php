@@ -20,12 +20,16 @@ if (!isConnect('admin')) {
     throw new Exception('{{401 - Accès non autorisé}}');
 }
 
-if (init('id') == '') {
-	throw new Exception(__('L\'id ne peut etre vide', __FILE__));
+if (init('eqlogic') == '' && init('id') == '') {
+	throw new Exception(__('L\'id et l\'eqlogic ne peuvent etre vide en même temps', __FILE__));
 }
 
-$cmd = cmd::byId(init('id'));
-$gds3710 = gds3710::byId($cmd->getEqLogic_id());
+if(init('eqlogic') == ''){
+	$cmd = cmd::byId(init('id'));
+	$gds3710 = gds3710::byId($cmd->getEqLogic_id());
+} else {
+	$gds3710 = gds3710::byId(init('eqlogic'));
+}
 
 if (!is_object($gds3710)) {
 	throw new Exception(__('L\'équipement est introuvable : ', __FILE__) . init('id'));
