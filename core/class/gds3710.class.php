@@ -277,6 +277,32 @@ class gds3710 extends eqLogic {
         $lastest_snapshot_URL->setIsVisible(0);
         $lastest_snapshot_URL->save();
 
+        // Création de la commande LDC ON
+        $ldc_ON = $this->getCmd(null, 'ldc_ON');
+        if (!is_object($ldc_ON)) {
+            $ldc_ON = new gds3710Cmd();
+        }
+        $ldc_ON->setName(__('LDC - ON', __FILE__));
+        $ldc_ON->setEqLogic_id($this->getId());
+        $ldc_ON->setLogicalId('ldc_on');
+        $ldc_ON->setType('action');
+        $ldc_ON->setSubType('other');
+        $ldc_ON->setIsVisible(1);
+        $ldc_ON->save();
+
+        // Création de la commande LDC OFF
+        $ldc_OFF = $this->getCmd(null, 'ldc_OFF');
+        if (!is_object($ldc_OFF)) {
+            $ldc_OFF = new gds3710Cmd();
+        }
+        $ldc_OFF->setName(__('LDC - OFF', __FILE__));
+        $ldc_OFF->setEqLogic_id($this->getId());
+        $ldc_OFF->setLogicalId('ldc_off');
+        $ldc_OFF->setType('action');
+        $ldc_OFF->setSubType('other');
+        $ldc_OFF->setIsVisible(1);
+        $ldc_OFF->save();
+
         // Création de la commande stream_mjpeg
         $stream_mjpeg = $this->getCmd('info', 'stream_mjpeg');
         if (!is_object($stream_mjpeg)) {
@@ -599,6 +625,16 @@ class gds3710Cmd extends cmd {
 
     }
 
+    private function ldc_ON(){
+        log::add('gds3710', 'info', 'Requesting LDC ON');
+        $this->setConfig('P10573', '1');
+    }
+
+    private function ldc_OFF(){
+        log::add('gds3710', 'info', 'Requesting LDC OFF');
+        $this->setConfig('P10573', '0');
+    }
+
     private function take_snapshot(){
         log::add('gds3710', 'debug', 'Snapshot has been requested');
 
@@ -783,6 +819,12 @@ class gds3710Cmd extends cmd {
                 break;
             case 'close2':
                 $this->open_door_2('2');
+                break;
+            case 'ldc_off':
+                $this->ldc_OFF();
+                break;
+            case 'ldc_on':
+                $this->ldc_ON();
                 break;
             case 'snapshot':
                 $this->take_snapshot();
