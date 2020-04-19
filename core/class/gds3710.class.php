@@ -278,20 +278,20 @@ class gds3710 extends eqLogic {
         $lastest_snapshot_URL->save();
 
         // Création de la commande LDC ON
-        $ldc_ON = $this->getCmd(null, 'ldc_ON');
+        $ldc_ON = $this->getCmd(null, 'ldc_on');
         if (!is_object($ldc_ON)) {
             $ldc_ON = new gds3710Cmd();
         }
         $ldc_ON->setName(__('LDC - ON', __FILE__));
         $ldc_ON->setEqLogic_id($this->getId());
-        $ldc_ON->setLogicalId('ldc_on');
+        $ldc_ON->setLogicalId('ldc_ON');
         $ldc_ON->setType('action');
         $ldc_ON->setSubType('other');
         $ldc_ON->setIsVisible(1);
         $ldc_ON->save();
 
         // Création de la commande LDC OFF
-        $ldc_OFF = $this->getCmd(null, 'ldc_OFF');
+        $ldc_OFF = $this->getCmd(null, 'ldc_off');
         if (!is_object($ldc_OFF)) {
             $ldc_OFF = new gds3710Cmd();
         }
@@ -302,6 +302,45 @@ class gds3710 extends eqLogic {
         $ldc_OFF->setSubType('other');
         $ldc_OFF->setIsVisible(1);
         $ldc_OFF->save();
+
+        // Création de CMOS Normal
+        $cmos_NORMAL = $this->getCmd(null, 'cmos_normal');
+        if (!is_object($cmos_NORMAL)) {
+            $cmos_NORMAL = new gds3710Cmd();
+        }
+        $cmos_NORMAL->setName(__('CMOS - Normal', __FILE__));
+        $cmos_NORMAL->setEqLogic_id($this->getId());
+        $cmos_NORMAL->setLogicalId('cmos_normal');
+        $cmos_NORMAL->setType('action');
+        $cmos_NORMAL->setSubType('other');
+        $cmos_NORMAL->setIsVisible(1);
+        $cmos_NORMAL->save();
+
+        // Création de CMOS Low Light
+        $cmos_LOWLIGHT = $this->getCmd(null, 'cmos_lowlight');
+        if (!is_object($cmos_LOWLIGHT)) {
+            $cmos_LOWLIGHT = new gds3710Cmd();
+        }
+        $cmos_LOWLIGHT->setName(__('CMOS - Low Light', __FILE__));
+        $cmos_LOWLIGHT->setEqLogic_id($this->getId());
+        $cmos_LOWLIGHT->setLogicalId('cmos_lowlight');
+        $cmos_LOWLIGHT->setType('action');
+        $cmos_LOWLIGHT->setSubType('other');
+        $cmos_LOWLIGHT->setIsVisible(1);
+        $cmos_LOWLIGHT->save();
+
+        // Création de CMOS WDR
+        $cmos_WDR = $this->getCmd(null, 'cmos_wdr');
+        if (!is_object($cmos_WDR)) {
+            $cmos_WDR = new gds3710Cmd();
+        }
+        $cmos_WDR->setName(__('CMOS - WDR', __FILE__));
+        $cmos_WDR->setEqLogic_id($this->getId());
+        $cmos_WDR->setLogicalId('cmos_wdr');
+        $cmos_WDR->setType('action');
+        $cmos_WDR->setSubType('other');
+        $cmos_WDR->setIsVisible(1);
+        $cmos_WDR->save();
 
         // Création de la commande stream_mjpeg
         $stream_mjpeg = $this->getCmd('info', 'stream_mjpeg');
@@ -635,6 +674,22 @@ class gds3710Cmd extends cmd {
         $this->setConfig('P10573', '0');
     }
 
+    private function cmos_normal(){
+        log::add('gds3710', 'info', 'Requesting CMOS NORMAL');
+        $this->setConfig('P10572', '1');
+    }
+
+    private function cmos_lowlight(){
+        log::add('gds3710', 'info', 'Requesting CMOS LOW LIGHT');
+        $this->setConfig('P10572', '2');
+    }
+
+    private function cmos_wdr(){
+        log::add('gds3710', 'info', 'Requesting CMOS WDR');
+        $this->setConfig('P10572', '3');
+    }
+
+
     private function take_snapshot(){
         log::add('gds3710', 'debug', 'Snapshot has been requested');
 
@@ -825,6 +880,15 @@ class gds3710Cmd extends cmd {
                 break;
             case 'ldc_on':
                 $this->ldc_ON();
+                break;
+            case 'cmos_normal':
+                $this->cmos_normal();
+                break;
+            case 'cmos_lowlight':
+                $this->cmos_lowlight();
+                break;
+            case 'cmos_wdr':
+                $this->cmos_wdr();
                 break;
             case 'snapshot':
                 $this->take_snapshot();
