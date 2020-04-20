@@ -278,7 +278,7 @@ class gds3710 extends eqLogic {
         $lastest_snapshot_URL->save();
 
         // Création de la commande LDC ON
-        $ldc_ON = $this->getCmd(null, 'ldc_on');
+        $ldc_ON = $this->getCmd(null, 'ldc_ON');
         if (!is_object($ldc_ON)) {
             $ldc_ON = new gds3710Cmd();
         }
@@ -878,7 +878,7 @@ class gds3710Cmd extends cmd {
             case 'ldc_off':
                 $this->ldc_OFF();
                 break;
-            case 'ldc_on':
+            case 'ldc_ON':
                 $this->ldc_ON();
                 break;
             case 'cmos_normal':
