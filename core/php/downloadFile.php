@@ -22,15 +22,11 @@
 	if (!isConnect() && !jeedom::apiAccess(init('apikey'))) {
 		throw new Exception(__('401 - Accès non autorisé1', __FILE__));
 	}
-	//$pathfile = realpath(calculPath(urldecode(init('pathfile'))));
 	$pathfile = calculPath(urldecode(init('pathfile')));
-	log::add('gds3710', 'debug', 'INIT pathfile is : '.init('pathfile'));
 	if(strpos($pathfile,'*') !== false){
-		//$pathfile = str_replace('*','',$pathfile).'/*';
-		log::add('gds3710', 'debug', '2 pathfile is : '.$pathfile);
+
 	}else{
 		$pathfile = realpath($pathfile);
-		log::add('gds3710', 'debug', '2ELSE pathfile is : '.$pathfile);
 	}
 
 	if ($pathfile === false) {
@@ -41,7 +37,6 @@
 	}
 
 	$rootPath = realpath(dirname(__FILE__) . '/../../');
-	log::add('gds3710', 'debug', 'Root Path is : '.$rootPath);
 
 	if (strpos($pathfile, $rootPath) === false) {
 		if (config::byKey('recdir', 'gds3710') != '' && substr(config::byKey('recdir', 'gds3710'), 0, 1) == '/') {
@@ -70,7 +65,6 @@
 		if (!isConnect('admin')) {
 			throw new Exception(__('401 - Accès non autorisé7', __FILE__));
 		}
-		log::add('gds3710', 'debug','TEST 1 cd ' . dirname($pathfile) . ';tar cfz ' . jeedom::getTmpFolder('downloads') . '/archive.tar.gz * > /dev/null 2>&1');
 		system('cd ' . dirname($pathfile) . ';tar cfz ' . jeedom::getTmpFolder('downloads') . '/archive.tar.gz * > /dev/null 2>&1');
 		$pathfile = jeedom::getTmpFolder('downloads') . '/archive.tar.gz';
 	} else {
@@ -78,9 +72,6 @@
 			throw new Exception(__('401 - Accès non autorisé8', __FILE__));
 		}
 		$pattern = array_pop(explode('/', $pathfile));
-
-		log::add('gds3710', 'debug', 'Pattern'.print_r(explode('/', $pathfile),true));
-		log::add('gds3710', 'debug','TEST 2 cd ' . dirname($pathfile) . ';tar cfz ' . jeedom::getTmpFolder('downloads') . '/archive.tar.gz ' . $pattern . '> /dev/null 2>&1');
 
 		system('cd ' . dirname($pathfile) . ';tar cfz ' . jeedom::getTmpFolder('downloads') . '/archive.tar.gz ' . $pattern . '> /dev/null 2>&1');
 		$pathfile = jeedom::getTmpFolder('downloads') . '/archive.tar.gz';
