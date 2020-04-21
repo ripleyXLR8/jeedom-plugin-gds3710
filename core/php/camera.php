@@ -21,13 +21,14 @@ require_once __DIR__  . '/../../../../core/php/core.inc.php';
 if(!isset($_GET['mac']) || $_GET['mac'] == ''){
 	die();
 }
-
+log::add('gds3710', 'debug', 'Call to camera.php');
 $mac = $_GET['mac'];
 $gds3710 = gds3710::byLogicalId($mac, 'gds3710');
 $ip = $gds3710->getConfiguration('ip');
 $password = $gds3710->getConfiguration('password');
 $remote_pin = 'GDS3710lDyTlHwNgZ';
 $auth_type = $gds3710->getConfiguration('auth_type');
+log::add('gds3710', 'debug', 'Config is :'.$mac." | ".$ip." | ".$password." | ".$remote_pin." | ".$auth_type);
 
 if($auth_type == 'challenge'){
 
@@ -39,17 +40,22 @@ if($auth_type == 'challenge'){
 	    CURLOPT_RETURNTRANSFER => true
 	);
 	curl_setopt_array($ch, $optArray);
-	$auth_challenge = @simplexml_load_string(curl_exec($ch));
+	$AuthRequestResponse = curl_exec($ch);
+	log::add('gds3710', 'debug', 'Auth Request Response : '.print_r($AuthRequestResponse,true));
+	$auth_challenge = @simplexml_load_string($AuthRequestResponse);
+	log::add('gds3710', 'debug', 'Auth Challenge : '.print_r($auth_challenge, true));
 	$ChallengeCode = $auth_challenge->ChallengeCode[0];
 	$IDCode = $auth_challenge->IDCode[0];
 
 	$auth_response = md5($ChallengeCode.":".$remote_pin.":".$password);
 
 	$mjpeg_url = 'https://'.$ip.'/jpeg/stream?type=1&user=admin&authcode='.$auth_response.'&idcode='.$IDCode;
+	log::add('gds3710', 'debug', 'MJPEG url is : '.$mjpeg_url);
 
 } elseif ($auth_type == 'basic'){
 
 	$mjpeg_url = 'https://admin:'.$password.'@'.$ip.'/jpeg/stream';
+	log::add('gds3710', 'debug', 'MJPEG url is : '.$mjpeg_url);
 
 } else {
 
@@ -84,6 +90,7 @@ if ($fp) {
 	fpassthru($fp);
 	fclose($fp);
 } else {
+	log::add('gds3710', 'debug', 'Unable to get Camera MJPEG');
 	$d = file_get_contents("no-image-noir.png");
 	Header("Content-Type: image/png");
 	Header("Content-Length: ".strlen($d));

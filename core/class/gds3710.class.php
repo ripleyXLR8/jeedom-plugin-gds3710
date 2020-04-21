@@ -196,7 +196,8 @@ class gds3710 extends eqLogic {
         $snapshot->setLogicalId('snapshot');
         $snapshot->setType('action');
         $snapshot->setSubType('other');
-        $snapshot->setTemplate('dashboard', 'snapshot');
+        $snapshot->setDisplay('icon', '<i class="fa fa-image"></i>');
+        $snapshot->setTemplate('dashboard', '');
         $snapshot->setIsVisible(1);
         $snapshot->save();
 
@@ -261,6 +262,85 @@ class gds3710 extends eqLogic {
         $lastest_snapshot->setSubType('string');
         $lastest_snapshot->setIsVisible(0);
         $lastest_snapshot->save();
+
+        $lastest_snapshot_URL = $this->getCmd(null, 'Lastest_Snapshot_URL');
+        if (!is_object($lastest_snapshot_URL)) {
+            $lastest_snapshot_URL = new gds3710Cmd();
+        }
+        $lastest_snapshot_URL->setName(__('Dernier snapshot', __FILE__));
+        $lastest_snapshot_URL->setEqLogic_id($this->getId());
+        $lastest_snapshot_URL->setLogicalId('Lastest_Snapshot_URL');
+        $lastest_snapshot_URL->setType('info');
+        $lastest_snapshot_URL->setSubType('string');
+        $lastest_snapshot_URL->setTemplate('dashboard', 'lastsnapshot');
+        $lastest_snapshot_URL->setTemplate('mobile', 'lastsnapshot');
+        $lastest_snapshot_URL->setIsVisible(0);
+        $lastest_snapshot_URL->save();
+
+        // Création de la commande LDC ON
+        $ldc_ON = $this->getCmd(null, 'ldc_ON');
+        if (!is_object($ldc_ON)) {
+            $ldc_ON = new gds3710Cmd();
+        }
+        $ldc_ON->setName(__('LDC - ON', __FILE__));
+        $ldc_ON->setEqLogic_id($this->getId());
+        $ldc_ON->setLogicalId('ldc_ON');
+        $ldc_ON->setType('action');
+        $ldc_ON->setSubType('other');
+        $ldc_ON->setIsVisible(1);
+        $ldc_ON->save();
+
+        // Création de la commande LDC OFF
+        $ldc_OFF = $this->getCmd(null, 'ldc_off');
+        if (!is_object($ldc_OFF)) {
+            $ldc_OFF = new gds3710Cmd();
+        }
+        $ldc_OFF->setName(__('LDC - OFF', __FILE__));
+        $ldc_OFF->setEqLogic_id($this->getId());
+        $ldc_OFF->setLogicalId('ldc_off');
+        $ldc_OFF->setType('action');
+        $ldc_OFF->setSubType('other');
+        $ldc_OFF->setIsVisible(1);
+        $ldc_OFF->save();
+
+        // Création de CMOS Normal
+        $cmos_NORMAL = $this->getCmd(null, 'cmos_normal');
+        if (!is_object($cmos_NORMAL)) {
+            $cmos_NORMAL = new gds3710Cmd();
+        }
+        $cmos_NORMAL->setName(__('CMOS - Normal', __FILE__));
+        $cmos_NORMAL->setEqLogic_id($this->getId());
+        $cmos_NORMAL->setLogicalId('cmos_normal');
+        $cmos_NORMAL->setType('action');
+        $cmos_NORMAL->setSubType('other');
+        $cmos_NORMAL->setIsVisible(1);
+        $cmos_NORMAL->save();
+
+        // Création de CMOS Low Light
+        $cmos_LOWLIGHT = $this->getCmd(null, 'cmos_lowlight');
+        if (!is_object($cmos_LOWLIGHT)) {
+            $cmos_LOWLIGHT = new gds3710Cmd();
+        }
+        $cmos_LOWLIGHT->setName(__('CMOS - Low Light', __FILE__));
+        $cmos_LOWLIGHT->setEqLogic_id($this->getId());
+        $cmos_LOWLIGHT->setLogicalId('cmos_lowlight');
+        $cmos_LOWLIGHT->setType('action');
+        $cmos_LOWLIGHT->setSubType('other');
+        $cmos_LOWLIGHT->setIsVisible(1);
+        $cmos_LOWLIGHT->save();
+
+        // Création de CMOS WDR
+        $cmos_WDR = $this->getCmd(null, 'cmos_wdr');
+        if (!is_object($cmos_WDR)) {
+            $cmos_WDR = new gds3710Cmd();
+        }
+        $cmos_WDR->setName(__('CMOS - WDR', __FILE__));
+        $cmos_WDR->setEqLogic_id($this->getId());
+        $cmos_WDR->setLogicalId('cmos_wdr');
+        $cmos_WDR->setType('action');
+        $cmos_WDR->setSubType('other');
+        $cmos_WDR->setIsVisible(1);
+        $cmos_WDR->save();
 
         // Création de la commande stream_mjpeg
         $stream_mjpeg = $this->getCmd('info', 'stream_mjpeg');
@@ -421,6 +501,7 @@ class gds3710Cmd extends cmd {
             CURLOPT_RETURNTRANSFER => true
         );
         curl_setopt_array($ch, $optArray);
+        log::add('gds3710', 'debug', 'curl options are : '.print_r($optArray, true));
         $auth_challenge = new SimpleXMLElement(curl_exec($ch));
         $ChallengeCode = $auth_challenge->ChallengeCode[0];
         $IDCode = $auth_challenge->IDCode[0];
@@ -599,6 +680,32 @@ class gds3710Cmd extends cmd {
 
     }
 
+    private function ldc_ON(){
+        log::add('gds3710', 'info', 'Requesting LDC ON');
+        $this->setConfig('P10573', '1');
+    }
+
+    private function ldc_OFF(){
+        log::add('gds3710', 'info', 'Requesting LDC OFF');
+        $this->setConfig('P10573', '0');
+    }
+
+    private function cmos_normal(){
+        log::add('gds3710', 'info', 'Requesting CMOS NORMAL');
+        $this->setConfig('P10572', '1');
+    }
+
+    private function cmos_lowlight(){
+        log::add('gds3710', 'info', 'Requesting CMOS LOW LIGHT');
+        $this->setConfig('P10572', '2');
+    }
+
+    private function cmos_wdr(){
+        log::add('gds3710', 'info', 'Requesting CMOS WDR');
+        $this->setConfig('P10572', '3');
+    }
+
+
     private function take_snapshot(){
         log::add('gds3710', 'debug', 'Snapshot has been requested');
 
@@ -663,9 +770,9 @@ class gds3710Cmd extends cmd {
         $cookies_string = rtrim($cookies_string,';');
 
         $url ='https://'.$ip.'/snapshot/view0.jpg';
-
-        $now = DateTime::createFromFormat('U.u', microtime(true));
-        $filename=$gds3710->getName()."_".$now->format("Y-m-d_H-i-s-u");
+        
+        $now = new DateTime();
+        $filename=$gds3710->getName()."_".$now->format("Y-m-d_H-i-s").'-'.mt_rand(100000, 999999);
 
         $dir = calculPath(config::byKey('recdir', 'gds3710')) . '/' . $gds3710->getId();
 
@@ -707,6 +814,12 @@ class gds3710Cmd extends cmd {
         $lastest_snapshot = $eqLogic->getCmd(null, 'Lastest_Snapshot_Path');
         $lastest_snapshot->event(realpath($output_file));
         $lastest_snapshot->save();
+
+        log::add('gds3710', 'debug', "Registering URL to the lastest snapshot");
+        $eqLogic = $this->getEqLogic();
+        $lastest_snapshot_URL = $eqLogic->getCmd(null, 'Lastest_Snapshot_URL');
+        $lastest_snapshot_URL->event(substr($output_file, strpos($output_file, '/plugins')));
+        $lastest_snapshot_URL->save();
 
         return $output_file;
     }
@@ -777,6 +890,21 @@ class gds3710Cmd extends cmd {
                 break;
             case 'close2':
                 $this->open_door_2('2');
+                break;
+            case 'ldc_off':
+                $this->ldc_OFF();
+                break;
+            case 'ldc_ON':
+                $this->ldc_ON();
+                break;
+            case 'cmos_normal':
+                $this->cmos_normal();
+                break;
+            case 'cmos_lowlight':
+                $this->cmos_lowlight();
+                break;
+            case 'cmos_wdr':
+                $this->cmos_wdr();
                 break;
             case 'snapshot':
                 $this->take_snapshot();

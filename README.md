@@ -1,13 +1,13 @@
 # Plugin GDS 3710
-> Version du 20 septembre 2019
+> Version du 15 avril 2020
 > by Richard Perez | richard@perez-mail.fr
 
 # IMPORTANT
-Il semble y avoir un problème avec les version 1.0.4.9 du firmware du GDS3710 (la réalisation de capture du flux échoue). Les autres version supérieures à la 10.0.3.32 fonctionnent.
+Il semble y avoir un problème avec la version 1.0.4.9 du firmware du GDS3710 (la réalisation de capture du flux échoue). Les autres version supérieures à la 10.0.3.32 fonctionnent. Le plugin a été testé jusqu'à la version 10.0.7.8.
 
 # Introduction
-Ce plugin permet l'intégration du portier GrandStream GDS3710 dans Jeedom. Dans sa version actuelle (5 mars 2019), il permet de :
-- Récupérer les évènements du portier et de les gérer via des scénariis ou des commandes.
+Ce plugin permet l'intégration du portier GrandStream GDS3710 dans Jeedom. Dans sa version actuelle (15 avril 2020), il permet de :
+- Récupérer les évènements du portier et de les gérer via des scénarios ou des commandes.
 - De modifier la configuration du portier.
 - D'activer les contacts secs du portier permettant de manoeuvrer une porte ou autre.
 - D'afficher le flux MJPEG du portier dans un widget de dashboard ou de mobile.
@@ -132,6 +132,8 @@ L'équipement dispose de commandes de type ACTION permettant de réaliser les ac
 - Ouverture de la porte.
 - Fermeture de la porte.
 - Réalisation d'une capture d'écran.
+- Activation et désactivation du LDC (Lens Distortion Correction).
+- Changement du mode du cpateur CMOS (Normal, Low Light , WDR)
 
 ## Envoi de captures du flux MJPEG via un scénario
 Le plugin vous permet de transmettre des captures du flux MJPEG par l'intermédiaire d'un plugin tiers (testé avec Telegram).

@@ -1,73 +1,26 @@
-<span class="cmd" data-type="action" data-subtype="other" data-cmd_id="#id#" data-cmd_uid="#uid#" data-version="#version#">
-        <a class="btn btn-sm btn-default action cmdName tooltips" title="#name#" style="background-color:#cmdColor# !important;border-color : transparent !important;">
-            <span class="iconCmd"></span>
-        </a>
-<!--         <div class="snapshot_folder" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" title="#name_display#">
-            <span>test</span>
-        </div> -->
-    <script>
-        /*$(".snapshot_folder[data-eqLogic_uid=#uid#]").dialog({
-          autoOpen: false,
-          modal: true,
-          resizable: false,
-          closeText: 'Test',
-        //   autoOpen: false,
-        //   modal: true,
-        //   resizable: false,
-        //   closeText: '',
-           height: jQuery(window).height() - 100,
-           width: jQuery(window).width() - 100,
-           //position: { my: "center bottom-10", at: "center bottom", of: window },
-           open: function () {
-                ///$("body").css({overflow: 'hidden'});
-                //$(".md_cameraZoom[data-eqLogic_uid=#uid#] .display img").height($(".md_cameraZoom[data-eqLogic_uid=#uid#]").height() - 50);
-        //     // if (typeof timeoutCamera#id# !== "undefined") {
-        //     //   clearTimeout(timeoutCamera#id#);
-        //     // }
-        //     // refreshImgCam#id#();
-           },
-          beforeClose: function (event, ui) {
-            $("body").css({overflow: 'inherit'});
-            }
-        });*/
+<div
+	class="cmd cmd-widget"
+	data-type="action"
+	data-subtype="other"
+	data-template="default"
+	data-cmd_id="#id#"
+	data-cmd_uid="#uid#"
+	data-version="#version#">
 
-        jeedom.cmd.update['#id#'] = function(_options){
-            console.log(_options);
-            if (_options.display_value == '1' || _options.display_value == 1 || _options.display_value == '99' || _options.display_value == 99 || _options.display_value == 'on') {
-                if (jeedom.cmd.normalizeName('#name#') == 'on') {
-                    $('.cmd[data-cmd_id=#id#]').hide();
-                }else{
-                    $('.cmd[data-cmd_id=#id#]').show();
-                    $('.cmd[data-cmd_id=#id#] .iconCmd').empty().append('<i class="fa fa-folder-open"></i>');
-                }
-            } else {
-                if (jeedom.cmd.normalizeName('#name#') == 'off') {
-                    $('.cmd[data-cmd_id=#id#]').hide();
-                }else{
-                    $('.cmd[data-cmd_id=#id#]').show();
-                    $('.cmd[data-cmd_id=#id#] .iconCmd').empty().append('<i class="fa fa-folder-open"></i>');
-                }
-            }
-        }
+	<div class="content-xs">
+    	<a class="btn btn-sm btn-default action">
+        	<i class="fa fa-folder-open"></i>
+    	</a>
+	</div>
 
-        jeedom.cmd.update['#id#']({display_value:'#state#'});
+  	<script>  
+    	$('.cmd[data-cmd_id=#id#]').off().on('click', function () {
+        	$('#md_modal').dialog({title: "Historique"});
+        	$('#md_modal').load('index.php?v=d&plugin=gds3710&modal=gds3710.history&id=#id#').dialog('open');
+    	});
+	</script>
 
-        $('.cmd[data-cmd_id=#id#]').off().on('click', function () {
-          $('#md_modal').dialog({title: "Historique"});
-          $('#md_modal').load('index.php?v=d&plugin=gds3710&modal=gds3710.history&id=#id#').dialog('open');
-        });
+</div>
 
-/*        $('.cmd[data-cmd_uid=#uid#] .action').off().on('click', function () {
-            //jeedom.cmd.execute({id: '#id#'});
-            //$(".snapshot_folder[data-eqLogic_uid=#uid#]").dialog("open");
-            $(".snapshot_folder[data-eqLogic_uid=#uid#]").load('index.php?v=d&plugin=gds3710&modal=modal.gds3710&id=#id#').dialog('open');
-            //console.log('test');
-        });*/
 
-        if ($('.cmd[data-cmd_uid=#uid#]:last').prev().data('subtype') != undefined && $('.cmd[data-cmd_id=#id#]:last').prev().data('subtype') != 'other'
-                && $('.cmd[data-cmd_uid=#uid#]:last').prev().css('display') != 'block') {
-            $('.cmd[data-cmd_uid=#uid#]:last').prepend('<br/>');
-        }
 
-    </script>
-</span>

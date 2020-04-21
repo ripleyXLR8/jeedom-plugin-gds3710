@@ -65,7 +65,7 @@ function addCmdToTable(_cmd) {
     var tr = '<tr class="cmd" data-cmd_id="' + init(_cmd.id) + '">';
     tr += '<td>';
     tr += '<span class="cmdAttr" data-l1key="id" style="display:none;"></span>';
-    tr += '<input class="cmdAttr form-control input-sm" data-l1key="name" style="width : 140px;" placeholder="{{Nom}}" readonly=true>';
+    tr += '<input class="cmdAttr form-control input-sm" data-l1key="name" style="width : 140px;" placeholder="{{Nom}}">';
     tr += '</td>';
     tr += '<td>';
     tr += '<span class="type" type="' + init(_cmd.type) + '">' + jeedom.cmd.availableType() + '</span>';
@@ -113,6 +113,15 @@ $("body").delegate('.bt_removeAction', 'click', function () {
         });
 
     });
+});
+
+$('body').off('focusout','.cmdAction.expressionAttr[data-l1key=cmd]').on('focusout','.cmdAction.expressionAttr[data-l1key=cmd]',function (event) {
+  var type = $(this).attr('data-type');
+  var expression = $(this).closest('.' + type).getValues('.expressionAttr');
+  var el = $(this);
+  jeedom.cmd.displayActionOption($(this).value(), init(expression[0].options), function (html) {
+    el.closest('.' + type).find('.actionOptions').html(html);
+  });
 });
 
 function addAction(_action, _type) {

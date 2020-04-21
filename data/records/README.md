@@ -1,1 +1,0 @@
-This is the defaut directory for storing your snapshots.

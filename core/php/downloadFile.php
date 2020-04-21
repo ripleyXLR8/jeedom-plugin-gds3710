@@ -22,7 +22,12 @@
 	if (!isConnect() && !jeedom::apiAccess(init('apikey'))) {
 		throw new Exception(__('401 - Accès non autorisé1', __FILE__));
 	}
-	$pathfile = realpath(calculPath(urldecode(init('pathfile'))));
+	$pathfile = calculPath(urldecode(init('pathfile')));
+	if(strpos($pathfile,'*') !== false){
+
+	}else{
+		$pathfile = realpath($pathfile);
+	}
 
 	if ($pathfile === false) {
 		throw new Exception(__('401 - Accès non autorisé2', __FILE__));
@@ -30,7 +35,9 @@
 	if (strpos($pathfile, '.php') !== false) {
 		throw new Exception(__('401 - Accès non autorisé3', __FILE__));
 	}
+
 	$rootPath = realpath(dirname(__FILE__) . '/../../');
+
 	if (strpos($pathfile, $rootPath) === false) {
 		if (config::byKey('recdir', 'gds3710') != '' && substr(config::byKey('recdir', 'gds3710'), 0, 1) == '/') {
 			$cameraPath = realpath(config::byKey('recdir', 'gds3710'));
@@ -49,6 +56,7 @@
 			}
 		}
 	}
+	// CAS FICHIER UNIQUE
 	if (strpos($pathfile, '*') === false) {
 		if (!file_exists($pathfile)) {
 			throw new Exception(__('Fichier non trouvé : ', __FILE__) . $pathfile);
@@ -64,6 +72,7 @@
 			throw new Exception(__('401 - Accès non autorisé8', __FILE__));
 		}
 		$pattern = array_pop(explode('/', $pathfile));
+
 		system('cd ' . dirname($pathfile) . ';tar cfz ' . jeedom::getTmpFolder('downloads') . '/archive.tar.gz ' . $pattern . '> /dev/null 2>&1');
 		$pathfile = jeedom::getTmpFolder('downloads') . '/archive.tar.gz';
 	}
@@ -78,4 +87,3 @@
  } catch (Exception $e) {
  	echo $e->getMessage();
  }
-

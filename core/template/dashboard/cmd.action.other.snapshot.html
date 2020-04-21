@@ -21,10 +21,13 @@
                 }
             }
         }
+
         jeedom.cmd.update['#id#']({display_value:'#state#'});
+
         $('.cmd[data-cmd_uid=#uid#] .action').off().on('click', function () {
             jeedom.cmd.execute({id: '#id#'});
         });
+
         if ($('.cmd[data-cmd_uid=#uid#]:last').prev().data('subtype') != undefined && $('.cmd[data-cmd_id=#id#]:last').prev().data('subtype') != 'other'
                 && $('.cmd[data-cmd_uid=#uid#]:last').prev().css('display') != 'block') {
             $('.cmd[data-cmd_uid=#uid#]:last').prepend('<br/>');
