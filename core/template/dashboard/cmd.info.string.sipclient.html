@@ -1,0 +1,396 @@
+<div
+  class="cmd cmd-widget"
+  data-type="info"
+  data-subtype="string"
+  data-cmd_id="#id#">
+
+  <a class="btn btn-sm btn-default action">#name#</a>
+
+  <div class="sipDisplay" style="display:none;" title="#name_display#" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">
+    <audio id="remoteAudio"></audio>
+    <center class="calleridentitydisplay" style="padding:50px; display:none" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">
+      <div class="namedisplay" style="font-size: 5em" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">Name</div>
+      <div class="uridisplay" style="font-size: 3em" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">uri</div>
+    </center>
+    <video style="height: 240px; width: 320px; border: 3px solid grey; display:none" id="selfView" autoplay muted=true></video>
+    <video class="remoteview" style="width: 100%; border: 3px solid grey; max-height: 700px; display:none" id="remoteView" autoplay data-eqLogic_uid="#uid#" data-eqLogic_id="#id#"></video>
+    <center>
+      <a class="sipactionbutton btn btn-sm btn-default action" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">Action</a>
+      <a class="sipactionbisbutton btn btn-sm btn-default action" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="display:none">Action Bis</a>
+    </center>
+    
+
+  </div>
+
+  <script src="/plugins/gds3710/desktop/js/jssip-3.3.9.js"></script>
+
+  <!-- TODO activate and desactivate debug from plugin configuration -->
+  <!-- <script>JsSIP.debug.enable('JsSIP:*');</script> -->
+  <script>JsSIP.debug.disable();</script>
+
+  <script>
+
+    var greenColor = 'rgb(50, 130, 60)';
+    var redColor = 'rgb(185, 58, 62)';
+    var orangeColor = 'rgb(195, 125, 40)';
+
+    sipClientState = {
+
+      internalSipStateText : '',
+      internalSipRegistrationState : false,
+      internalSipConnectionState : false,
+      internalSipRinging : false,
+      internalSipOnCall : false,
+      aInternal: 10,
+
+      set sipStateText(val){
+        this.internalSipStateText = val;
+        this.stateListener(val);
+      },
+      get sipStateText(){
+        return this.internalSipStateText;
+      },
+
+      set sipRegistrationState(val){
+        this.internalSipRegistrationState = val;
+        this.stateListener(val);
+      },
+      get sipRegistrationState(){
+        return this.internalSipRegistrationState;
+      },
+
+      set sipConnectionState(val){
+        this.internalSipConnectionState = val;
+        this.stateListener(val);
+      },
+      get sipConnectionState(){
+        return this.internalSipConnectionState;
+      },
+
+      set sipRinging(val){
+        this.internalSipRinging = val;
+        this.stateListener(val);
+      },
+      get sipRinging(){
+        return this.internaSipRinging;
+      },
+
+      set sipOnCall(val){
+        this.internalSipOnCall = val;
+        this.stateListener(val);
+      },
+      get sipOnCall(){
+        return this.internalSipOnCall;
+      },
+
+      stateListener : function() {
+
+        if(this.internalSipRegistrationState){
+          SIPbuttonChange(greenColor, this.internalSipStateText);
+        } else if(this.internalSipConnectionState){
+          SIPbuttonChange(orangeColor, this.internalSipStateText);
+        } else {
+          SIPbuttonChange(redColor, this.internalSipStateText);
+        }
+
+        if(this.internalSipRinging){
+          SIPbuttonModalChange(greenColor, "Répondre");
+          ringtone.play();
+          $(".calleridentitydisplay[data-eqLogic_id=#id#]").show();
+          $(".sipactionbutton[data-eqLogic_id=#id#]").unbind('click');
+          $(".sipactionbutton[data-eqLogic_id=#id#]").click(pickUpCall);
+          SIPbuttonBisModalChange(redColor, "Refuser l'Appel");
+          $(".sipactionbisbutton[data-eqLogic_id=#id#]").unbind('click');
+          $(".sipactionbisbutton[data-eqLogic_id=#id#]").click(terminateCall);
+        } else if(this.internalSipOnCall){
+          ringtone.pause();
+          SIPbuttonModalChange(redColor, "Raccrocher");
+          $(".remoteview[data-eqLogic_id=#id#]").show();
+          $(".sipactionbutton[data-eqLogic_id=#id#]").unbind('click');
+          $(".sipactionbutton[data-eqLogic_id=#id#]").click(terminateCall);
+          $(".sipactionbisbutton[data-eqLogic_id=#id#]").hide();
+        } else {
+          SIPbuttonModalChange(greenColor, "Appeler");
+          $(".remoteview[data-eqLogic_id=#id#]").hide();
+          $(".calleridentitydisplay[data-eqLogic_id=#id#]").hide();
+          ringtone.pause();
+          $(".sipactionbutton[data-eqLogic_id=#id#]").unbind('click');
+          $(".sipactionbutton[data-eqLogic_id=#id#]").click(startCall);
+          $(".sipactionbisbutton[data-eqLogic_id=#id#]").hide();
+        }
+
+      },
+
+      registerListener: function(listener) {
+        this.stateListener = listener;
+      }
+    }
+
+    function pickUpCall(){
+      console.log("JsSip : User Action - Picking-Up Call.");
+      sipClientState.sipRinging = false;
+      sipClientState.sipOnCall = true;
+
+      var incomingCalloptions = {
+        'RTCConstraints': { 
+          optional: [],
+          mandatory: { 
+            'OfferToReceiveAudio': true,
+            'OfferToReceiveVideo': true 
+          } 
+        },
+        'mediaConstraints' : {
+          'audio': true,
+          'video': false
+        } 
+      };
+
+      session.answer(incomingCalloptions);
+    }
+
+    function terminateCall(){
+      console.log("JsSip : User Action - Terminating Call.");
+      session.terminate();
+      sipClientState.sipOnCall = false;
+      sipClientState.sipRinging = false;
+    }
+
+    function startCall(){
+      console.log("JsSip : User Action - Start Call.");
+
+      var localCalloptions = {
+        'RTCConstraints': { 
+          optional: [],
+          mandatory: { 
+            'OfferToReceiveAudio': true,
+            'OfferToReceiveVideo': true 
+          } 
+        },
+        'mediaConstraints' : {
+          'audio': true,
+          'video': false
+        } 
+      };
+
+      session = sipClient.call(settings.portier_sip_uri, localCalloptions);
+    }
+
+    $(".sipDisplay[data-eqLogic_id=#id#]").dialog({
+      autoOpen: false,
+      modal: true,
+      resizable: true,
+      closeText: '',
+      height: 800,
+      width: 800
+    });
+
+    $('.cmd[data-cmd_id=#id#]').on('click', function () {
+      console.log('JsSIP : User Action - Opening Modal Window.');
+      $(".sipDisplay[data-eqLogic_uid=#uid#]").dialog("open");
+    });
+
+    ringtone = new Audio("plugins/gds3710/core/sound/bell.mp3");
+
+    var selfView = document.getElementById('selfView');
+    var remoteView = document.getElementById('remoteView');
+
+    var session;
+    var request;
+    var originator;
+
+    // Contains SIP configuration data sent by the plugin
+    // TODO : Update this when change in configuration 
+    var settings;
+    try {
+        settings = JSON.parse('#state#');
+    } catch(e) {
+        alert(e); //TODO an error message
+    }
+
+    var websocket = new JsSIP.WebSocketInterface(settings.client_sip_websocket);
+    
+    var configuration = {
+      sockets  : [websocket],
+      uri      : settings.client_sip_uri,
+      password : settings.client_sip_password
+    };
+
+    var sipClient = new JsSIP.UA(configuration);
+
+    var status;
+    var isCurrentlyOnPhone = false;
+    var PhoneIsRinging = false;
+
+    function SIPbuttonChange(color, text){
+      $(".cmd.cmd-widget[data-cmd_id=#id#] .btn")[0].innerHTML=text;
+      $(".cmd.cmd-widget[data-cmd_id=#id#] .btn").attr('style', 'background-color : '+color+' !important');
+    }
+
+    function SIPbuttonModalChange(color, text){
+      $(".sipactionbutton[data-eqLogic_id=#id#]")[0].innerHTML=text;
+      $(".sipactionbutton[data-eqLogic_id=#id#]").attr('style', 'background-color : '+color+' !important');
+    }
+
+    function SIPbuttonBisModalChange(color, text){
+      $(".sipactionbisbutton[data-eqLogic_id=#id#]")[0].innerHTML=text;
+      $(".sipactionbisbutton[data-eqLogic_id=#id#]").attr('style', 'background-color : '+color+' !important');
+    }
+
+    sipClient.on('connecting', () =>{
+      console.log('JsSIP : Connecting to : ' + settings.client_sip_websocket + ' as ' + settings.client_sip_uri + ' with password ' + settings.client_sip_password);
+      sipClientState.sipConnectionState = false;
+      sipClientState.sipStateText = 'connecting';
+    });
+
+    sipClient.on('connected', () =>{
+      console.log('JsSIP : You are connected.');
+      sipClientState.sipConnectionState = true;
+      sipClientState.sipStateText = 'connected';
+    });
+
+    sipClient.on('disconnected', () =>{
+      console.log('JsSIP : You are disconnected.');
+      sipClientState.sipStateText = 'disconnected';
+      sipClientState.sipConnectionState = false;
+    });
+
+    sipClient.on('registered', () =>{
+      console.log('JsSIP : You are registered.');
+      sipClientState.sipRegistrationState = true;
+      sipClientState.sipStateText = 'registered';
+    });
+  
+    sipClient.on('unregistered', () =>{
+      console.log('JsSIP : You are unregistered.');
+      sipClientState.sipRegistrationState = false;
+      sipClientState.sipStateText = 'unregistered';
+      if (sipClient.isConnected())
+      {
+        sipClientState.sipConnectionState = true;
+        sipClientState.sipStateText = 'connected';
+        console.log('JsSIP : But you are still connected.');
+      }
+      else{
+        sipClientState.sipConnectionState = false;
+        sipClientState.sipStateText = 'disconnected';
+        console.log('JsSIP : and you are disconnected.');
+      }
+    });
+  
+    sipClient.on('registrationFailed', (data)=>{
+      console.log('JsSIP : Registration has failed.' + data.cause);
+      sipClientState.sipRegistrationState = false;
+      sipClientState.sipStateText = 'registration failed';
+
+      if (sipClient.isConnected())
+      {
+        sipClientState.sipConnectionState = true;
+        sipClientState.sipStateText = 'connected';
+        console.log('JsSIP : But you are still connected.');
+      }
+      else{
+        sipClientState.sipConnectionState = false;
+        sipClientState.sipStateText = 'disconnected';
+        console.log('JsSIP : and you are disconnected.');
+      }
+    });
+
+    sipClient.on('newRTCSession', (data)=>{
+      console.log('JsSIP : New RTC Session.');
+
+      session = data.session;
+      request = data.request;
+      originator = data.originator;
+
+      if(originator=='local'){
+          console.log('JsSIP : Local Call.');
+          sipClientState.sipOnCall = true;
+
+          data.session.on('connecting', function() {
+            console.log('JsSIP : Local Call - Connecting.'); 
+          });
+
+          data.session.on('peerconnection', function(e) {
+            console.log('JsSIP : Local Call - Peer Connection Accepted');
+            
+            data.session.connection.addEventListener('addstream',function(e) {
+              console.log('JsSIP : Local Call - Add Stream');
+              remoteAudio.srcObject = (e.stream);
+              remoteView.srcObject = (e.stream);
+              selfView.srcObject = (session.connection.getLocalStreams()[0]);
+            });
+          });
+
+          data.session.on('accepted', function(e) {
+            console.log('JsSIP : Local Call - Accepted');
+          });
+
+          data.session.on('confirmed', function(e) {
+            console.log('JsSIP : Local Call - Confirmed');
+          });
+
+          data.session.on('ended', function(e) {
+            console.log('JsSIP : Local Call - Ended with cause : '+e.cause);
+            sipClientState.sipOnCall = false;
+          });
+
+          data.session.on('failed', function(e) {
+            sipClientState.sipOnCall = false;
+            console.log('JsSIP : Local Call - Failed with cause : '+e.cause);
+          });
+      }
+
+      if(originator=='remote'){
+
+        console.log('JsSIP : Incoming Call - '+data.session.remote_identity.display_name+' '+"<"+data.session.remote_identity.uri.scheme+":"+data.session.remote_identity.uri.user+"@"+data.session.remote_identity.uri.host+">");
+        $(".namedisplay[data-eqLogic_id=#id#]")[0].innerHTML=data.session.remote_identity.display_name;
+        $(".uridisplay[data-eqLogic_id=#id#]")[0].innerHTML=data.session.remote_identity.uri.scheme+":"+data.session.remote_identity.uri.user+"@"+data.session.remote_identity.uri.host;
+
+        sipClientState.sipRinging = true;
+
+        console.log('JsSIP : Opening Modal Window.');
+        $(".sipDisplay[data-eqLogic_uid=#uid#]").dialog("open");
+
+        data.session.on('connecting', function() {
+          console.log('JsSIP : Incoming Call - Connecting.'); 
+        });
+
+        data.session.on('peerconnection', function(e) {
+          console.log('JsSIP : Incoming Call - Peer Connection Accepted');
+          
+          data.session.connection.addEventListener('addstream',function(e) {
+            console.log('JsSIP : Incoming Call - Add Stream');
+            remoteAudio.srcObject = (e.stream);
+            remoteView.srcObject = (e.stream);
+            selfView.srcObject = (session.connection.getLocalStreams()[0]);
+          });
+        });
+
+        data.session.on('accepted', function(e) {
+          console.log('JsSIP : Incoming Call - Accepted');
+        });
+
+        data.session.on('confirmed', function(e) {
+          console.log('JsSIP : Incoming Call - Confirmed');
+        });
+
+        data.session.on('ended', function(e) {
+          console.log('JsSIP : Incoming Call - Ended with cause : '+e.cause);
+          sipClientState.sipOnCall = false;
+          sipClientState.sipRinging = false;
+        });
+
+        data.session.on('failed', function(e) {
+          console.log('JsSIP : Incoming Call - Failed with cause : '+e.cause);
+          sipClientState.sipOnCall = false;
+          sipClientState.sipRinging = false;
+        });
+
+      }
+
+    });
+
+    sipClient.start();
+
+  </script>
+</div>
