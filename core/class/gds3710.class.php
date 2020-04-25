@@ -371,7 +371,7 @@ class gds3710 extends eqLogic {
         $sip->setIsVisible(1);
         $sip->setEqLogic_id($this->getId());
         $sip->save();
-        $data = array("client_sip_websocket" => $this->getConfiguration('client_sip_websocket'), "client_sip_uri" => $this->getConfiguration('client_sip_uri'), "client_sip_password" => $this->getConfiguration('client_sip_password'), "portier_sip_uri" => $this->getConfiguration('portier_sip_uri'));
+        $data = array("client_sip_websocket" => $this->getConfiguration('client_sip_websocket'), "client_sip_uri" => $this->getConfiguration('client_sip_uri'), "client_sip_password" => $this->getConfiguration('client_sip_password'), "portier_sip_uri" => $this->getConfiguration('portier_sip_uri'), "is_sip_debug_enabled" => $this->getConfiguration('is_sip_debug_enabled'));
         $sip->event(json_encode($data));
         
         // Création de la commande last event

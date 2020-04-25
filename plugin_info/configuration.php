@@ -16,7 +16,9 @@
  */
 
 require_once dirname(__FILE__) . '/../../../core/php/core.inc.php';
+
 include_file('core', 'authentification', 'php');
+
 if (!isConnect()) {
     include_file('desktop', '404', 'php');
     die();
@@ -27,7 +29,7 @@ if (!isConnect()) {
     <fieldset>
         <legend>{{Configuration du serveur}}</legend>
         <div class="form-group">
-            <label class="col-lg-3 control-label">Activer la protection par mot de passe</label>
+            <label class="col-lg-4 control-label">{{Activer la protection par mot de passe : }}</label>
             <div id="div_password_protection" class="col-lg-3 tooltips" title="{{ IMPORTANT : Veuillez lire la documentation pour en savoir plus }}">
                 <input type="checkbox" id="password_protection" class="configKey" data-l1key="password_protection" placeholder="{{}}"/>
                 <label for="password_protection">  </label>
@@ -48,21 +50,40 @@ if (!isConnect()) {
                 </script>
             </div>
         </div>
+
         <div id="login-form-group" class="form-group">
-            <label class="col-lg-3 control-label">{{Idenfiant }}<sup><i class="fa fa-question-circle tooltips" title="{{Il s'agit de l'identifiant que votre portier devra fournir pour publier ses évènements dans Jeedom.}}" style="font-size : 1em;color:grey;"></i></sup></label>
+            <label class="col-lg-4 control-label">{{Idenfiant : }}<sup><i class="fa fa-question-circle tooltips" title="{{Il s'agit de l'identifiant que votre portier devra fournir pour publier ses évènements dans Jeedom.}}" style="font-size : 1em;color:grey;"></i></sup></label>
             <div class="col-lg-2">
                 <input  type="text" class="configKey" data-l1key="login" />
             </div>
         </div>
+
         <div id="password-form-group" class="form-group">
-           <label class="col-lg-3 control-label">{{Mot de passe }}<sup><i class="fa fa-question-circle tooltips" title="{{Il s'agit du mot de passe que votre portier devra fournir pour publier ses évènements dans Jeedom.}}" style="font-size : 1em;color:grey;"></i></sup></label>
-           <div class="col-lg-2">
-            <input type="password" class="configKey" data-l1key="password" />
+           <label class="col-lg-4 control-label">{{Mot de passe : }}<sup><i class="fa fa-question-circle tooltips" title="{{Il s'agit du mot de passe que votre portier devra fournir pour publier ses évènements dans Jeedom.}}" style="font-size : 1em;color:grey;"></i></sup></label>
+            <div class="col-lg-2">
+                <input type="password" class="configKey" data-l1key="password" />
+            </div>
         </div>
+
         <div id="reddir-form-group" class="form-group">
-           <label class="col-lg-3 control-label">{{Répertoire d'enregistrement des captures }}<sup><i class="fa fa-question-circle tooltips" title="{{Il s'agit du répertoire dans lequel seront enregistré les captures.}}" style="font-size : 1em;color:grey;"></i></sup></label>
-           <div class="col-lg-2">
-            <input type="text" class="configKey" data-l1key="recdir" />
+            <label class="col-lg-4 control-label">{{Répertoire d'enregistrement des captures : }}<sup><i class="fa fa-question-circle tooltips" title="{{Il s'agit du répertoire dans lequel seront enregistré les captures.}}" style="font-size : 1em;color:grey;"></i></sup></label>
+            <div class="col-lg-4">
+                <input type="text" class="configKey" data-l1key="recdir" />
+            </div>
+        </div>
+
+        <div id="reddir-form-group" class="form-group">
+            <label class="col-lg-4 control-label">{{Autoriser les utilisateurs à effacer les captures : }}</label>
+            <div class="col-lg-2">
+                <input type="checkbox" class="configKey" data-l1key="is_user_allowed_to_delete"/>
+            </div>
+        </div>
+
+        <div id="reddir-form-group" class="form-group">
+            <label class="col-lg-4 control-label">{{Autoriser les utilisateurs limités à effacer les captures : }}</label>
+            <div class="col-lg-2">
+                <input type="checkbox" class="configKey" data-l1key="is_limited_user_allowed_to_delete"/>
+            </div>
         </div>
     </div>
 </fieldset>
