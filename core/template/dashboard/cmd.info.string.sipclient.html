@@ -18,17 +18,24 @@
       <a class="sipactionbutton btn btn-sm btn-default action" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">Action</a>
       <a class="sipactionbisbutton btn btn-sm btn-default action" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="display:none">Action Bis</a>
     </center>
-    
-
   </div>
 
   <script src="/plugins/gds3710/desktop/js/jssip-3.3.9.js"></script>
 
-  <!-- TODO activate and desactivate debug from plugin configuration -->
-  <!-- <script>JsSIP.debug.enable('JsSIP:*');</script> -->
-  <script>JsSIP.debug.disable();</script>
-
   <script>
+
+    var settings;
+    try {
+        settings = JSON.parse('#state#');
+    } catch(e) {
+        alert(e);
+    }
+
+    if(settings.is_sip_debug_enabled == 1){
+      JsSIP.debug.enable('JsSIP:*');
+    } else {
+      JsSIP.debug.disable();
+    }
 
     var greenColor = 'rgb(50, 130, 60)';
     var redColor = 'rgb(185, 58, 62)';
@@ -197,15 +204,6 @@
     var session;
     var request;
     var originator;
-
-    // Contains SIP configuration data sent by the plugin
-    // TODO : Update this when change in configuration 
-    var settings;
-    try {
-        settings = JSON.parse('#state#');
-    } catch(e) {
-        alert(e); //TODO an error message
-    }
 
     var websocket = new JsSIP.WebSocketInterface(settings.client_sip_websocket);
     
