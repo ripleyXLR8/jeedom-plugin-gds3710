@@ -18,10 +18,17 @@
 
 try {
     require_once dirname(__FILE__) . '/../../../../core/php/core.inc.php';
+
     include_file('core', 'authentification', 'php');
 
-    if (!isConnect('admin')) {
-        throw new Exception(__('401 - Accès non autorisé', __FILE__));
+    if(isConnect('user') && config::byKey('is_user_allowed_to_delete', 'gds3710') !=1 ){
+
+        throw new Exception(__('401 - Les utilisateurs ne sont pas autorisés à effacer les captures.', __FILE__));
+
+    } elseif(isConnect('restrict') && config::byKey('is_limited_user_allowed_to_delete', 'gds3710') !=1) {
+
+        throw new Exception(__('401 - Les utilisateurs limités ne sont pas autorisés à effacer les captures.', __FILE__));
+
     }
     
     ajax::init();
