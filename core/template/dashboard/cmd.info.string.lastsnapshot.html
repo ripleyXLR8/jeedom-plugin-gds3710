@@ -14,7 +14,7 @@
 
   	<script>
 
-  	// Workaround pour adaptation à l'inclusion dans un virtuel
+  	// Allow embeding in virtual
   	var is_virtual#id# = false;
   	var ID_GDS#id# = '';
 
@@ -38,29 +38,24 @@
   	}
 
   	findIdGDS('#id#','#state#');
-  	// Fin
+  	// End Allow embeding in virtual
   	
-  	$.ajax({
-    	url: '#state#',
-    	type:'HEAD',
-    	error: function()
-    	{
-        	$('.cmd[data-cmd_id=#id#]').hide();
-    	},
-	    success: function()
-	    {
-	        $('.cmd[data-cmd_id=#id#]').show();
-	    }
-	});
+  	if($('.imgCmd#uid#').attr('src') == ''){
+  		$('.cmd[data-cmd_id=#id#]').hide();
+  	} else {
+  		$('.cmd[data-cmd_id=#id#]').show();
+  	}
 
     jeedom.cmd.update['#id#'] = function(_options){
-    	$('.cmd[data-cmd_id=#id#]').show();
-    	$('.imgCmd#uid#').attr('src', _options.display_value);
-    	$('.cmd[data-cmd_id=#id#]').attr('title', 'Capture prise '+_options.valueDate);
-
+    	// If src is empty then we hide the widget
+    	if(_options.display_value == ''){
+	  		$('.cmd[data-cmd_id=#id#]').hide();
+	  	} else{
+	  		$('.cmd[data-cmd_id=#id#]').show();
+	  		$('.imgCmd#uid#').attr('src', _options.display_value);
+    		$('.cmd[data-cmd_id=#id#]').attr('title', 'Capture prise '+_options.valueDate);
+	  	}
     	findIdGDS(#id#, _options.display_value);
-
-
     }
 
     $('.cmd[data-cmd_id=#id#]').off().on('click', function () {
