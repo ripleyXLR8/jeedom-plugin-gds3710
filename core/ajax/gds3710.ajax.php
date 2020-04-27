@@ -35,9 +35,12 @@ try {
 
     if (init('action') == 'removeRecord') {
 		$file = init('file');
-		$file = str_replace('..', '', $file);
+        $file_cleaned = str_replace('..', '', $file);
 		$record_dir = calculPath(config::byKey('recdir', 'gds3710'));
-		shell_exec('rm -rf ' . $record_dir . '/' . $file);
+		shell_exec('rm -rf ' . $record_dir . '/' . $file_cleaned);
+
+        get_last_snapshot_url_gds($file);
+
 		ajax::success();
 	}
 
@@ -47,3 +50,27 @@ try {
     ajax::error(displayException($e), $e->getCode());
 }
 
+function get_last_snapshot_url_gds($file_name){
+    $gds_id = explode("/", $file_name)[0];
+    $gds3710 = eqLogic::byId($gds_id);
+    $lastest_snapshot_URL = $gds3710->getCmd(null, 'Lastest_Snapshot_URL');
+    $lastest_snapshot = $gds3710->getCmd(null, 'Lastest_Snapshot_Path');
+    $FilePath = $lastest_snapshot->execCmd();
+
+    if(!file_exists($FilePath)){
+        log::add('gds3710', 'debug','Lastest snapshot has been deleted - changing value of lastest_snapshot and lastest_snapshot_URL');
+        $record_dir = calculPath(config::byKey('recdir', 'gds3710'));
+        $files = scandir($record_dir . '/' .$gds_id.'/', SCANDIR_SORT_DESCENDING);
+        if(count($files) > 2 ){
+            $output_file = $record_dir . '/' .$gds_id.'/'.$files[0];
+            $lastest_snapshot->event(realpath($output_file));
+            $lastest_snapshot_URL->event(substr($output_file, strpos($output_file, '/plugins')));
+            log::add('gds3710', 'debug','New value of lastest_snapshot is :'.realpath($output_file));
+            log::add('gds3710', 'debug','New value of lastest_snapshot_URL is :'.substr($output_file, strpos($output_file, '/plugins')));
+        } else {
+            log::add('gds3710', 'debug','No more files in the directory.');
+            $lastest_snapshot_URL->event('');
+            $lastest_snapshot->event('');
+        }
+    }
+}
