@@ -185,12 +185,12 @@
 				</div>
 
 				<div class="form-group">
-				    <label class="col-sm-3 control-label pull-left">{{Type d'authentification MJPEG :}}</label>
+				    <label class="col-sm-3 control-label">{{Type d'authentification MJPEG :}}</label>
 				    <div class="col-sm-3">
 				    	<select class="eqLogicAttr form-control tooltips" title="{{type d'authentification pour le flux MJPEG}}" data-l1key="configuration" data-l2key="auth_type">
 				        	<option value="basic">Basic</option>
 				        	<option value="challenge">Challenge-Response</option>
-				      	</select>
+				      </select>
 				    </div>
 				</div>
 			</fieldset>
@@ -230,6 +230,25 @@
             <label class="col-sm-3 control-label">{{Débogage SIP :}}</label>
             <div class="col-sm-3">
                 <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_sip_debug_enabled" checked/>{{Activer}}</label>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-sm-3 control-label">{{Media des appels entrants :}}</label>
+            <div class="col-sm-4">
+                <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_remote_call_audio_enabled" checked/>{{Audio}}</label>
+                <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_remote_call_video_enabled" checked/>{{Video}}</label>
+<!--                 <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_remote_call_offer_audio_enabled" checked/>{{Recevoir Audio}}</label>
+                <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_remote_call_offer_video_enabled" checked/>{{Recevoir Video}}</label> -->
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="col-sm-3 control-label">{{Media des appels sortants :}}</label>
+            <div class="col-sm-4">
+                <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_local_call_audio_enabled" checked/>{{Audio}}</label>
+                <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_local_call_video_enabled" checked/>{{Video}}</label>
+<!--                 <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_local_call_offer_audio_enabled" checked/>{{Recevoir Audio}}</label>
+                <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_local_call_offer_video_enabled" checked/>{{Recevoir Video}}</label> -->
             </div>
         </div>
 

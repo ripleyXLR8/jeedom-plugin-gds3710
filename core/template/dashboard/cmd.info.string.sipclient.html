@@ -46,6 +46,7 @@
       internalSipStateText : '',
       internalSipRegistrationState : false,
       internalSipConnectionState : false,
+      internalSipWaitingAnswer : false,
       internalSipRinging : false,
       internalSipOnCall : false,
       aInternal: 10,
@@ -82,6 +83,14 @@
         return this.internaSipRinging;
       },
 
+      set sipWaitingAnswer(val){
+        this.internalSipWaitingAnswer= val;
+        this.stateListener(val);
+      },
+      get sipWaitingAnswer(){
+        return this.internalSipWaitingAnswer;
+      },
+
       set sipOnCall(val){
         this.internalSipOnCall = val;
         this.stateListener(val);
@@ -98,6 +107,12 @@
           SIPbuttonChange(orangeColor, this.internalSipStateText);
         } else {
           SIPbuttonChange(redColor, this.internalSipStateText);
+        }
+
+        if(this.internalSipWaitingAnswer){
+          tonalite.play();
+        } else {
+          tonalite.pause();
         }
 
         if(this.internalSipRinging){
@@ -135,22 +150,26 @@
 
     function pickUpCall(){
       console.log("JsSip : User Action - Picking-Up Call.");
+
+
       sipClientState.sipRinging = false;
       sipClientState.sipOnCall = true;
 
       var incomingCalloptions = {
-        'RTCConstraints': { 
-          optional: [],
-          mandatory: { 
-            'OfferToReceiveAudio': true,
-            'OfferToReceiveVideo': true 
-          } 
-        },
+        // 'RTCConstraints': { 
+        //   optional: [],
+        //   mandatory: { 
+        //     'OfferToReceiveAudio': settings.is_remote_call_offer_audio_enabled,
+        //     'OfferToReceiveVideo': settings.is_remote_call_offer_video_enabled 
+        //   } 
+        // },
         'mediaConstraints' : {
-          'audio': true,
-          'video': false
+          'audio': settings.is_remote_call_audio_enabled,
+          'video': settings.is_remote_call_video_enabled
         } 
       };
+
+      console.log("JsSip : Incoming Call Options : " + JSON.stringify(incomingCalloptions));
 
       session.answer(incomingCalloptions);
     }
@@ -166,18 +185,20 @@
       console.log("JsSip : User Action - Start Call.");
 
       var localCalloptions = {
-        'RTCConstraints': { 
-          optional: [],
-          mandatory: { 
-            'OfferToReceiveAudio': true,
-            'OfferToReceiveVideo': true 
-          } 
-        },
+        // 'RTCConstraints': { 
+        //   optional: [],
+        //   mandatory: { 
+        //     'OfferToReceiveAudio': settings.is_local_call_offer_audio_enabled,
+        //     'OfferToReceiveVideo': settings.is_local_call_offer_video_enabled 
+        //   } 
+        // },
         'mediaConstraints' : {
-          'audio': true,
-          'video': false
+          'audio': settings.is_local_call_audio_enabled,
+          'video': settings.is_local_call_video_enabled
         } 
       };
+
+      console.log("JsSip : Starting Call with Options : " + JSON.stringify(localCalloptions));
 
       session = sipClient.call(settings.portier_sip_uri, localCalloptions);
     }
@@ -197,6 +218,7 @@
     });
 
     ringtone = new Audio("plugins/gds3710/core/sound/bell.mp3");
+    tonalite = new Audio("plugins/gds3710/core/sound/tonalite.mp3");
 
     var selfView = document.getElementById('selfView');
     var remoteView = document.getElementById('remoteView');
@@ -213,24 +235,32 @@
       password : settings.client_sip_password
     };
 
-    var sipClient = new JsSIP.UA(configuration);
+    var sipClient;
+
+    try
+    {
+      sipClient = new JsSIP.UA(configuration);
+    } catch(e) {
+      console.log(error.message);
+    } 
+
 
     var status;
     var isCurrentlyOnPhone = false;
     var PhoneIsRinging = false;
 
     function SIPbuttonChange(color, text){
-      $(".cmd.cmd-widget[data-cmd_id=#id#] .btn")[0].innerHTML=text;
+      $(".cmd.cmd-widget[data-cmd_id=#id#] .btn").html(text);
       $(".cmd.cmd-widget[data-cmd_id=#id#] .btn").attr('style', 'background-color : '+color+' !important');
     }
 
     function SIPbuttonModalChange(color, text){
-      $(".sipactionbutton[data-eqLogic_id=#id#]")[0].innerHTML=text;
+      $(".sipactionbutton[data-eqLogic_id=#id#]").html(text);
       $(".sipactionbutton[data-eqLogic_id=#id#]").attr('style', 'background-color : '+color+' !important');
     }
 
     function SIPbuttonBisModalChange(color, text){
-      $(".sipactionbisbutton[data-eqLogic_id=#id#]")[0].innerHTML=text;
+      $(".sipactionbisbutton[data-eqLogic_id=#id#]").html(text);
       $(".sipactionbisbutton[data-eqLogic_id=#id#]").attr('style', 'background-color : '+color+' !important');
     }
 
@@ -303,28 +333,37 @@
       if(originator=='local'){
           console.log('JsSIP : Local Call.');
           sipClientState.sipOnCall = true;
+          sipClientState.sipWaitingAnswer = true;
 
           data.session.on('connecting', function() {
             console.log('JsSIP : Local Call - Connecting.'); 
-          });
 
-          data.session.on('peerconnection', function(e) {
-            console.log('JsSIP : Local Call - Peer Connection Accepted');
-            
             data.session.connection.addEventListener('addstream',function(e) {
-              console.log('JsSIP : Local Call - Add Stream');
+              console.log('JsSIP : Local Call - Add Stream - Connecting');
               remoteAudio.srcObject = (e.stream);
               remoteView.srcObject = (e.stream);
               selfView.srcObject = (session.connection.getLocalStreams()[0]);
             });
+
+          });
+
+          data.session.on('peerconnection', function(e) {
+            console.log('JsSIP : Local Call - Peer Connection Accepted');
           });
 
           data.session.on('accepted', function(e) {
             console.log('JsSIP : Local Call - Accepted');
+            sipClientState.sipWaitingAnswer = false;
           });
 
           data.session.on('confirmed', function(e) {
             console.log('JsSIP : Local Call - Confirmed');
+
+            data.session.connection.addEventListener('addstream',function(e) {
+              console.log('JsSIP : Local Call - Add Stream - Confirmed');
+              
+            });
+
           });
 
           data.session.on('ended', function(e) {
@@ -341,8 +380,8 @@
       if(originator=='remote'){
 
         console.log('JsSIP : Incoming Call - '+data.session.remote_identity.display_name+' '+"<"+data.session.remote_identity.uri.scheme+":"+data.session.remote_identity.uri.user+"@"+data.session.remote_identity.uri.host+">");
-        $(".namedisplay[data-eqLogic_id=#id#]")[0].innerHTML=data.session.remote_identity.display_name;
-        $(".uridisplay[data-eqLogic_id=#id#]")[0].innerHTML=data.session.remote_identity.uri.scheme+":"+data.session.remote_identity.uri.user+"@"+data.session.remote_identity.uri.host;
+        $(".namedisplay[data-eqLogic_id=#id#]").html(data.session.remote_identity.display_name);
+        $(".uridisplay[data-eqLogic_id=#id#]").html(data.session.remote_identity.uri.scheme+":"+data.session.remote_identity.uri.user+"@"+data.session.remote_identity.uri.host);
 
         sipClientState.sipRinging = true;
 
