@@ -1,12 +1,12 @@
 # Plugin GDS 3710
-> Version du 15 avril 2020
+> Version du 28 avril 2020
 > by Richard Perez | richard@perez-mail.fr
 
 # IMPORTANT
 Il semble y avoir un problème avec la version 1.0.4.9 du firmware du GDS3710 (la réalisation de capture du flux échoue). Les autres version supérieures à la 10.0.3.32 fonctionnent. Le plugin a été testé jusqu'à la version 10.0.7.8.
 
 # Introduction
-Ce plugin permet l'intégration du portier GrandStream GDS3710 dans Jeedom. Dans sa version actuelle (15 avril 2020), il permet de :
+Ce plugin permet l'intégration du portier GrandStream GDS3710 dans Jeedom. Dans sa version actuelle (28 avril 2020), il permet de :
 - Récupérer les évènements du portier et de les gérer via des scénarios ou des commandes.
 - De modifier la configuration du portier.
 - D'activer les contacts secs du portier permettant de manoeuvrer une porte ou autre.
@@ -14,6 +14,9 @@ Ce plugin permet l'intégration du portier GrandStream GDS3710 dans Jeedom. Dans
 - D'enregistrer des images extraites du flux MJPEG.
 - De consulter les images enregistrées via une bibliothèque intégrée.
 - D'envoyer des images enregistrées via une autre commmande (testé avec le plugin Telegram).
+- D'activer ou de désactiver le LDC (Lens Deformation Correction).
+- De changer le réglage du capteur vidéo du portier (normal, low-light et WDR)
+- (Beta) D'enregistrer un client SIP directement depuis Jeedom et de répondre aux appels directement sur le dashboard.
 
 Ce plugin est basé sur la document fourni par GrandStream : http://www.grandstream.com/sites/default/files/Resources/gds37xx_http_api.pdf
 
@@ -48,7 +51,7 @@ NB : Assurez-vous d'avoir changer le mot-de-passe par défaut du compte admin av
 - Rendez-vous dans l'interface de gestion de votre GDS3710 puis dans Status -> Network info.
 - Relevez l'adresse Mac et l'adresse IP de votre portier, nous en aurons besoin plus tard.
 
-# Configuration du plugin GDS3710
+# Configuration du plugin GDS3710 dans Jeedom
 ## Configuration générale
 - Allez à la page de configuration du plugin et saisissez l'identifiant et le mot-de-passe que vous avez choisis à l'étape "Configuration de la fonctionnalité 'Event Notification'".
 - Renseignez un répertoire pour le stockage des captures d'écran. Par défaut ce répertoire est : "plugins/gds3710/data/records".
@@ -62,6 +65,9 @@ NB : Assurez-vous d'avoir changer le mot-de-passe par défaut du compte admin av
 - Saisissez le remote PIN 2 dans le champs correspondant (il s'agit du PIN permettant d'ouvrir la porte 2).
 - Sélectionnez le mode d'authentification du flux MJPEG que vous avez choisis précédement.
 - Sauvegardez les modifications apportées à l'équipement.
+
+## Configuration et test du client SIP
+TODO
 
 **C'est terminé, tout est configuré.**
 
