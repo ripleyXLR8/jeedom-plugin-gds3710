@@ -232,6 +232,7 @@
                 <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_sip_debug_enabled" checked/>{{Activer}}</label>
             </div>
         </div>
+
         <div class="form-group">
             <label class="col-sm-3 control-label">{{Media des appels entrants :}}</label>
             <div class="col-sm-4">
@@ -249,6 +250,20 @@
                 <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_local_call_video_enabled" checked/>{{Video}}</label>
 <!--                 <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_local_call_offer_audio_enabled" checked/>{{Recevoir Audio}}</label>
                 <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_local_call_offer_video_enabled" checked/>{{Recevoir Video}}</label> -->
+            </div>
+        </div>
+
+        <div class="form-group">
+          <label class="col-sm-3 control-label">{{HACK - Codec(s) à supprimer }}<sup><i class="fa fa-question-circle tooltips" title="{{Permet de supprimer des codecs de l'INVITE envoyé par le client SIP du plugin. Le nombre de codecs disponible étant très important l'INVITE peut devenir très long et dépasser la taille maximale admissible par le serveur SIP. Supprimer des codecs peut permettre de réduire la taille de l'INVITE. Entrez les codecs en les séparant par une virgule (sans rajouter d'espaces).}}" style="font-size : 1em;color:grey;"></i></sup>{{ :}}</label>
+            <div class="col-sm-3">
+                <input type="text" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="sip-codec-removal" placeholder="{{Codec(s) à supprimer}}"/>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="col-sm-3 control-label">{{HACK - Suppresion de ligne de l'INVITE }}<sup><i class="fa fa-question-circle tooltips" title="{{Permet de supprimer des codecs de l'INVITE envoyé par le client SIP du plugin. Le nombre de codecs disponible étant très important l'INVITE peut devenir très long et dépasser la taille maximale admissible par le serveur SIP. Supprimer des codecs peut permettre de réduire la taille de l'INVITE.}}" style="font-size : 1em;color:grey;"></i></sup>{{ :}}</label>
+            <div class="col-sm-3">
+                <input type="text" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="sip-invite-line-removal" placeholder="{{Regex des lignes à supprimer}}"/>
             </div>
         </div>
 

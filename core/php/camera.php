@@ -18,14 +18,22 @@
 
 require_once __DIR__  . '/../../../../core/php/core.inc.php';
 
-if(!isset($_GET['mac']) || $_GET['mac'] == ''){
+log::add('gds3710', 'debug', 'Call to camera.php in progress.');
+
+if(!isset($_GET['id']) || $_GET['id'] == ''){
+	log::add('gds3710', 'error', 'No id parameter provided to camera.php.');
 	die();
 }
-log::add('gds3710', 'debug', 'Call to camera.php');
-$mac = $_GET['mac'];
-$gds3710 = gds3710::byLogicalId($mac, 'gds3710');
+
+$eqId = $_GET['id'];
+$gds3710 = gds3710::byId($eqId, 'gds3710');
+if (!is_object($gds3710)) {
+	log::add('gds3710', 'error', 'No GDS3710 equipment with id : '.$eqId);
+	die();
+}
 $ip = $gds3710->getConfiguration('ip');
 $password = $gds3710->getConfiguration('password');
+$mac = $gds3710->getConfiguration('macaddress');
 $remote_pin = 'GDS3710lDyTlHwNgZ';
 $auth_type = $gds3710->getConfiguration('auth_type');
 log::add('gds3710', 'debug', 'Config is :'.$mac." | ".$ip." | ".$password." | ".$remote_pin." | ".$auth_type);

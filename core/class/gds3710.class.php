@@ -107,6 +107,11 @@ class gds3710 extends eqLogic {
         
     }
 
+    //public function parseCommaString($stringToParse){
+        //$resultArray = explode(',', $stringToParse);
+        
+    //}
+
     public function postSave() {
 
         // On vérifie que la clef secrète à bien été créée sinon, on la génère.
@@ -356,7 +361,7 @@ class gds3710 extends eqLogic {
         $stream_mjpeg->setTemplate('mobile', 'mjpegstream');
         $stream_mjpeg->setIsVisible(1);
         $stream_mjpeg->save();
-        $stream_mjpeg->event('/plugins/gds3710/core/php/camera.php?mac='.$MAC);
+        $stream_mjpeg->event('/plugins/gds3710/core/php/camera.php?id='.$this->getId());
         
         // Création de la commande du client SIP
         $sip = $this->getCmd('info', 'sip_client');
@@ -371,6 +376,7 @@ class gds3710 extends eqLogic {
         $sip->setIsVisible(1);
         $sip->setEqLogic_id($this->getId());
         $sip->save();
+
         $data = array(
             "client_sip_websocket" => $this->getConfiguration('client_sip_websocket'),
             "client_sip_uri" => $this->getConfiguration('client_sip_uri'),
@@ -385,7 +391,11 @@ class gds3710 extends eqLogic {
             "is_local_call_audio_enabled" => boolval($this->getConfiguration('is_local_call_audio_enabled')),
             "is_local_call_video_enabled" => boolval($this->getConfiguration('is_local_call_video_enabled')),
             "is_local_call_offer_audio_enabled" => boolval($this->getConfiguration('is_local_call_offer_audio_enabled')),
-            "is_local_call_offer_video_enabled" => boolval($this->getConfiguration('is_local_call_offer_video_enabled'))
+            "is_local_call_offer_video_enabled" => boolval($this->getConfiguration('is_local_call_offer_video_enabled')),
+
+            "codec_to_remove" => explode(',', $this->getConfiguration('sip-codec-removal')),
+            "invite_line_to_remove" => explode(',', $this->getConfiguration('sip-invite-line-removal'))
+
         );
         $sip->event(json_encode($data));
         
