@@ -12,7 +12,7 @@
       <div class="namedisplay" style="font-size: 5em" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">Name</div>
       <div class="uridisplay" style="font-size: 3em" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">uri</div>
     </center>
-    <video style="height: 240px; width: 320px; border: 3px solid grey; display:none" id="selfView" autoplay muted=true></video>
+    <video class="selfview" style="height: 240px; width: 320px; border: 3px solid grey; display:none" id="selfView" autoplay muted=true autoplay data-eqLogic_uid="#uid#" data-eqLogic_id="#id#"></video>
     <video class="remoteview" style="width: 100%; border: 3px solid grey; max-height: 700px; display:none" id="remoteView" autoplay data-eqLogic_uid="#uid#" data-eqLogic_id="#id#"></video>
     <center>
       <a class="sipactionbutton btn btn-sm btn-default action" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">Action</a>
@@ -20,7 +20,7 @@
     </center>
   </div>
 
-  <script src="/plugins/gds3710/desktop/js/jssip-3.3.9.js"></script>
+  <script src="/plugins/gds3710/desktop/js/jssip-3.4.3.min.js"></script>
 
   <script>
 
@@ -128,12 +128,14 @@
           ringtone.pause();
           SIPbuttonModalChange(redColor, "Raccrocher");
           $(".remoteview[data-eqLogic_id=#id#]").show();
+          $(".selfview[data-eqLogic_id=#id#]").show();
           $(".sipactionbutton[data-eqLogic_id=#id#]").unbind('click');
           $(".sipactionbutton[data-eqLogic_id=#id#]").click(terminateCall);
           $(".sipactionbisbutton[data-eqLogic_id=#id#]").hide();
         } else {
           SIPbuttonModalChange(greenColor, "Appeler");
           $(".remoteview[data-eqLogic_id=#id#]").hide();
+          $(".selfview[data-eqLogic_id=#id#]").hide();
           $(".calleridentitydisplay[data-eqLogic_id=#id#]").hide();
           ringtone.pause();
           $(".sipactionbutton[data-eqLogic_id=#id#]").unbind('click');
@@ -148,9 +150,72 @@
       }
     }
 
+    function removeLineFromSDPWithRegex(sdp, regex){
+      var regex = new RegExp(regex, 'g');
+      var modsdp = sdp.replace(regex, "");
+      return modsdp;
+    }
+
+    // function removeAcandiate(sdp){
+    //   //console.log(sdp);
+    //   var acandidateregex = new RegExp('(a=candidate:\\d* \\d tcp .+\\r\\n)', 'g');
+    //   //console.log(acandidateregex)
+    //   //var acandidat = sdp.match(acandidateregex);
+    //   //console.log(acandidat.length);
+    //   var modsdp = sdp.replace(acandidateregex, "");
+    //   //console.log(modsdp)
+    //   return modsdp;
+    // }
+
+    function removeCodec(orgsdp, codec) {
+      var internalFunc = function(sdp) {
+          var codecre = new RegExp('(a=rtpmap:(\\d*) ' + codec + '\/90000\\r\\n)');
+          var rtpmaps = sdp.match(codecre);
+          if (rtpmaps == null || rtpmaps.length <= 2) {
+              return sdp;
+          }
+          var rtpmap = rtpmaps[2];
+          // var modsdp = sdp.replace(codecre, "");​
+          var modsdp = sdp.replace(codecre, "");
+          var rtcpre = new RegExp('(a=rtcp-fb:' + rtpmap + '.*\r\n)', 'g');
+          //  modsdp = modsdp.replace(rtcpre, "");​
+          modsdp = modsdp.replace(rtcpre, "");
+          var fmtpre = new RegExp('(a=fmtp:' + rtpmap + '.*\r\n)', 'g');
+          //    modsdp = modsdp.replace(fmtpre, "");​
+          modsdp = modsdp.replace(fmtpre, "");
+          var aptpre = new RegExp('(a=fmtp:(\\d*) apt=' + rtpmap + '\\r\\n)');
+          var aptmaps = modsdp.match(aptpre);
+          var fmtpmap = "";
+          if (aptmaps != null && aptmaps.length >= 3) {
+              fmtpmap = aptmaps[2];
+              // modsdp = modsdp.replace(aptpre, "");​
+              modsdp = modsdp.replace(aptpre, "");
+              var rtppre = new RegExp('(a=rtpmap:' + fmtpmap + '.*\r\n)', 'g');
+              modsdp = modsdp.replace(rtppre, "");
+          }
+          var videore = /(m=video.*\r\n)/;
+          var videolines = modsdp.match(videore);
+          if (videolines != null) {
+              //If many m=video are found in SDP, this program doesn't work.
+              var videoline = videolines[0].substring(0, videolines[0].length - 2);
+              var videoelem = videoline.split(" ");
+              var modvideoline = videoelem[0];
+              for (var i = 1; i < videoelem.length; i++) {
+                  if (videoelem[i] == rtpmap || videoelem[i] == fmtpmap) {
+                      continue;
+                  }
+                  modvideoline += " " + videoelem[i];
+              }
+              modvideoline += "\r\n";
+              modsdp = modsdp.replace(videore, modvideoline);
+          }
+          return internalFunc(modsdp);
+      };
+      return internalFunc(orgsdp);
+    }
+
     function pickUpCall(){
       console.log("JsSip : User Action - Picking-Up Call.");
-
 
       sipClientState.sipRinging = false;
       sipClientState.sipOnCall = true;
@@ -177,6 +242,7 @@
     function terminateCall(){
       console.log("JsSip : User Action - Terminating Call.");
       session.terminate();
+      sipClientState.sipWaitingAnswer = false;
       sipClientState.sipOnCall = false;
       sipClientState.sipRinging = false;
     }
@@ -185,13 +251,6 @@
       console.log("JsSip : User Action - Start Call.");
 
       var localCalloptions = {
-        // 'RTCConstraints': { 
-        //   optional: [],
-        //   mandatory: { 
-        //     'OfferToReceiveAudio': settings.is_local_call_offer_audio_enabled,
-        //     'OfferToReceiveVideo': settings.is_local_call_offer_video_enabled 
-        //   } 
-        // },
         'mediaConstraints' : {
           'audio': settings.is_local_call_audio_enabled,
           'video': settings.is_local_call_video_enabled
@@ -209,7 +268,12 @@
       resizable: true,
       closeText: '',
       height: 800,
-      width: 800
+      width: 800,
+      close: function(){
+        if(sipClientState.sipOnCall){
+          terminateCall();
+        }
+      }
     });
 
     $('.cmd[data-cmd_id=#id#]').on('click', function () {
@@ -228,6 +292,7 @@
     var originator;
 
     var websocket = new JsSIP.WebSocketInterface(settings.client_sip_websocket);
+    //websocket.via_transport = "udp";
     
     var configuration = {
       sockets  : [websocket],
@@ -243,7 +308,6 @@
     } catch(e) {
       console.log(error.message);
     } 
-
 
     var status;
     var isCurrentlyOnPhone = false;
@@ -335,9 +399,29 @@
           sipClientState.sipOnCall = true;
           sipClientState.sipWaitingAnswer = true;
 
+          data.session.on('sending', function(data) {
+            if(settings.codec_to_remove.length>0){
+              console.log('JsSIP : Codec removing requested : '+settings.codec_to_remove);
+              for (let i = 0; i < settings.codec_to_remove.length; i++) {
+                data.request.body = removeCodec(data.request.body,settings.codec_to_remove[i]);
+              }
+              console.log('JsSIP : SDP after modification :')
+              console.log(data.request.body);
+            }
+
+            if(settings.invite_line_to_remove.length>0){
+              console.log('JsSIP : Codec removing requested : '+settings.invite_line_to_remove);
+              for (let i = 0; i < settings.invite_line_to_remove.length; i++) {
+                data.request.body = removeLineFromSDPWithRegex(data.request.body, settings.invite_line_to_remove[i]);
+                console.log('JsSIP : SDP after modification :')
+                console.log(data.request.body);
+              }
+            }
+          });
+
+
           data.session.on('connecting', function() {
             console.log('JsSIP : Local Call - Connecting.'); 
-
             data.session.connection.addEventListener('addstream',function(e) {
               console.log('JsSIP : Local Call - Add Stream - Connecting');
               remoteAudio.srcObject = (e.stream);
