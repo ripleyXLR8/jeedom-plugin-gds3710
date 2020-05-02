@@ -107,6 +107,11 @@ class gds3710 extends eqLogic {
         
     }
 
+    //public function parseCommaString($stringToParse){
+        //$resultArray = explode(',', $stringToParse);
+        
+    //}
+
     public function postSave() {
 
         // On vérifie que la clef secrète à bien été créée sinon, on la génère.
@@ -357,7 +362,7 @@ class gds3710 extends eqLogic {
         $stream_mjpeg->setIsVisible(1);
         $stream_mjpeg->save();
         $stream_mjpeg->event('/plugins/gds3710/core/php/camera.php?id='.$this->getId());
-         
+
         // Création de la commande last event
         $info = $this->getCmd('info', 'Last event');
         if (!is_object($info)) {
