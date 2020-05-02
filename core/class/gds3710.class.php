@@ -362,43 +362,7 @@ class gds3710 extends eqLogic {
         $stream_mjpeg->setIsVisible(1);
         $stream_mjpeg->save();
         $stream_mjpeg->event('/plugins/gds3710/core/php/camera.php?id='.$this->getId());
-        
-        // Création de la commande du client SIP
-        $sip = $this->getCmd('info', 'sip_client');
-        if (!is_object($sip)) {
-            $sip = new gds3710Cmd();
-        }  
-        $sip->setName(__('SIP client', __FILE__));
-        $sip->setType('info');
-        $sip->setSubType('string');
-        $sip->setLogicalId('sip_client');
-        $sip->setTemplate('dashboard', 'sipclient');
-        $sip->setIsVisible(1);
-        $sip->setEqLogic_id($this->getId());
-        $sip->save();
 
-        $data = array(
-            "client_sip_websocket" => $this->getConfiguration('client_sip_websocket'),
-            "client_sip_uri" => $this->getConfiguration('client_sip_uri'),
-            "client_sip_password" => $this->getConfiguration('client_sip_password'),
-            "portier_sip_uri" => $this->getConfiguration('portier_sip_uri'),
-            "is_sip_debug_enabled" => $this->getConfiguration('is_sip_debug_enabled'),
-
-            "is_remote_call_audio_enabled" => boolval($this->getConfiguration('is_remote_call_audio_enabled')),
-            "is_remote_call_video_enabled" => boolval($this->getConfiguration('is_remote_call_video_enabled')),
-            "is_remote_call_offer_audio_enabled" => boolval($this->getConfiguration('is_remote_call_offer_audio_enabled')),
-            "is_remote_call_offer_video_enabled" => boolval($this->getConfiguration('is_remote_call_offer_video_enabled')),
-            "is_local_call_audio_enabled" => boolval($this->getConfiguration('is_local_call_audio_enabled')),
-            "is_local_call_video_enabled" => boolval($this->getConfiguration('is_local_call_video_enabled')),
-            "is_local_call_offer_audio_enabled" => boolval($this->getConfiguration('is_local_call_offer_audio_enabled')),
-            "is_local_call_offer_video_enabled" => boolval($this->getConfiguration('is_local_call_offer_video_enabled')),
-
-            "codec_to_remove" => explode(',', $this->getConfiguration('sip-codec-removal')),
-            "invite_line_to_remove" => explode(',', $this->getConfiguration('sip-invite-line-removal'))
-
-        );
-        $sip->event(json_encode($data));
-        
         // Création de la commande last event
         $info = $this->getCmd('info', 'Last event');
         if (!is_object($info)) {
