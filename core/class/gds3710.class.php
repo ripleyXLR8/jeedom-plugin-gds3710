@@ -361,7 +361,7 @@ class gds3710 extends eqLogic {
         $stream_mjpeg->setTemplate('mobile', 'mjpegstream');
         $stream_mjpeg->setIsVisible(1);
         $stream_mjpeg->save();
-        $stream_mjpeg->event('/plugins/gds3710/core/php/camera.php?mac='.$MAC);
+        $stream_mjpeg->event('/plugins/gds3710/core/php/camera.php?id='.$this->getId());
         
         // Création de la commande du client SIP
         $sip = $this->getCmd('info', 'sip_client');
