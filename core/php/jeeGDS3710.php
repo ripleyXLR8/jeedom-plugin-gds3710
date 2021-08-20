@@ -148,7 +148,7 @@ if(isset($_POST['type']) && $_POST['type'] != ''){ // On vérifie qu'un type a b
                 $options = $action['options'];
 
                 if(isset($action['options']['scenario_id'])){
-                    $options[‹ tags ›] = $options[‹ tags ›].’ mac="’.$_POST[‹ mac ›].’" content="’.$_POST[‹ content ›].’" type="’.$_POST[‹ type ›].’" date="’.$_POST[« date »].’" card="’.$_POST[‹ card ›].’" sip="’.$_POST[‹ sip ›].’" user="’.$_POST[‹ user ›]’" door="’.$_POST[‹ door ›].’"’;
+                    $options['tags'] = $options['tags'].' mac="'.$_POST['mac'].'" content="'.$_POST['content'].'" type="'.$_POST['type'].'" date="'.$_POST["date"].'" card="'.$_POST['card'].'" sip="'.$_POST['sip'].'" user="'.$_POST['user']'" door="'.$_POST['door'].'"';
                 }
 
             }
