@@ -1,6 +1,7 @@
 options -indexes
 
 <IfModule mod_rewrite.c>
+Options +FollowSymlinks
 RewriteEngine on
 RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization},L]
 </IfModule>
