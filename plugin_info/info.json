@@ -12,7 +12,7 @@
 	"changelog" : "https://ripleyxlr8.github.io/jeedom-plugin-gds3710/#language#/changelog",
 	"documentation" : "https://ripleyxlr8.github.io/jeedom-plugin-gds3710/#language#/",
 	"link" : {
-		"forum":"https://www.jeedom.com/forum/viewtopic.php?t=40780",
+		"forum":"https://community.jeedom.com/tag/plugin-gds3710",
 		"video" : ""
 	},
 	"language" : ["fr_FR"],
