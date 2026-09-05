@@ -46,7 +46,7 @@ $password = $gds3710->getConfiguration('password');
 $mac = $gds3710->getConfiguration('macaddress');
 $remote_pin = 'GDS3710lDyTlHwNgZ';
 $auth_type = $gds3710->getConfiguration('auth_type');
-log::add('gds3710', 'debug', 'Config is :'.$mac." | ".$ip." | ".$password." | ".$remote_pin." | ".$auth_type);
+log::add('gds3710', 'debug', 'Config is : '.$mac.' | '.$ip.' | '.$auth_type);
 
 if($auth_type == 'challenge'){
 
@@ -68,12 +68,12 @@ if($auth_type == 'challenge'){
 	$auth_response = md5($ChallengeCode.":".$remote_pin.":".$password);
 
 	$mjpeg_url = 'https://'.$ip.'/jpeg/stream?type=1&user=admin&authcode='.$auth_response.'&idcode='.$IDCode;
-	log::add('gds3710', 'debug', 'MJPEG url is : '.$mjpeg_url);
+	log::add('gds3710', 'debug', 'MJPEG url is : '.gds3710::redact($mjpeg_url));
 
 } elseif ($auth_type == 'basic'){
 
 	$mjpeg_url = 'https://admin:'.$password.'@'.$ip.'/jpeg/stream';
-	log::add('gds3710', 'debug', 'MJPEG url is : '.$mjpeg_url);
+	log::add('gds3710', 'debug', 'MJPEG url is : '.gds3710::redact($mjpeg_url));
 
 } else {
 
