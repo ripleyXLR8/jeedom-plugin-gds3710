@@ -65,6 +65,13 @@ if (!isConnect()) {
             </div>
         </div>
 
+        <div class="form-group">
+            <label class="col-lg-4 control-label">{{Désactiver le contrôle d'adresse d'origine : }}<sup><i class="fa fa-question-circle tooltips" title="{{Par défaut, un évènement n'est accepté que s'il provient de l'adresse IP configurée pour le portier. Décochez uniquement si votre Jeedom est derrière un NAT ou un proxy qui masque l'adresse réelle du portier.}}" style="font-size : 1em;color:grey;"></i></sup></label>
+            <div class="col-lg-2">
+                <input type="checkbox" class="configKey" data-l1key="skip_source_ip_check"/>
+            </div>
+        </div>
+
         <div id="reddir-form-group" class="form-group">
             <label class="col-lg-4 control-label">{{Répertoire d'enregistrement des captures : }}<sup><i class="fa fa-question-circle tooltips" title="{{Il s'agit du répertoire dans lequel seront enregistré les captures.}}" style="font-size : 1em;color:grey;"></i></sup></label>
             <div class="col-lg-4">

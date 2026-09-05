@@ -23,34 +23,105 @@ require_once __DIR__  . '/../../../../core/php/core.inc.php';
 
 set_time_limit(15);
 
-// Si la vérification du mot de passe est activée
-if(config::byKey('password_protection', 'gds3710', 'jeedom') == 1){
-    $realm = 'GDS3710 Jeedom Plugin Restricted area';
-    $nonce = uniqid();
-    $digest = getDigest();
+// ---------------------------------------------------------------------------
+// Authentification de l'appelant
+// ---------------------------------------------------------------------------
 
-    if (is_null($digest)){
-        requireLogin($realm,$nonce);
+$realm = 'GDS3710 Jeedom Plugin Restricted area';
+
+/* La protection par mot de passe reste optionnelle : la rendre obligatoire d'office
+ * couperait la remontée d'évènements de toutes les installations existantes au moment
+ * de la mise à jour. Elle est en revanche activée par défaut sur toute nouvelle
+ * installation (voir plugin_info/install.php), et son absence est signalée à
+ * l'administrateur au lieu d'être passée sous silence. */
+if (config::byKey('password_protection', 'gds3710', 0) == 1) {
+
+    $digest = getDigest();
+    if ($digest === null) {
+        requireLogin($realm);
     }
 
     $digestParts = digestParse($digest);
+    if ($digestParts === false) {
+        log::add('gds3710', 'error', 'En-tete Digest incomplet recu depuis ' . gds3710_client_ip());
+        requireLogin($realm);
+    }
 
-    $validUser = config::byKey('login', 'gds3710', 'jeedom');
-    $validPass = config::byKey('password', 'gds3710', 'jeedom');
-    $A1 = md5("{$validUser}:{$realm}:{$validPass}");
-    $A2 = md5("{$_SERVER['REQUEST_METHOD']}:{$digestParts['uri']}");
+    /* Le nonce doit etre un nonce que NOUS avons emis, encore valide, et dont le compteur
+     * progresse. Sans ce controle la reponse calculee l'etait a partir du nonce fourni par
+     * le client lui-meme : rejouer une requete capturee suffisait a s'authentifier. */
+    if (!gds3710_consume_nonce($digestParts['nonce'], $digestParts['nc'])) {
+        log::add('gds3710', 'error', 'Nonce Digest inconnu, expire ou rejoue depuis ' . gds3710_client_ip());
+        requireLogin($realm);
+    }
 
-    $validResponse = md5("{$A1}:{$digestParts['nonce']}:{$digestParts['nc']}:{$digestParts['cnonce']}:{$digestParts['qop']}:{$A2}");
+    $validUser = (string) config::byKey('login', 'gds3710');
+    $validPass = (string) config::byKey('password', 'gds3710');
+    $A1 = md5($validUser . ':' . $realm . ':' . $validPass);
+    $A2 = md5($_SERVER['REQUEST_METHOD'] . ':' . $digestParts['uri']);
+    $validResponse = md5($A1 . ':' . $digestParts['nonce'] . ':' . $digestParts['nc'] . ':'
+                       . $digestParts['cnonce'] . ':' . $digestParts['qop'] . ':' . $A2);
 
-    if ($digestParts['response']!=$validResponse){
-        log::add('gds3710', 'error', 'Authentification failed with data :'.print_r($_SERVER, true));
-        requireLogin($realm,$nonce);
-    } 
+    if (!hash_equals($validResponse, (string) $digestParts['response'])
+        || !hash_equals($validUser, (string) $digestParts['username'])) {
+        /* Ne jamais journaliser $_SERVER ici : l'en-tete Authorization s'y trouve. */
+        log::add('gds3710', 'error', 'Authentification refusee depuis ' . gds3710_client_ip());
+        requireLogin($realm);
+    }
+
+} else {
+    gds3710_warn_unprotected();
 }
 
-if ((php_sapi_name() != 'cli' || isset($_SERVER['REQUEST_METHOD']) || !isset($_SERVER['argc'])) && (config::byKey('api') != init('api') && init('api') != '')) {
-    echo 'Clef API non valide, vous n\'êtes pas autorisé à effectuer cette action (jeeGDS3710)';
+/* La clef API reste acceptee comme second mode. Le test d'origine ne se declenchait que
+ * si un parametre « api » etait fourni : ne pas en envoyer suffisait a le contourner. */
+$apiKey = init('api');
+if ($apiKey !== '' && !hash_equals((string) config::byKey('api'), (string) $apiKey)) {
+    log::add('gds3710', 'error', 'Clef API invalide depuis ' . gds3710_client_ip());
+    header('HTTP/1.1 401 Unauthorized');
+    echo 'Clef API non valide : action non autorisee (jeeGDS3710)';
     die();
+}
+
+function gds3710_client_ip() {
+    return isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '?';
+}
+
+/* Emet un nonce a usage unique et le memorise pour la duree de vie du defi. */
+function gds3710_issue_nonce() {
+    $nonce = md5(uniqid('', true) . mt_rand());
+    cache::set('gds3710::nonce::' . $nonce, 0, 300);
+    return $nonce;
+}
+
+/* Valide puis consomme un nonce. Retourne false s'il n'a pas ete emis par nous, s'il a
+ * expire, ou si le compteur nc ne progresse pas (rejeu). */
+function gds3710_consume_nonce($nonce, $nc) {
+    if (!is_string($nonce) || $nonce === '' || !ctype_xdigit($nonce)) {
+        return false;
+    }
+    $key = 'gds3710::nonce::' . $nonce;
+    $seen = cache::byKey($key)->getValue(null);
+    if ($seen === null) {
+        return false;
+    }
+    $counter = is_string($nc) && ctype_xdigit($nc) ? hexdec($nc) : 0;
+    if ($counter <= (int) $seen) {
+        return false;
+    }
+    cache::set($key, $counter, 300);
+    return true;
+}
+
+/* Signale une installation qui accepte les evenements sans authentification. Le message
+ * au centre de messages est limite a un par jour pour ne pas le noyer. */
+function gds3710_warn_unprotected() {
+    log::add('gds3710', 'warning', 'Evenement accepte sans authentification. Activez la protection par mot de passe dans la configuration du plugin.');
+    if (cache::byKey('gds3710::unprotected_notified')->getValue(0) == 1) {
+        return;
+    }
+    cache::set('gds3710::unprotected_notified', 1, 86400);
+    message::add('gds3710', __('Le portier publie ses evenements sans authentification : tout appareil du reseau peut declencher vos scenarios. Activez la protection par mot de passe dans la configuration du plugin.', __FILE__));
 }
 
 function getDigest() {
@@ -65,7 +136,8 @@ function getDigest() {
     }
 }
 
-function requireLogin($realm,$nonce) {
+function requireLogin($realm) {
+    $nonce = gds3710_issue_nonce();
     header('WWW-Authenticate: Digest realm="' . $realm . '",qop="auth",nonce="' . $nonce . '",opaque="' . md5($realm) . '"');
     header('HTTP/1.0 401 Unauthorized');
     echo 'Vous n\'êtes pas autorisé à effectuer cette action (jeeGDS3710)';
@@ -105,7 +177,10 @@ foreach ($_POST as $key => $value){
 $temp = "Event received : ".$temp;
 log::add('gds3710','info',$temp);
 
-if(isset($_POST['mac']) && $_POST['mac'] != ''){ // L'adresse MAC est bien présente dans la requête, on sélectionne l'équipement correspondant
+$mac = '';
+$gds3710 = null;
+
+if (isset($_POST['mac']) && $_POST['mac'] != '') { // L'adresse MAC est bien présente dans la requête, on sélectionne l'équipement correspondant
     $mac = $_POST['mac'];
     $gds3710 = gds3710::byLogicalId($mac, 'gds3710');
     log::add('gds3710','debug','MAC Address detected : '.$mac);
@@ -113,6 +188,27 @@ if(isset($_POST['mac']) && $_POST['mac'] != ''){ // L'adresse MAC est bien prés
 
 if (!is_object($gds3710)) { // Si l'adresse MAC ne correspond à aucun équipement alors on arrête
     log::add('gds3710', 'error', "Aucun équipement trouvé avec l'adresse MAC : " . $mac);
+    die();
+}
+
+/* Contrôle d'origine. L'adresse MAC est inscrite sur le portier et sert d'identifiant,
+ * pas de secret : la connaître suffisait à publier un faux évènement et à déclencher les
+ * scénarios associés, ouverture de porte comprise. On vérifie donc que la requête provient
+ * bien de l'adresse IP configurée pour cet équipement. Ce n'est pas de la cryptographie,
+ * mais cela impose d'usurper l'adresse du portier au lieu de simplement lire son étiquette,
+ * et cela protège les installations qui n'ont pas activé la protection par mot de passe.
+ * L'option de contournement existe pour les installations derrière un NAT ou un proxy. */
+$expectedIp = trim((string) $gds3710->getConfiguration('ip'));
+$clientIp   = gds3710_client_ip();
+
+if (filter_var($expectedIp, FILTER_VALIDATE_IP)
+    && $clientIp !== '?'
+    && $clientIp !== $expectedIp
+    && config::byKey('skip_source_ip_check', 'gds3710', 0) != 1) {
+    log::add('gds3710', 'error', 'Evenement refuse : recu depuis ' . $clientIp . ' alors que le portier '
+        . $mac . ' est configure sur ' . $expectedIp
+        . '. Si votre Jeedom est derriere un NAT ou un proxy, desactivez le controle d origine dans la configuration du plugin.');
+    header('HTTP/1.1 403 Forbidden');
     die();
 }
 
