@@ -17,6 +17,16 @@
  */
 
 require_once __DIR__  . '/../../../../core/php/core.inc.php';
+include_file('core', 'authentification', 'php');
+
+/* Le widget charge cette URL en relatif depuis une page Jeedom : le cookie de session est
+ * donc transmis et isConnect() suffit. L'accès par clef API reste ouvert pour les clients
+ * qui n'ont pas de session (application mobile, tuile partagée, scénario). */
+if (!isConnect() && !jeedom::apiAccess(init('apikey')) && !jeedom::apiAccess(init('apikey'), 'gds3710')) {
+	log::add('gds3710', 'error', 'Accès non autorisé à camera.php depuis ' . (isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '?'));
+	header('HTTP/1.1 401 Unauthorized');
+	die();
+}
 
 log::add('gds3710', 'debug', 'Call to camera.php in progress.');
 
