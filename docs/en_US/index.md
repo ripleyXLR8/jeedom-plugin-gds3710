@@ -179,6 +179,14 @@ Cette adresse n'est pas utilisable ici. Sur un GDS3710 en 1.0.13.15 elle répond
 
 ⚠️ **L'extension utilisée par Jeedom doit être appelée par le portier**, sinon le widget ne sonnera jamais. Si votre portier appelle un groupe de sonnerie, ajoutez-y l'extension de Jeedom : c'est une omission facile, puisque le client SIP fonctionne parfaitement en émission sans cela.
 
+## Ouvrir la porte depuis la fenêtre d'appel
+
+La fenêtre d'appel présente un bouton par commande d'ouverture **visible** de l'équipement — « Ouvrir la porte » et « Ouvrir la porte 2 ». Masquer l'une de ces commandes dans Jeedom retire son bouton, et la renommer renomme le bouton : il n'y a aucun réglage propre au widget.
+
+Ces boutons exécutent les commandes du plugin, qui passent par l'API HTTP du portier. C'est un choix délibéré face à l'autre voie possible, l'envoi du code par tonalités DTMF : le chemin HTTP est déjà éprouvé, il ne demande pas de confier un second secret au navigateur, et il fonctionne **même hors appel**.
+
+Le clavier reste utilisable pour la méthode DTMF, si vous la préférez ou si le portier est joint depuis un autre client SIP : composez le code d'ouverture pendant l'appel, **terminé par `#`** — le portier n'accepte pas le code sans ce terminateur. Cette voie exige que *Enable DTMF Open Door* soit actif sur l'appareil.
+
 ## Le clavier
 
 La fenêtre d'appel comporte un clavier à douze touches, dont le rôle change selon l'état :

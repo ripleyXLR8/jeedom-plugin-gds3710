@@ -19,6 +19,7 @@
       <a class="sipactionbutton btn btn-sm btn-default action" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">Action</a>
       <a class="sipactionbisbutton btn btn-sm btn-default action" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="display:none">Action Bis</a>
     </center>
+    <center class="sipdoors" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="margin-top:10px"></center>
     <center class="sipkeypad" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="margin-top:12px">
       <div class="sipdialed" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.8em; min-height:1.3em; letter-spacing:0.15em; font-family:monospace"></div>
       <div style="display:inline-grid; grid-template-columns:repeat(3, 3.5em); gap:6px; margin-top:6px">
@@ -449,8 +450,52 @@
       }
     }
 
+    /* Un bouton par commande d ouverture visible. Le libelle vient de la commande
+     * elle-meme : renommer « Ouvrir la porte » dans Jeedom renomme le bouton. */
+    function poserBoutonsPorte() {
+      var zone = $(".sipdoors[data-eqLogic_id=#id#]");
+      zone.empty();
+      var portes = settings.door_commands || [];
+      for (var i = 0; i < portes.length; i++) {
+        zone.append($('<a class="sipdoor btn btn-sm btn-warning"></a>')
+          .attr('data-cmd', portes[i].id)
+          .attr('data-eqLogic_id', '#id#')
+          .css('margin', '0 4px')
+          .text(portes[i].name));
+      }
+    }
+
+    $(document).off('click.gds3710porte')
+      .on('click.gds3710porte', '.sipdoor[data-eqLogic_id=#id#]', function () {
+        var bouton = $(this);
+        if (bouton.hasClass('disabled')) {
+          return;
+        }
+        if (typeof jeedom === 'undefined' || !jeedom.cmd || !jeedom.cmd.execute) {
+          console.log('GDS3710 : le coeur de Jeedom nexpose pas jeedom.cmd.execute.');
+          return;
+        }
+        var libelle = bouton.text();
+        bouton.addClass('disabled').text('Ouverture...');
+        jeedom.cmd.execute({
+          id: bouton.attr('data-cmd'),
+          success: function () {
+            console.log('GDS3710 : commande douverture envoyee (' + libelle + ').');
+            bouton.removeClass('disabled').text(libelle);
+          },
+          error: function (erreur) {
+            console.log('GDS3710 : ouverture refusee : '
+              + ((erreur && erreur.message) ? erreur.message : erreur));
+            bouton.removeClass('disabled').text(libelle);
+            SIPbuttonModalChange(redColor, 'Ouverture refusee');
+          }
+        });
+      });
+
     /* Numero compose au clavier. Vide, le bouton appelle le portier configure. */
     var composition = '';
+
+    poserBoutonsPorte();
 
     function domaineSip() {
       var uri = settings.portier_sip_uri || settings.client_sip_uri || '';
