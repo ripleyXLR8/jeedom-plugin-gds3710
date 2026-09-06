@@ -129,7 +129,19 @@ Le **planning du rétroéclairage blanc** dispose de son propre jeu : un état, 
 
 ⚠️ **Les réglages vidéo ne s'appliquent qu'au redémarrage du portier.** Écrire un mode CMOS ou la correction de distorsion ne modifie pas l'image sur le moment : l'appareil enregistre la valeur et ne l'applique qu'au démarrage suivant. Un bouton qui semble « ne rien faire » n'est donc pas forcément cassé — utilisez la commande **Reboot** pour constater le résultat.
 
-⚠️ **La correction de distorsion (LDC) n'est pas relisible.** Le portier accepte et applique `P10573`, mais ne le renvoie dans aucune de ses sections de configuration. Le plugin ne peut donc pas confirmer l'écriture : il l'indique par un message d'information dans son log, et non par une erreur. Les boutons `LDC - ON` et `LDC - OFF` fonctionnent normalement.
+## États lus sur l'appareil
+
+Trois états sont remontés depuis la section `cmos` du portier :
+
+| Commande | Paramètre | Valeurs |
+|---|---|---|
+| Mode CMOS | `P10572` | Normal, Low Light, WDR |
+| LDC (correction de distorsion) | `P10573` | actif ou inactif |
+| Fréquence secteur | `P12314` | 50 Hz ou 60 Hz |
+
+Ils sont relus à chaque cycle de quinze minutes, et immédiatement après une commande `LDC - ON` ou `LDC - OFF` : la valeur stockée change tout de suite, même si son effet sur l'image attend le redémarrage.
+
+💡 La **fréquence secteur** mérite un coup d'œil : réglée sur 60 Hz en Europe, elle provoque un scintillement de l'image sous éclairage artificiel. Elle se change dans l'interface du portier.
 
 ⚠️ **Un réglage retiré par une mise à jour du firmware ne provoque aucune erreur côté portier** : celui-ci répond `ResCode 0 / OK` à l'écriture d'un paramètre qu'il ne connaît pas. Le plugin relit donc systématiquement ce qu'il vient d'écrire et signale dans son log tout paramètre absent de l'appareil, à l'exception des quelques paramètres non relisibles listés ci-dessus.
 
