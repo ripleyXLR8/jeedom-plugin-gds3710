@@ -110,10 +110,13 @@ function addCmdToTable(_cmd) {
     tr += '<span class="subType" subType="' + init(_cmd.subType) + '"></span>';
     tr += '</td>';
     tr += '<td>';
-    /* Plus aucune liaison vers configuration[value] : ce champ herite n est plus
-       alimente, et le tableau y reecrivait son propre balisage. La valeur reelle
-       est remplie par chargerValeursCommandes(). */
-    tr += '<textarea class="cmdValeur form-control input-sm" style="height:65px;" readonly="readonly" placeholder="{{aucune valeur}}"></textarea>';
+    /* Une commande action n a pas d etat : lui presenter une zone vide laisse croire
+       qu une valeur manque. La colonne ne concerne donc que les commandes info.
+       Plus aucune liaison vers configuration[value] non plus : ce champ herite n est
+       plus alimente, et le tableau y reecrivait son propre balisage. */
+    if (init(_cmd.type) == 'info') {
+        tr += '<textarea class="cmdValeur form-control input-sm" style="height:65px;" readonly="readonly"></textarea>';
+    }
     tr += '</td>';
     tr += '<td>';
     tr += '<span><label class="checkbox-inline"><input type="checkbox" class="cmdAttr checkbox-inline" data-l1key="isVisible" checked/>{{Afficher}}</label></span> ';
