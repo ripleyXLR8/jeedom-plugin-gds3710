@@ -181,7 +181,7 @@
 			</fieldset>
 
 			<fieldset>
-				<legend>{{Configuration client SIP (beta)}}</legend>
+				<legend>{{Configuration client SIP}}</legend>
 
 				<div class="form-group">
 				    <label class="col-sm-3 control-label">{{Adresse du serveur SIP :}}</label>
@@ -252,25 +252,11 @@
             </div>
         </div>
 
-        <div class="form-group">
-            <label class="col-sm-3 control-label">{{Media des appels entrants :}}</label>
-            <div class="col-sm-4">
-                <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_remote_call_audio_enabled" checked/>{{Audio}}</label>
-                <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_remote_call_video_enabled" checked/>{{Video}}</label>
-<!--                 <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_remote_call_offer_audio_enabled" checked/>{{Recevoir Audio}}</label>
-                <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_remote_call_offer_video_enabled" checked/>{{Recevoir Video}}</label> -->
-            </div>
-        </div>
-
-        <div class="form-group">
-            <label class="col-sm-3 control-label">{{Media des appels sortants :}}</label>
-            <div class="col-sm-4">
-                <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_local_call_audio_enabled" checked/>{{Audio}}</label>
-                <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_local_call_video_enabled" checked/>{{Video}}</label>
-<!--                 <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_local_call_offer_audio_enabled" checked/>{{Recevoir Audio}}</label>
-                <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_local_call_offer_video_enabled" checked/>{{Recevoir Video}}</label> -->
-            </div>
-        </div>
+        <!-- Les deux blocs « Media des appels entrants / sortants » qui figuraient ici
+             portaient les mêmes data-l2key que « Média acceptés sur appel entrant » et
+             « Média sur appel sortant » ci-dessus. getValues() ne garde qu'une valeur par
+             clef : ce sont ces cases-ci, les dernières du formulaire, qui l'emportaient,
+             et cocher celles du haut restait donc sans effet. -->
 
         <div class="form-group">
           <label class="col-sm-3 control-label">{{HACK - Codec(s) à supprimer }}<sup><i class="fa fa-question-circle tooltips" title="{{Permet de supprimer des codecs de l'INVITE envoyé par le client SIP du plugin. Le nombre de codecs disponible étant très important l'INVITE peut devenir très long et dépasser la taille maximale admissible par le serveur SIP. Supprimer des codecs peut permettre de réduire la taille de l'INVITE. Entrez les codecs en les séparant par une virgule (sans rajouter d'espaces).}}" style="font-size : 1em;color:grey;"></i></sup>{{ :}}</label>
