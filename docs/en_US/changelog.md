@@ -1,5 +1,15 @@
 # Change Log - Plugin GDS 3710
 
+### 06/09/2026
+- **Sécurité** : `camera.php` diffusait le flux vidéo du portier sans aucun contrôle d'accès ; il exige désormais une session Jeedom ou une clef API valide.
+- **Sécurité** : suppression de deux injections de commande shell, dans la suppression des captures et dans le téléchargement d'archives.
+- **Sécurité** : durcissement de l'endpoint de notification d'évènements — contournement de la clef API corrigé, Digest résistant au rejeu, et nouveau contrôle de l'adresse d'origine actif par défaut.
+- **Sécurité** : les mots de passe, jetons de session et URL signées ne sont plus écrits dans le log du plugin.
+- **Compatibilité PHP 8** : correction de plusieurs erreurs fatales, dont celle qui interrompait toute remontée d'évènements dès qu'un firmware émettait un type inconnu du plugin.
+- Les évènements envoyés en **GET** sont désormais acceptés, en plus du POST.
+- **Documentation** : le gabarit d'URL était incomplet — il manquait `username` et `doornum`, pourtant exploités par le plugin. Ajout des seuils de firmware réels et d'une section Sécurité.
+- Suppression de code mort (démon Python 2 jamais lancé, bibliothèque JsSIP non référencée, polices dupliquées).
+
 ### 20/09/2019
 - Correction de bugs + ajout de la possibilité d'activer le second contact sec.
 

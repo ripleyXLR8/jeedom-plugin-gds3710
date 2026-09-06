@@ -12,15 +12,27 @@ Ce plugin permet l'intégration du portier GrandStream GDS3710 dans Jeedom. Dans
 
 # Configuration du portier GrandStream GDS3710
 ## Pré-requis
-Afin de récupérer les évènements générés par le portier nous allons utiliser la foncitonnalité "Event Notification" qui est disponible à partir de la version 10.0.3.32 du firmware du GrandStream GDS3710. Si vous disposez d'une version antérieure la fonctionnalité "Event notification" ne sera peut-être pas disponible et il vous faudra mettre à jour le firmware de votre GDS3710 vers la dernière version.
+Afin de récupérer les évènements générés par le portier, nous utilisons la fonctionnalité "Event Notification" du GDS3710.
+
+Versions de firmware :
+
+- **1.0.11.18 minimum conseillé.** En dessous, le portier envoie ses notifications avec un `Content-Type` que PHP ne sait pas décoder. Le plugin sait désormais rattraper ce cas, mais la mise à jour reste préférable.
+- **1.0.13.2 minimum si l'accès web de votre portier est réglé sur HTTPS** : avant cette version, l'API HTTP ne répondait pas dans ce mode.
+- Le plugin est testé jusqu'à la version **1.0.13.15** (juillet 2025).
 
 ## Configuration de la fonctionnalité "Event Notification"
 - Rendez-vous dans l'interface de gestion de votre GDS3710 puis dans Maintenance -> Event Notification.
 - Cochez la case "Enable Event Notification".
 - Sélectionnez le type de communication avec le serveur "http" ou "https" selon la configuration de votre serveur Jeedom.
-- Optionnel mais fortement recommandé : Saisissez un identifiant et un mot de passe que votre portier devra fournir a Jeedom pour publier un évènement.
+- **Fortement recommandé** : saisissez un identifiant et un mot de passe que votre portier devra fournir à Jeedom pour publier un évènement. Ils doivent être reportés à l'identique dans la configuration du plugin.
 - Dans champs "HTTP/HTTPS Server", entrez la chaine suivante en remplacant IP_DE_VOTRE_JEEDOM par l'adresse IP de votre serveur Jeedom : `"IP_DE_VOTRE_JEEDOM/plugins/gds3710/core/php/jeeGDS3710.php"`.
-- Dans le champs URL Template, entrez la chaine suivante : `mac=${MAC}&content=${WARNING_MSG}&type=${TYPE}&date=${DATE}&card=${CARDID}&sip=${SIPNUM}`.
+
+> Utilisez bien l'**adresse IP locale** de Jeedom, et non un nom de domaine public. En passant par l'extérieur, la requête revient par votre routeur et Jeedom voit l'adresse de celui-ci au lieu de celle du portier, ce qui fait échouer le contrôle d'origine décrit plus bas.
+- Dans le champs URL Template, entrez la chaine suivante : `mac=${MAC}&content=${WARNING_MSG}&type=${TYPE}&date=${DATE}&card=${CARDID}&sip=${SIPNUM}&username=${USERNAME}&doornum=${DOOR_NUM}`.
+
+> Les deux dernières variables (`USERNAME` et `DOOR_NUM`) étaient absentes des versions précédentes de cette documentation alors que le plugin les exploite. Sans elles, le nom de la personne et le numéro de porte ne remontent pas dans les tags de scénario.
+
+- La méthode HTTP (POST ou GET) n'a pas d'importance : le plugin accepte les deux.
 - Sauvegarder la configuration.
 
 ![GDS3710 Configuration](../assets/images/ConfigGDS3710.png)
@@ -56,6 +68,18 @@ NB : Assurez-vous d'avoir changer le mot-de-passe par défaut du compte admin av
 - Sauvegardez les modifications apportées à l'équipement.
 
 **C'est terminé, tout est configuré.**
+
+# Sécurité
+
+Deux protections encadrent la remontée d'évènements.
+
+**Contrôle de l'adresse d'origine.** Actif par défaut et sans configuration : un évènement n'est accepté que s'il provient de l'adresse IP renseignée pour l'équipement. L'adresse MAC du portier, qui identifie l'équipement dans la requête, est inscrite sur l'appareil : elle ne constitue pas un secret. Sans ce contrôle, toute machine du réseau pourrait publier de faux évènements et déclencher vos scénarios.
+
+Si votre Jeedom est derrière un NAT ou un reverse proxy qui masque l'adresse réelle du portier, décochez ce contrôle dans la configuration générale du plugin. Le symptôme est explicite dans le log : `Evenement refuse : recu depuis <adresse> alors que le portier <mac> est configure sur <adresse>`.
+
+**Protection par mot de passe.** Activée par défaut sur les nouvelles installations, elle est vivement conseillée dès lors que des évènements du portier déclenchent des actions sensibles comme une ouverture de porte. Sur une installation existante, une mise à jour du plugin ne modifie pas votre réglage : pensez à l'activer.
+
+**Accès aux captures et au flux vidéo.** Ils ne sont accessibles qu'à un utilisateur connecté à Jeedom, ou avec une clef API valide.
 
 # Utilisation
 ## Principe de fonctionnement
