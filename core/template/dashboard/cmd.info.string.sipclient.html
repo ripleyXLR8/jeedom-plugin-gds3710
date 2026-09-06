@@ -19,6 +19,27 @@
       <a class="sipactionbutton btn btn-sm btn-default action" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">Action</a>
       <a class="sipactionbisbutton btn btn-sm btn-default action" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="display:none">Action Bis</a>
     </center>
+    <center class="sipkeypad" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="margin-top:12px">
+      <div class="sipdialed" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.8em; min-height:1.3em; letter-spacing:0.15em; font-family:monospace"></div>
+      <div style="display:inline-grid; grid-template-columns:repeat(3, 3.5em); gap:6px; margin-top:6px">
+        <a class="sipkey btn btn-default" data-touche="1" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.4em; padding:8px 0">1</a>
+        <a class="sipkey btn btn-default" data-touche="2" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.4em; padding:8px 0">2</a>
+        <a class="sipkey btn btn-default" data-touche="3" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.4em; padding:8px 0">3</a>
+        <a class="sipkey btn btn-default" data-touche="4" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.4em; padding:8px 0">4</a>
+        <a class="sipkey btn btn-default" data-touche="5" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.4em; padding:8px 0">5</a>
+        <a class="sipkey btn btn-default" data-touche="6" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.4em; padding:8px 0">6</a>
+        <a class="sipkey btn btn-default" data-touche="7" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.4em; padding:8px 0">7</a>
+        <a class="sipkey btn btn-default" data-touche="8" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.4em; padding:8px 0">8</a>
+        <a class="sipkey btn btn-default" data-touche="9" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.4em; padding:8px 0">9</a>
+        <a class="sipkey btn btn-default" data-touche="*" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.4em; padding:8px 0">*</a>
+        <a class="sipkey btn btn-default" data-touche="0" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.4em; padding:8px 0">0</a>
+        <a class="sipkey btn btn-default" data-touche="#" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.4em; padding:8px 0">#</a>
+      </div>
+      <div style="margin-top:8px">
+        <a class="sipclear btn btn-sm btn-default" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">Effacer</a>
+      </div>
+      <div class="sipkeyhint" style="margin-top:6px; font-size:0.85em; opacity:0.7">Pendant un appel, les touches envoient des tonalités DTMF.</div>
+    </center>
   </div>
 
   <!-- La bibliotheque vit dans core/template/ et non dans desktop/ : le .htaccess de
@@ -409,8 +430,59 @@
       }
     }
 
+    /* Numero compose au clavier. Vide, le bouton appelle le portier configure. */
+    var composition = '';
+
+    function domaineSip() {
+      var uri = settings.portier_sip_uri || settings.client_sip_uri || '';
+      var arobase = uri.indexOf('@');
+      return arobase === -1 ? '' : uri.substring(arobase + 1);
+    }
+
+    function cibleAppel() {
+      if (composition === '') {
+        return settings.portier_sip_uri;
+      }
+      var domaine = domaineSip();
+      return domaine === '' ? composition : 'sip:' + composition + '@' + domaine;
+    }
+
+    function majComposition() {
+      $(".sipdialed[data-eqLogic_id=#id#]").text(composition);
+      if (!sipClientState.sipOnCall) {
+        SIPbuttonModalChange(greenColor,
+          composition === '' ? 'Appeler' : 'Appeler ' + composition);
+      }
+    }
+
+    /* Gestionnaires delegues et nommes : une reinitialisation du widget les remplace
+     * au lieu de les empiler, ce qui enverrait chaque touche plusieurs fois. */
+    $(document).off('click.gds3710clavier')
+      .on('click.gds3710clavier', '.sipkey[data-eqLogic_id=#id#]', function () {
+        var touche = $(this).attr('data-touche');
+        if (sipClientState.sipOnCall && session) {
+          /* En communication, le clavier envoie des tonalites DTMF : c'est par ce
+           * canal que le portier recoit son code d'ouverture de porte. */
+          session.sendDTMF(touche);
+          console.log('JsSIP : tonalite DTMF envoyee : ' + touche);
+          return;
+        }
+        composition += touche;
+        majComposition();
+      })
+      .on('click.gds3710clavier', '.sipclear[data-eqLogic_id=#id#]', function () {
+        composition = '';
+        majComposition();
+      });
+
     function startCall(){
-      console.log("JsSip : User Action - Start Call.");
+      /* Cible figee avant tout appel asynchrone, et composition remise a zero :
+       * l appel suivant doit repartir sur le portier, pas sur le dernier numero. */
+      var cible = cibleAppel();
+      composition = '';
+      $(".sipdialed[data-eqLogic_id=#id#]").text('');
+
+      console.log("JsSip : User Action - Start Call vers " + cible);
 
       contraintesMedia(!!settings.is_local_call_audio_enabled,
                        !!settings.is_local_call_video_enabled,
@@ -425,7 +497,7 @@
 
         console.log("JsSip : Starting Call with Options : " + JSON.stringify(localCalloptions));
 
-        session = sipClient.call(settings.portier_sip_uri, localCalloptions);
+        session = sipClient.call(cible, localCalloptions);
       });
     }
 

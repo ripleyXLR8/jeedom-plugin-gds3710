@@ -177,6 +177,13 @@ Cette adresse n'est pas utilisable ici. Sur un GDS3710 en 1.0.13.15 elle répond
 
 ⚠️ **L'extension utilisée par Jeedom doit être appelée par le portier**, sinon le widget ne sonnera jamais. Si votre portier appelle un groupe de sonnerie, ajoutez-y l'extension de Jeedom : c'est une omission facile, puisque le client SIP fonctionne parfaitement en émission sans cela.
 
+## Le clavier
+
+La fenêtre d'appel comporte un clavier à douze touches, dont le rôle change selon l'état :
+
+- **Au repos**, il compose un numéro. Le bouton d'appel affiche alors « Appeler *numéro* » et joint cette destination au lieu du portier. Le domaine est repris de l'URI du portier, il suffit donc de saisir l'extension. Le bouton **Effacer** remet la composition à zéro, et celle-ci l'est également après chaque appel : le suivant repart sur le portier.
+- **En communication**, les touches envoient des **tonalités DTMF**. C'est par ce canal que le GDS3710 reçoit son code d'ouverture de porte à distance — le champ *Remote PIN to Open Door* de sa configuration. Composez le code pendant l'appel pour ouvrir sans quitter le dashboard.
+
 ## Politique de sécurité du navigateur (CSP)
 
 L'image Docker de Jeedom envoie un en-tête `Content-Security-Policy` sans directive `connect-src`. Le navigateur retombe donc sur `default-src 'self'` et **refuse toute connexion websocket vers un autre domaine** — y compris votre serveur SIP. Le widget détecte ce cas et l'affiche sur son bouton.
