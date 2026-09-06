@@ -49,6 +49,30 @@ function gds3710_update() {
     }
 
     gds3710_clean_html_values();
+    gds3710_remove_ldc_commands();
+}
+
+/* Les commandes LDC ecrivaient P10573, retire du firmware par Grandstream. Le portier
+ * repondait ResCode 0 a l ecriture sans rien faire : les boutons semblaient fonctionner
+ * et l image ne changeait jamais. Verifie sur un GDS3710 en 1.0.13.15 : le parametre
+ * n est expose par aucune des vingt sections de configuration, et le propre script video
+ * de l appareil ne le mentionne plus. */
+function gds3710_remove_ldc_commands() {
+    $removed = 0;
+    foreach (eqLogic::byType('gds3710') as $eq) {
+        foreach (array('ldc_ON', 'ldc_off') as $lid) {
+            $cmd = $eq->getCmd('action', $lid);
+            if (is_object($cmd)) {
+                $cmd->remove();
+                $removed++;
+            }
+        }
+    }
+    if ($removed > 0) {
+        log::add('gds3710', 'info', $removed . ' commande(s) LDC supprimee(s) : le reglage '
+            . 'n existe plus dans les firmwares recents du portier.');
+    }
+    return $removed;
 }
 
 /* Jusquen mars 2023, le tableau des commandes ouvrait sa zone de saisie avec une balise

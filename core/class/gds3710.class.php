@@ -209,16 +209,21 @@ class gds3710 extends eqLogic {
     }
 
     /* Lit une section de configuration du portier et la renvoie sous forme de tableau. */
-    public function readConfigSection($_type) {
-        $cookie = $this->openSession();
+    /* $_cookie permet de reutiliser une session deja ouverte par lappelant. Sans cela,
+     * un appelant qui vient de souvrir sa propre session invalide celle mise en cache
+     * ici — le portier nen tolere quune seule — et la lecture echoue silencieusement. */
+    public function readConfigSection($_type, $_cookie = null) {
+        $cookie = $_cookie !== null ? $_cookie : $this->openSession();
         if ($cookie === null) {
             return null;
         }
         $ip = trim((string) $this->getConfiguration('ip'));
         $xml = gds3710::parseXml(self::httpGet('https://' . $ip . '/goform/config?cmd=get&type=' . urlencode($_type), $cookie), 'lecture ' . $_type);
         if ($xml === null) {
-            /* La session a peut-etre ete invalidee entre-temps : on la jette. */
-            cache::set('gds3710::session::' . $this->getId(), '', 1);
+            if ($_cookie === null) {
+                /* La session a peut-etre ete invalidee entre-temps : on la jette. */
+                cache::set('gds3710::session::' . $this->getId(), '', 1);
+            }
             return null;
         }
         $out = array();
@@ -830,31 +835,6 @@ class gds3710 extends eqLogic {
         $lastest_snapshot_URL->setIsVisible(0);
         $lastest_snapshot_URL->save();
 
-        // Création de la commande LDC ON
-        $ldc_ON = $this->getCmd('action', 'ldc_ON');
-        if (!is_object($ldc_ON)) {
-            $ldc_ON = new gds3710Cmd();
-        }
-        $ldc_ON->setName(__('LDC - ON', __FILE__));
-        $ldc_ON->setEqLogic_id($this->getId());
-        $ldc_ON->setLogicalId('ldc_ON');
-        $ldc_ON->setType('action');
-        $ldc_ON->setSubType('other');
-        $ldc_ON->setIsVisible(1);
-        $ldc_ON->save();
-
-        // Création de la commande LDC OFF
-        $ldc_OFF = $this->getCmd('action', 'ldc_off');
-        if (!is_object($ldc_OFF)) {
-            $ldc_OFF = new gds3710Cmd();
-        }
-        $ldc_OFF->setName(__('LDC - OFF', __FILE__));
-        $ldc_OFF->setEqLogic_id($this->getId());
-        $ldc_OFF->setLogicalId('ldc_off');
-        $ldc_OFF->setType('action');
-        $ldc_OFF->setSubType('other');
-        $ldc_OFF->setIsVisible(1);
-        $ldc_OFF->save();
 
         // Création de CMOS Normal
         $cmos_NORMAL = $this->getCmd('action', 'cmos_normal');
@@ -1326,7 +1306,13 @@ class gds3710Cmd extends cmd {
         log::add('gds3710', 'debug', 'result : '.print_r($data, true));
     }
 
-    private function setConfig($id, $parameter_value){
+    /* Sections ou chercher un P-value pour verifier une ecriture. Le portier accepte
+     * n'importe quel parametre avec un ResCode 0, y compris un parametre qu'il ne
+     * connait pas : c'est ainsi que les commandes LDC ont fait semblant de fonctionner
+     * pendant des annees apres le retrait du reglage par Grandstream. */
+    private static $configSections = array('video', 'door', 'play', 'log', 'access', 'net', 'sip');
+
+    private function setConfig($id, $parameter_value, $_section = ''){
 
         if( $id == '' || $parameter_value == ''){
             log::add('gds3710', 'error', 'Parameter error. Aborting.');
@@ -1362,8 +1348,30 @@ class gds3710Cmd extends cmd {
         $ch = curl_init();
         curl_setopt_array($ch, $optArray);
 
-        $result = gds3710::parseXml(curl_exec($ch), 'requete configuration');
+        $result =  gds3710::parseXml(curl_exec($ch), 'requete configuration');
         log::add('gds3710', 'debug', 'Result is : '. print_r($result, true));
+
+        /* Relecture : un ResCode 0 ne prouve rien, le portier repond OK meme pour un
+         * parametre inexistant. On verifie que la valeur a bien ete prise. */
+        $sections = $_section !== '' ? array($_section) : self::$configSections;
+        $trouve = false;
+        foreach ($sections as $section) {
+            $lu = $gds3710->readConfigSection($section, $cookie_string);
+            if (!is_array($lu) || !array_key_exists($id, $lu)) {
+                continue;
+            }
+            $trouve = true;
+            if ((string) $lu[$id] !== (string) $parameter_value) {
+                log::add('gds3710', 'error', 'Ecriture non confirmee pour ' . $id . ' : lu "'
+                    . $lu[$id] . '", attendu "' . $parameter_value . '".');
+            }
+            break;
+        }
+        if (!$trouve) {
+            log::add('gds3710', 'error', 'Le parametre ' . $id . ' est inconnu de ce portier : '
+                . 'ecriture acceptee mais sans effet. Il a peut-etre ete retire par une mise a '
+                . 'jour du firmware.');
+        }
     }
    
     private function reboot(){
@@ -1453,29 +1461,21 @@ class gds3710Cmd extends cmd {
 
     }
 
-    private function ldc_ON(){
-        log::add('gds3710', 'info', 'Requesting LDC ON');
-        $this->setConfig('P10573', '1');
-    }
 
-    private function ldc_OFF(){
-        log::add('gds3710', 'info', 'Requesting LDC OFF');
-        $this->setConfig('P10573', '0');
-    }
 
     private function cmos_normal(){
         log::add('gds3710', 'info', 'Requesting CMOS NORMAL');
-        $this->setConfig('P10572', '1');
+        $this->setConfig('P10572', '1', 'video');
     }
 
     private function cmos_lowlight(){
         log::add('gds3710', 'info', 'Requesting CMOS LOW LIGHT');
-        $this->setConfig('P10572', '2');
+        $this->setConfig('P10572', '2', 'video');
     }
 
     private function cmos_wdr(){
         log::add('gds3710', 'info', 'Requesting CMOS WDR');
-        $this->setConfig('P10572', '3');
+        $this->setConfig('P10572', '3', 'video');
     }
 
 
@@ -1711,12 +1711,6 @@ class gds3710Cmd extends cmd {
                 break;
             case 'close2':
                 $this->open_door_2('2');
-                break;
-            case 'ldc_off':
-                $this->ldc_OFF();
-                break;
-            case 'ldc_ON':
-                $this->ldc_ON();
                 break;
             case 'cmos_normal':
                 $this->cmos_normal();
