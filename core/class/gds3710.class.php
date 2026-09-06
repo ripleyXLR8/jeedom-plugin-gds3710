@@ -140,6 +140,109 @@ class gds3710 extends eqLogic {
         }
     }
 
+    /* ------------------------------------------------------------------ *
+     *  Acces HTTP au portier                                              *
+     * ------------------------------------------------------------------ */
+
+    private static function httpGet($_url, $_cookie = '') {
+        $ch = curl_init();
+        $opt = array(
+            CURLOPT_URL => $_url,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_SSL_VERIFYHOST => false,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 10,
+        );
+        if ($_cookie !== '') {
+            $opt[CURLOPT_COOKIE] = $_cookie;
+        }
+        curl_setopt_array($ch, $opt);
+        $result = curl_exec($ch);
+        curl_close($ch);
+        return $result;
+    }
+
+    /* Ouvre une session sur le portier et renvoie la chaine de cookies a rejouer.
+     *
+     * ATTENTION : le GDS3710 nadmet quUNE SEULE session administrateur. Chaque
+     * authentification invalide la precedente — y compris celle dun humain en train
+     * dutiliser linterface web du portier. Cest pourquoi le releve des capteurs
+     * tourne sur cron15 et non sur cron, et pourquoi la session est mise en cache
+     * pour etre reutilisee entre deux appels rapproches. */
+    public function openSession() {
+        $ip = trim((string) $this->getConfiguration('ip'));
+        $password = (string) $this->getConfiguration('password');
+        if ($ip === '' || $password === '') {
+            return null;
+        }
+
+        $cached = cache::byKey('gds3710::session::' . $this->getId())->getValue(null);
+        if ($cached !== null && $cached !== '') {
+            return $cached;
+        }
+
+        $xml = gds3710::parseXml(self::httpGet('https://' . $ip . '/goform/login?cmd=login&user=admin&type=0'), 'defi de session');
+        if ($xml === null) {
+            return null;
+        }
+        $challenge = (string) $xml->ChallengeCode[0];
+        if ($challenge === '') {
+            return null;
+        }
+        $authcode = md5($challenge . ':GDS3710lZpRsFzCbM:' . $password);
+        $res = gds3710::parseXml(self::httpGet('https://' . $ip . '/goform/login?cmd=login&user=admin&authcode=' . $authcode), 'ouverture de session');
+        if ($res === null || (string) $res->ResCode[0] !== '0') {
+            log::add('gds3710', 'error', 'Authentification refusee par le portier ' . $this->getHumanName()
+                . '. Verifiez le mot de passe administrateur.');
+            return null;
+        }
+        $cookie = 'session=' . $authcode . ';uname=admin;level=1';
+        /* Duree volontairement courte : la session du portier expire delle-meme entre
+         * 90 et 300 secondes dinactivite. */
+        cache::set('gds3710::session::' . $this->getId(), $cookie, 90);
+        return $cookie;
+    }
+
+    /* Lit une section de configuration du portier et la renvoie sous forme de tableau. */
+    public function readConfigSection($_type) {
+        $cookie = $this->openSession();
+        if ($cookie === null) {
+            return null;
+        }
+        $ip = trim((string) $this->getConfiguration('ip'));
+        $xml = gds3710::parseXml(self::httpGet('https://' . $ip . '/goform/config?cmd=get&type=' . urlencode($_type), $cookie), 'lecture ' . $_type);
+        if ($xml === null) {
+            /* La session a peut-etre ete invalidee entre-temps : on la jette. */
+            cache::set('gds3710::session::' . $this->getId(), '', 1);
+            return null;
+        }
+        $out = array();
+        foreach ($xml->children() as $key => $value) {
+            $out[(string) $key] = (string) $value;
+        }
+        return $out;
+    }
+
+    /* ------------------------------------------------------------------ *
+     *  Capteurs remontes par cmd=get&type=sysinfo                         *
+     * ------------------------------------------------------------------ */
+
+    public static function get_sensor_list() {
+        return array(
+            'di0'                   => array('name' => 'Entrée digitale 1',   'subType' => 'binary'),
+            'di1'                   => array('name' => 'Entrée digitale 2',   'subType' => 'binary'),
+            'do'                    => array('name' => 'Sortie digitale',     'subType' => 'binary'),
+            'atp_in'                => array('name' => 'Anti-arrachement',    'subType' => 'binary'),
+            'doorctrl0'             => array('name' => 'Relais porte 1',      'subType' => 'string'),
+            'doorctrl1'             => array('name' => 'Relais porte 2',      'subType' => 'string'),
+            'systemp'               => array('name' => 'Température carte',   'subType' => 'numeric', 'unite' => '°C', 'historized' => 1),
+            'sensortemp'            => array('name' => 'Température capteur', 'subType' => 'numeric', 'unite' => '°C', 'historized' => 1),
+            'P15009'                => array('name' => 'Uptime',              'subType' => 'string'),
+            'P70'                   => array('name' => 'Version firmware',    'subType' => 'string'),
+            'Pfw_available_version' => array('name' => 'Mise à jour dispo',   'subType' => 'string'),
+        );
+    }
+
     public static function get_GDS3710_event_list()
     {
         $return = array (
@@ -495,7 +598,77 @@ class gds3710 extends eqLogic {
             $info->save(); 
         }
 
+        /* Capteurs releves par cmd=get&type=sysinfo. Le plugin nappelait jamais cette
+         * requete alors quelle expose gratuitement les entrees/sorties digitales, letat
+         * des relais, deux temperatures, luptime et la version de firmware. */
+        foreach (gds3710::get_sensor_list() as $lid => $def) {
+            $cmd = $this->getCmd('info', $lid);
+            if (!is_object($cmd)) {
+                $cmd = new gds3710Cmd();
+                $cmd->setIsVisible(0);
+            }
+            $cmd->setName(__($def['name'], __FILE__));
+            $cmd->setType('info');
+            $cmd->setSubType($def['subType']);
+            $cmd->setLogicalId($lid);
+            $cmd->setEqLogic_id($this->getId());
+            if (isset($def['unite'])) {
+                $cmd->setUnite($def['unite']);
+            }
+            if (isset($def['historized'])) {
+                $cmd->setIsHistorized($def['historized']);
+            }
+            $cmd->save();
+        }
+
         return;
+    }
+
+    /* Releve periodique des capteurs et reparation de lURL du flux.
+     *
+     * cron15 et non cron : chaque authentification invalide la session administrateur
+     * en cours sur le portier, y compris celle dun humain devant son interface web.
+     * Les valeurs concernees (temperatures, uptime, firmware) evoluent lentement ;
+     * les entrees digitales rapides passent de toute facon par les evenements. */
+    public static function cron15() {
+        foreach (eqLogic::byType('gds3710', true) as $eq) {
+
+            /* LURL du flux se perd des quun vidage de cache remet les valeurs a blanc.
+             * On la republie sans dependre du portier. */
+            $stream = $eq->getCmd('info', 'stream_mjpeg');
+            if (is_object($stream) && (string) $stream->execCmd() === '') {
+                $stream->event('/plugins/gds3710/core/php/camera.php?id=' . $eq->getId());
+                log::add('gds3710', 'info', 'URL du flux MJPEG republiee pour ' . $eq->getHumanName() . '.');
+            }
+
+            if (config::byKey('poll_sensors', 'gds3710', 1) != 1) {
+                continue;
+            }
+
+            $info = $eq->readConfigSection('sysinfo');
+            if ($info === null) {
+                continue;
+            }
+            foreach (gds3710::get_sensor_list() as $lid => $def) {
+                if (!array_key_exists($lid, $info)) {
+                    continue;
+                }
+                $cmd = $eq->getCmd('info', $lid);
+                if (!is_object($cmd)) {
+                    continue;
+                }
+                $value = trim($info[$lid]);
+                if ($def['subType'] === 'binary') {
+                    $value = ($value === '' || $value === '0') ? 0 : 1;
+                } elseif ($def['subType'] === 'numeric') {
+                    if (!is_numeric($value)) { continue; }
+                    $value = (float) $value;
+                } elseif ($lid === 'Pfw_available_version') {
+                    $value = ($value === '') ? __('à jour', __FILE__) : $value;
+                }
+                $eq->checkAndUpdateCmd($cmd, $value);
+            }
+        }
     }
 
     public function preUpdate() {

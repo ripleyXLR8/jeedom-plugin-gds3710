@@ -80,6 +80,13 @@ if (!isConnect()) {
         </div>
 
         <div class="form-group">
+            <label class="col-lg-4 control-label">{{Remonter les capteurs du portier : }}<sup><i class="fa fa-question-circle tooltips" title="{{Relève toutes les 15 minutes les entrées et sorties digitales, l'état des relais, les deux températures, l'uptime et la version de firmware. ATTENTION : le portier n'accepte qu'une seule session administrateur, chaque relève déconnecte donc une éventuelle session ouverte sur son interface web. Décochez pendant une session de configuration du portier.}}" style="font-size : 1em;color:grey;"></i></sup></label>
+            <div class="col-lg-2">
+                <input type="checkbox" class="configKey" data-l1key="poll_sensors" checked />
+            </div>
+        </div>
+
+        <div class="form-group">
             <label class="col-lg-4 control-label">{{Conserver les captures pendant (jours) : }}<sup><i class="fa fa-question-circle tooltips" title="{{Les captures plus anciennes sont supprimées chaque nuit. Laissez à 0 pour ne jamais purger, ce qui est le comportement historique du plugin : le répertoire grossit alors indéfiniment.}}" style="font-size : 1em;color:grey;"></i></sup></label>
             <div class="col-lg-2">
                 <input type="number" min="0" step="1" class="configKey form-control" data-l1key="snapshot_retention_days" placeholder="0" />
