@@ -394,12 +394,12 @@ class gds3710 extends eqLogic {
 
     /* Types dont on retient lidentite : quelquun a ouvert la porte et sest identifie. */
     public static function get_entry_event_types() {
-        return array(100, 101, 200, 300, 301, 302, 600, 700, 800);
+        return array(100, 101, 200, 300, 301, 302, 400, 401, 600, 700, 800);
     }
 
     /* Types qui relevent de la securite et meritent une trace visible. */
     public static function get_security_event_types() {
-        return array(1000, 1100, 1200, 1300);
+        return array(102, 1000, 1002, 1100, 1110, 1200, 1300);
     }
 
     /* Renseigne les commandes decomposees a partir dun evenement recu. */
@@ -611,6 +611,18 @@ class gds3710 extends eqLogic {
             "1403" => array("section" =>'Surveillance Matériel', 'section_icon'=>'fas fa-thermometer-full', "type" => 1403, "short_name" => "SensorTemperatureNormal", "message" => "Sensor Temperature(32°C) Normal", "use_case" => "Indicates that device's sensor temperature is normal, (around 32°C)."),
             "1404" => array("section" =>'Surveillance Matériel', 'section_icon'=>'fas fa-thermometer-full', "type" => 1404, "short_name" => "SensorTemperatureTooLow", "message" => "Sensor Temperature(32°C) Too Low", "use_case" => "Indicates that device's sensor temperature is normal too low."),
             "1405" => array("section" =>'Surveillance Matériel', 'section_icon'=>'fas fa-thermometer-full', "type" => 1405, "short_name" => "SensorTemperatureTooHigh", "message" => "Sensor Temperature(32°C) Too High", "use_case" => "Indicates that device's sensor temperature is normal too high."),
+
+            /* Types ajoutes le 2026-09-06. Ils sont declares par le firmware 1.0.13.15 et
+             * absents du catalogue d'origine : un portier a jour en emet, et sur l'ancien
+             * code un type inconnu interrompait toute la remontee d'evenements.
+             * Releves dans le filtre du journal du portier, et pour 1500 et 1503 observes
+             * en fonctionnement. La famille 1500 couvre les connexions administrateur. */
+            "102" => array("section" =>'Ouverture porte', 'section_icon'=>'jeedom-porte-ferme', "type" => 102, "short_name" => "UnauthorizedDoorOpeningAttempt", "message" => "Unauthorized Door Opening Attempt", "use_case" => "Indicates that someone attempted to open the door without authorization."),
+            "401" => array("section" =>'Ouverture porte', 'section_icon'=>'jeedom-porte-ferme', "type" => 401, "short_name" => "OpenDoorViaSI", "message" => "Open Door via SI", "use_case" => "Indicates that door has been opened using SI (Special Input) signal."),
+            "1002" => array("section" =>'Securite', 'section_icon'=>'securite-key1', "type" => 1002, "short_name" => "DoorLockAbnormalAlarm", "message" => "Door and Lock Abnormal Alarm", "use_case" => "Indicates an abnormal state of the door or of the lock."),
+            "1110" => array("section" =>'Securite', 'section_icon'=>'securite-key1', "type" => 1110, "short_name" => "NonScheduledAccess", "message" => "Non-scheduled Access", "use_case" => "Indicates an access outside of the authorized schedule."),
+            "1500" => array("section" =>'Surveillance Logiciel', 'section_icon'=>'fas fa-exclamation-triangle', "type" => 1500, "short_name" => "AdminLogIn", "message" => "Admin Log In", "use_case" => "Indicates that an administrator signed in on the device web interface."),
+            "1503" => array("section" =>'Surveillance Logiciel', 'section_icon'=>'fas fa-exclamation-triangle', "type" => 1503, "short_name" => "AdminLogOff", "message" => "Admin Log Off", "use_case" => "Indicates that an administrator session ended, by logout or timeout."),
         );
         return $return;
     }
