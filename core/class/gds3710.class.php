@@ -51,10 +51,15 @@ class gds3710 extends eqLogic {
      * passe, ni jeton de session, ni code d authentification. */
     public static function redact($_text) {
         $text = is_string($_text) ? $_text : print_r($_text, true);
+        /* Forme URL et chaine de cookies : cle=valeur */
         $text = preg_replace('/(authcode=)[^&\s]+/i', '$1***', $text);
         $text = preg_replace('/(idcode=)[^&\s]+/i', '$1***', $text);
         $text = preg_replace('/((?:mjpeg_)?sess(?:ion)?=)[^;\s]+/i', '$1***', $text);
         $text = preg_replace('/(:\/\/[^:\/\s]+:)[^@\s]+@/', '$1***@', $text);
+        /* Forme tableau produite par print_r : [cle] => valeur. Elle etait oubliee, et
+         * les cookies dauthentification sont justement journalises sous cette forme. */
+        $text = preg_replace('/(\[(?:mjpeg_)?sess(?:ion)?\]\s*=>\s*)\S+/i', '$1***', $text);
+        $text = preg_replace('/(\[(?:password|passwd|pass|secret|authcode|idcode|token)\]\s*=>\s*)\S+/i', '$1***', $text);
         return $text;
     }
 
