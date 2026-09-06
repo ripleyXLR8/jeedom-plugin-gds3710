@@ -13,16 +13,20 @@
     position: relative;
     flex: 1 1 auto;
     min-height: 0;
+    min-width: 0;
     display: flex;
     align-items: center;
     justify-content: center;
   }
+  /* Remplir la zone disponible en conservant les proportions. Un simple plafond
+     laissait l image a sa taille naturelle, tres petite au regard du cadre. */
   .sipDisplay[data-eqLogic_id="#id#"] .remoteview,
   .sipDisplay[data-eqLogic_id="#id#"] .previewview {
-    max-height: 100%;
-    max-width: 100%;
-    width: auto;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
     object-fit: contain;
+    box-sizing: border-box;
   }
   /* Notre image en incrustation : elle ne prend plus de hauteur a la colonne. */
   .sipDisplay[data-eqLogic_id="#id#"] .selfview {
