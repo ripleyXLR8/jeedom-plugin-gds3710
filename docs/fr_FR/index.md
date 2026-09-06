@@ -109,6 +109,8 @@ Chaque évènement du portier reste disponible sous sa forme brute — le JSON c
 
 **Dernière alerte sécurité** couvre l'arrachement, l'alarme sous contrainte, l'alarme d'entrée digitale et les codes PIN erronés répétés. Ces quatre évènements écrivent aussi un avertissement dans le log et une entrée au centre de messages.
 
+Le catalogue couvre 41 types d'évènements, relevés sur un portier en firmware 1.0.13.15. Un type que le plugin ne connaîtrait pas est accepté sans erreur : il alimente « Last event » et les commandes décomposées, avec son code en guise de libellé, et un avertissement dans le log.
+
 Les commandes d'évènement, autrefois nommées par leur simple code (`100`, `301`, `1102`), s'appellent maintenant `1102 - Reboot`. Un nom que vous avez personnalisé n'est pas écrasé.
 
 # Réglages du portier

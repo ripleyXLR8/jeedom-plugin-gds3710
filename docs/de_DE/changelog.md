@@ -1,5 +1,9 @@
 # Change Log - Plugin GDS 3710
 
+### 06/09/2026 (catalogue d'évènements)
+- Six types d'évènements ajoutés, relevés dans le firmware 1.0.13.15 du portier : `102` tentative d'ouverture non autorisée, `401` ouverture par SI, `1002` anomalie porte/serrure, `1110` accès hors planning, `1500` connexion administrateur, `1503` déconnexion administrateur.
+- Les types 102, 1002 et 1110 sont traités comme des évènements de sécurité : entrée au centre de messages et mise à jour de « Dernière alerte sécurité ».
+
 ### 06/09/2026 (client SIP)
 - Le **client SIP** est disponible sur la version stable. Il permet de répondre au portier depuis le dashboard.
 - Le mot de passe du compte SIP ne transite plus par la valeur d'une commande — où il était persisté, historisé et exposé par l'API — mais par un appel authentifié soumis aux droits sur l'équipement.

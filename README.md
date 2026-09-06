@@ -196,6 +196,8 @@ Le plugin vous permet de transmettre des captures du flux MJPEG par l'intermédi
 
 Chaque évènement reste disponible sous sa forme brute, mais neuf commandes portent désormais les mêmes informations décomposées : code, libellé, date, badge, utilisateur, porte, numéro SIP, **Dernière personne entrée** et **Dernière alerte sécurité**.
 
+Le catalogue couvre **41 types d'évènements** relevés sur un portier en firmware 1.0.13.15 ; un type inconnu est accepté sans erreur plutôt que d'interrompre la remontée.
+
 « Dernière personne entrée » ne se met à jour que sur les évènements où quelqu'un s'est identifié, et retient le nom, à défaut le badge. Un appui sur la sonnette n'efface donc pas le nom précédent.
 
 # Réglages du portier
