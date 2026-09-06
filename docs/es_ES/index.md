@@ -69,6 +69,26 @@ NB : Assurez-vous d'avoir changer le mot-de-passe par défaut du compte admin av
 
 **C'est terminé, tout est configuré.**
 
+# Configuration automatique du portier
+
+L'équipement expose une commande **« Configurer le portier »** qui écrit elle-même, sur l'appareil, tout ce qu'il faut pour que les évènements remontent : activation de la notification, adresse et protocole de ce Jeedom, gabarit d'URL complet, méthode POST, et identifiants repris de la configuration du plugin (générés s'ils sont vides). Chaque écriture est relue et comparée avant d'être annoncée comme réussie.
+
+C'est la méthode recommandée : la saisie manuelle du gabarit d'URL est la première cause de panne de ce plugin.
+
+L'adresse utilisée est l'**adresse interne** de Jeedom (Réglages → Système → Configuration → Réseaux), donc l'adresse locale et non un nom de domaine public — voir la section Sécurité pour la raison.
+
+Toutes les 15 minutes, le plugin vérifie que la configuration du portier correspond toujours à ce Jeedom. En cas d'écart — réinitialisation de l'appareil, changement d'adresse de Jeedom — un avertissement part dans le log et un message au centre de messages. Sans ce contrôle, la remontée d'évènements s'arrête sans le moindre signe.
+
+# Capteurs du portier
+
+Le plugin relève toutes les 15 minutes les informations que le portier expose déjà : les deux entrées digitales, la sortie digitale, l'état des deux relais de porte, le contact anti-arrachement, la température de la carte mère et celle du capteur (toutes deux historisées), l'uptime, la version de firmware et la disponibilité d'une mise à jour.
+
+⚠️ **Le GDS3710 n'accepte qu'une seule session administrateur.** Chaque relève invalide donc une session éventuellement ouverte sur l'interface web du portier. C'est pourquoi l'intervalle est de 15 minutes et non d'une minute. Décochez « Remonter les capteurs du portier » dans la configuration du plugin le temps d'une session de configuration sur l'appareil.
+
+# Purge des captures
+
+Le champ **« Conserver les captures pendant (jours) »** supprime chaque nuit les captures plus anciennes. À `0`, valeur par défaut, aucune purge n'a lieu : c'est le comportement historique, où le répertoire grossit indéfiniment.
+
 # Sécurité
 
 Deux protections encadrent la remontée d'évènements.

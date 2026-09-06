@@ -1,5 +1,15 @@
 # Change Log - Plugin GDS 3710
 
+### 06/09/2026 (bloc B)
+- Correction du bug « Une commande portant ce nom (Reboot) existe déjà », ouvert depuis 2020 : la collation de la base rendait indistinguables la commande action `reboot` et la commande d'évènement `Reboot`.
+- Les évènements sont désormais distribués à **tous** les équipements partageant une adresse MAC, et non plus à un seul.
+- Une adresse MAC inconnue répond 404, une requête sans type 400 — au lieu de 200 dans les deux cas.
+- Nouvelle commande **« Configurer le portier »** : écrit sur l'appareil toute la configuration de notification, puis la relit pour confirmer.
+- Remontée des **capteurs du portier** toutes les 15 minutes : entrées/sorties digitales, relais, anti-arrachement, deux températures historisées, uptime, firmware, mise à jour disponible.
+- **Purge configurable des captures**, désactivée par défaut.
+- Les échecs d'écriture de capture ne sont plus silencieux, et l'URL du flux MJPEG se répare toute seule.
+- Correction du `.htaccess`, livré sans les `Options` qu'exige sa règle de réécriture.
+
 ### 06/09/2026
 - **Sécurité** : `camera.php` diffusait le flux vidéo du portier sans aucun contrôle d'accès ; il exige désormais une session Jeedom ou une clef API valide.
 - **Sécurité** : suppression de deux injections de commande shell, dans la suppression des captures et dans le téléchargement d'archives.
