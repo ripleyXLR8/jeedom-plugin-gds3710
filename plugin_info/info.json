@@ -4,7 +4,7 @@
 	"description" : "Plugin permetant l'intégration du portier GrandStream GDS3710",
 	"licence" : "AGPL",
 	"author" : "Richard Perez",
-	"require" : "3.2",
+	"require" : "4.4",
 	"category" : "security",
 	"hasDependency" : false,
 	"hasOwnDeamon" : false,

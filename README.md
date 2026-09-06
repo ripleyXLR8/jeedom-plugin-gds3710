@@ -1,12 +1,21 @@
 # Plugin GDS 3710
-> Version du 28 avril 2020
 > by Richard Perez | richard@perez-mail.fr
 
-# IMPORTANT
-Il semble y avoir un problème avec la version 1.0.4.9 du firmware du GDS3710 (la réalisation de capture du flux échoue). Les autres version supérieures à la 10.0.3.32 fonctionnent. Le plugin a été testé jusqu'à la version 10.0.7.8.
+# Compatibilité
+
+| | |
+|---|---|
+| Jeedom | 4.4 et supérieur (PHP 8) |
+| Firmware du portier | testé jusqu'à la version 1.0.13.15 (juillet 2025) |
+| Firmware minimum conseillé | 1.0.11.18 |
+
+Deux points de compatibilité liés au firmware du portier :
+
+- **En dessous de 1.0.11.18**, la notification d'évènements envoyait un `Content-Type` incorrect avec les gabarits fournis par le portier, ce que PHP ne sait pas décoder. Le plugin sait désormais rattraper ce cas, mais la mise à jour du firmware reste conseillée.
+- **Si l'accès web du portier est configuré en HTTPS**, le firmware 1.0.13.2 ou supérieur est nécessaire : avant cette version, l'API HTTP ne répondait pas dans ce mode.
 
 # Introduction
-Ce plugin permet l'intégration du portier GrandStream GDS3710 dans Jeedom. Dans sa version actuelle (28 avril 2020), il permet de :
+Ce plugin permet l'intégration du portier GrandStream GDS3710 dans Jeedom. Il permet de :
 - Récupérer les évènements du portier et de les gérer via des scénarios ou des commandes.
 - De modifier la configuration du portier.
 - D'activer les contacts secs du portier permettant de manoeuvrer une porte ou autre.
@@ -14,13 +23,22 @@ Ce plugin permet l'intégration du portier GrandStream GDS3710 dans Jeedom. Dans
 - D'enregistrer des images extraites du flux MJPEG.
 - De consulter les images enregistrées via une bibliothèque intégrée.
 - D'envoyer des images enregistrées via une autre commmande (testé avec le plugin Telegram).
-- D'activer ou de désactiver le LDC (Lens Deformation Correction).
 - De changer le réglage du capteur vidéo du portier (normal, low-light et WDR)
-- (Beta) D'enregistrer un client SIP directement depuis Jeedom et de répondre aux appels directement sur le dashboard.
+- De configurer le portier lui-même en une commande, sans saisie manuelle.
+- De remonter les capteurs du portier : entrées et sorties digitales, état des relais, anti-arrachement, températures, uptime, version de firmware et disponibilité d'une mise à jour.
+- De purger automatiquement les captures au-delà d'une durée de conservation.
+- D'exploiter les évènements décomposés en commandes : code, libellé, date, badge, utilisateur, porte, numéro SIP, dernière personne entrée et dernière alerte sécurité.
+- De piloter les réglages du portier : luminosité de la LED du clavier, luminosité, contraste et saturation de l'image, délai avant capture, raccrochage après ouverture, et le planning du rétroéclairage blanc.
+- D'enregistrer un **client SIP** depuis Jeedom et de répondre aux appels du portier sur le dashboard, image et son compris.
 
 Ce plugin est basé sur la document fourni par GrandStream : http://www.grandstream.com/sites/default/files/Resources/gds37xx_http_api.pdf
 
 # Configuration du portier GrandStream GDS3710
+
+> **Le plus simple : la commande « Configurer le portier ».** Une fois l'équipement créé avec son adresse IP et son mot de passe, cette commande écrit elle-même sur l'appareil l'activation de la notification, l'adresse de ce Jeedom, le gabarit d'URL complet, la méthode et les identifiants — puis relit tout pour confirmer. La saisie manuelle décrite ci-dessous reste documentée, mais c'est la première cause de panne du plugin.
+>
+> Le plugin vérifie ensuite toutes les 15 minutes que le portier pointe toujours vers ce Jeedom, et prévient au centre de messages si ce n'est plus le cas.
+
 ## Pré-requis
 Afin de récupérer les évènements générés par le portier nous allons utiliser la foncitonnalité "Event Notification" qui est disponible à partir de la version 10.0.3.32 du firmware du GrandStream GDS3710. Si vous disposez d'une version antérieure la fonctionnalité "Event notification" ne sera peut-être pas disponible et il vous faudra mettre à jour le firmware de votre GDS3710 vers la dernière version.
 
@@ -30,7 +48,11 @@ Afin de récupérer les évènements générés par le portier nous allons utili
 - Sélectionnez le type de communication avec le serveur "http" ou "https" selon la configuration de votre serveur Jeedom.
 - Optionnel mais fortement recommandé : Saisissez un identifiant et un mot de passe que votre portier devra fournir a Jeedom pour publier un évènement.
 - Dans champs "HTTP/HTTPS Server", entrez la chaine suivante en remplacant IP_DE_VOTRE_JEEDOM par l'adresse IP de votre serveur Jeedom : `"IP_DE_VOTRE_JEEDOM/plugins/gds3710/core/php/jeeGDS3710.php"`.
-- Dans le champs URL Template, entrez la chaine suivante : `mac=${MAC}&content=${WARNING_MSG}&type=${TYPE}&date=${DATE}&card=${CARDID}&sip=${SIPNUM}`.
+- Dans le champs URL Template, entrez la chaine suivante : `mac=${MAC}&content=${WARNING_MSG}&type=${TYPE}&date=${DATE}&card=${CARDID}&sip=${SIPNUM}&username=${USERNAME}&doornum=${DOOR_NUM}`.
+
+> Les deux dernières variables (`USERNAME` et `DOOR_NUM`) étaient absentes des versions précédentes de cette documentation alors que le plugin les exploite : sans elles, le nom de la personne et le numéro de porte ne remontent pas dans les tags de scénario.
+
+- La méthode HTTP peut être réglée sur POST ou sur GET selon le firmware : le plugin accepte les deux.
 - Sauvegarder la configuration.
 
 ![GDS3710 Configuration](docs/assets/images/ConfigGDS3710.png)
@@ -50,6 +72,15 @@ NB : Assurez-vous d'avoir changer le mot-de-passe par défaut du compte admin av
 ## Relevez de l'adresse IP et de l'adresse Mac de votre portier
 - Rendez-vous dans l'interface de gestion de votre GDS3710 puis dans Status -> Network info.
 - Relevez l'adresse Mac et l'adresse IP de votre portier, nous en aurons besoin plus tard.
+
+# Sécurité
+
+Deux protections encadrent la remontée d'évènements :
+
+- **Contrôle de l'adresse d'origine** (actif par défaut, sans configuration). Un évènement n'est accepté que s'il provient de l'adresse IP renseignée pour l'équipement. L'adresse MAC du portier sert d'identifiant, pas de secret : elle est lisible sur l'appareil. Si votre Jeedom est derrière un NAT ou un proxy qui masque l'adresse réelle du portier, désactivez ce contrôle dans la configuration du plugin.
+- **Protection par mot de passe** (activée par défaut sur les nouvelles installations). Elle est vivement conseillée dès lors que des évènements du portier déclenchent des actions sensibles. Sur une installation existante, le réglage n'est pas modifié par la mise à jour : pensez à l'activer.
+
+Les captures et le flux vidéo ne sont accessibles qu'à un utilisateur connecté à Jeedom, ou avec une clef API valide.
 
 # Configuration du plugin GDS3710 dans Jeedom
 ## Configuration générale
@@ -148,3 +179,50 @@ Le plugin vous permet de transmettre des captures du flux MJPEG par l'intermédi
 - Dans le champs "Commande message d'envoi des captures" sélectionner la commande pour envoyer la ou les captures (il s'agit de la commande de votre bot Telegram).
 
 ![Envoyer un snapshot dans un scénario](docs/assets/images/EnvoyerCaptureGDS3710.png)
+
+# Options de configuration du plugin
+
+| Option | Effet |
+|---|---|
+| Protection par mot de passe | Exige une authentification Digest sur la remontée d'évènements. Activée par défaut sur les nouvelles installations. |
+| Désactiver le contrôle d'adresse d'origine | À cocher uniquement si Jeedom est derrière un NAT ou un proxy qui masque l'adresse réelle du portier. |
+| Remonter les capteurs du portier | Relève toutes les 15 minutes. ⚠️ Le portier n'accepte qu'une session administrateur : chaque relève déconnecte une session ouverte sur son interface web. À décocher le temps d'une configuration sur l'appareil. |
+| Conserver les captures pendant (jours) | Purge nocturne au-delà de cette durée. `0` désactive la purge, comportement historique. |
+| Autoriser les utilisateurs / utilisateurs limités à effacer les captures | Les administrateurs peuvent toujours effacer. |
+| Répertoire d'enregistrement des captures | Doit être accessible en écriture à l'utilisateur du serveur web. |
+
+# Exploiter les évènements
+
+Chaque évènement reste disponible sous sa forme brute, mais neuf commandes portent désormais les mêmes informations décomposées : code, libellé, date, badge, utilisateur, porte, numéro SIP, **Dernière personne entrée** et **Dernière alerte sécurité**.
+
+Le catalogue couvre **41 types d'évènements** relevés sur un portier en firmware 1.0.13.15 ; un type inconnu est accepté sans erreur plutôt que d'interrompre la remontée.
+
+« Dernière personne entrée » ne se met à jour que sur les évènements où quelqu'un s'est identifié, et retient le nom, à défaut le badge. Un appui sur la sonnette n'efface donc pas le nom précédent.
+
+# Réglages du portier
+
+Sept réglages pilotables, chacun sous forme d'une commande info affichant la valeur lue sur l'appareil et d'un curseur qui l'écrit : LED du clavier au repos et à l'appui, luminosité, contraste et saturation de l'image, délai avant capture, raccrochage après ouverture distante. Le planning du rétroéclairage blanc dispose de ses propres commandes.
+
+Toute écriture est bornée puis relue avant mise à jour. ⚠️ Le planning du rétroéclairage exige le firmware **1.0.13.9**, les réglages de LED le **1.0.13.5**.
+
+# Client SIP
+
+Le plugin embarque un client SIP permettant de répondre au portier depuis le dashboard.
+
+Il requiert un **serveur SIP acceptant le WebSocket**, un **Jeedom servi en HTTPS** — les navigateurs refusent micro et caméra hors contexte sécurisé — et un **certificat valide sur le serveur SIP**. Ces pré-requis sont vérifiés au chargement et signalés sur le bouton du widget plutôt que d'échouer en silence.
+
+⚠️ **Politique de sécurité du navigateur** : l'image Docker de Jeedom envoie une CSP sans `connect-src`, ce qui interdit au navigateur toute connexion websocket vers un autre domaine — donc vers votre serveur SIP. Le widget le détecte et l'affiche. Aucun plugin ne peut lever cette restriction. La solution recommandée est de relayer le websocket SIP derrière le domaine de Jeedom (`wss://mon-jeedom/sipws`) : l'URL devient *same-origin* et la CSP n'a pas à être modifiée. La documentation donne le bloc nginx exact, ainsi que la variante par remplacement de l'en-tête.
+
+⚠️ **Caméra** : la même image envoie un en-tête `Permissions-Policy` contenant `camera=()`, qui interdit la caméra à la page. Le widget le détecte et bascule l'appel en audio seul, sans cesser de réclamer le flux vidéo du portier. JsSIP rapporte sinon `User Denied Media Access`, alors qu'aucun refus utilisateur n'a eu lieu.
+
+Quand le portier appelle, le widget affiche son image **dès la sonnerie**, avant tout décrochage — l'aperçu laisse place à la vidéo temps réel une fois l'appel pris. L'extension utilisée par Jeedom doit évidemment figurer parmi celles que le portier appelle.
+
+La fenêtre d'appel comporte un **clavier** : au repos il compose un numéro à joindre, en communication il envoie des tonalités DTMF — c'est ainsi que l'on transmet au portier son code d'ouverture de porte sans quitter le dashboard.
+
+Le mot de passe du compte SIP n'est jamais placé dans la valeur d'une commande : il est servi par un appel authentifié soumis aux droits sur l'équipement.
+
+Si l'appel échoue côté serveur avec une erreur inexpliquée, essayez le champ « Codec(s) à supprimer » : le message d'invitation produit par le client est long et certains serveurs le refusent au-delà d'une taille limite.
+
+---
+
+📖 **La documentation complète et à jour se trouve dans [`docs/fr_FR/index.md`](docs/fr_FR/index.md)**, également publiée sur le [site de documentation](https://ripleyxlr8.github.io/jeedom-plugin-gds3710/fr_FR/). En cas de divergence avec ce README, c'est la documentation qui fait foi.

@@ -7,29 +7,61 @@
   <a class="btn btn-sm btn-default action">#name#</a>
 
   <div class="sipDisplay" style="display:none;" title="#name_display#" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">
-    <audio id="remoteAudio"></audio>
+    <audio id="remoteAudio" autoplay></audio>
     <center class="calleridentitydisplay" style="padding:50px; display:none" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">
       <div class="namedisplay" style="font-size: 5em" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">Name</div>
       <div class="uridisplay" style="font-size: 3em" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">uri</div>
     </center>
+    <img class="previewview" style="width: 100%; border: 3px solid grey; max-height: 700px; display:none" id="previewView" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" />
     <video class="selfview" style="height: 240px; width: 320px; border: 3px solid grey; display:none" id="selfView" autoplay muted=true autoplay data-eqLogic_uid="#uid#" data-eqLogic_id="#id#"></video>
     <video class="remoteview" style="width: 100%; border: 3px solid grey; max-height: 700px; display:none" id="remoteView" autoplay data-eqLogic_uid="#uid#" data-eqLogic_id="#id#"></video>
     <center>
       <a class="sipactionbutton btn btn-sm btn-default action" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">Action</a>
       <a class="sipactionbisbutton btn btn-sm btn-default action" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="display:none">Action Bis</a>
     </center>
+    <center class="sipkeypad" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="margin-top:12px">
+      <div class="sipdialed" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.8em; min-height:1.3em; letter-spacing:0.15em; font-family:monospace"></div>
+      <div style="display:inline-grid; grid-template-columns:repeat(3, 3.5em); gap:6px; margin-top:6px">
+        <a class="sipkey btn btn-default" data-touche="1" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.4em; padding:8px 0">1</a>
+        <a class="sipkey btn btn-default" data-touche="2" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.4em; padding:8px 0">2</a>
+        <a class="sipkey btn btn-default" data-touche="3" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.4em; padding:8px 0">3</a>
+        <a class="sipkey btn btn-default" data-touche="4" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.4em; padding:8px 0">4</a>
+        <a class="sipkey btn btn-default" data-touche="5" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.4em; padding:8px 0">5</a>
+        <a class="sipkey btn btn-default" data-touche="6" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.4em; padding:8px 0">6</a>
+        <a class="sipkey btn btn-default" data-touche="7" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.4em; padding:8px 0">7</a>
+        <a class="sipkey btn btn-default" data-touche="8" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.4em; padding:8px 0">8</a>
+        <a class="sipkey btn btn-default" data-touche="9" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.4em; padding:8px 0">9</a>
+        <a class="sipkey btn btn-default" data-touche="*" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.4em; padding:8px 0">*</a>
+        <a class="sipkey btn btn-default" data-touche="0" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.4em; padding:8px 0">0</a>
+        <a class="sipkey btn btn-default" data-touche="#" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.4em; padding:8px 0">#</a>
+      </div>
+      <div style="margin-top:8px">
+        <a class="sipclear btn btn-sm btn-default" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">Effacer</a>
+      </div>
+      <div class="sipkeyhint" style="margin-top:6px; font-size:0.85em; opacity:0.7">Pendant un appel, les touches envoient des tonalités DTMF.</div>
+    </center>
   </div>
 
-  <script src="/plugins/gds3710/desktop/js/jssip-3.4.3.min.js"></script>
+  <!-- La bibliotheque vit dans core/template/ et non dans desktop/ : le .htaccess de
+       Jeedom refuse en 403 tout fichier .js servi depuis un chemin contenant /desktop/,
+       ce qui empechait JsSIP de se charger et rendait ce widget inoperant. -->
+  <script src="/plugins/gds3710/core/template/js/jssip-3.4.3.min.js"></script>
 
   <script>
 
-    var settings;
-    try {
-        settings = JSON.parse('#state#');
-    } catch(e) {
-        alert(e);
+    /* Signale un probleme sur le bouton du widget plutot que dans une alerte modale.
+     * Une fenetre modale bloque toute la page et n'explique rien a qui ne lit pas la console. */
+    function gds3710SipProblem(message) {
+      var button = $('.cmd[data-cmd_id=#id#] .action').eq(0);
+      button.css('color', 'rgb(185, 58, 62)');
+      button.attr('title', message);
+      button.text('SIP : ' + message);
+      console.log('GDS3710 SIP : ' + message);
     }
+
+    /* Tout le client vit dans cette fonction : elle n'est appelee qu'une fois la
+     * configuration recue et les pre-requis verifies. */
+    function gds3710InitSip(settings) {
 
     if(settings.is_sip_debug_enabled == 1){
       JsSIP.debug.enable('JsSIP:*');
@@ -127,8 +159,15 @@
         } else if(this.internalSipOnCall){
           ringtone.pause();
           SIPbuttonModalChange(redColor, "Raccrocher");
-          $(".remoteview[data-eqLogic_id=#id#]").show();
-          $(".selfview[data-eqLogic_id=#id#]").show();
+          /* Un cadre sans flux reste un rectangle vide : on n affiche que ce qui
+           * porte quelque chose. attacherMedia() se charge de reveler chaque
+           * lecteur a l arrivee de sa piste. */
+          if (remoteView.srcObject) {
+            $(".remoteview[data-eqLogic_id=#id#]").show();
+          }
+          if (selfView.srcObject) {
+            $(".selfview[data-eqLogic_id=#id#]").show();
+          }
           $(".sipactionbutton[data-eqLogic_id=#id#]").unbind('click');
           $(".sipactionbutton[data-eqLogic_id=#id#]").click(terminateCall);
           $(".sipactionbisbutton[data-eqLogic_id=#id#]").hide();
@@ -136,6 +175,7 @@
           SIPbuttonModalChange(greenColor, "Appeler");
           $(".remoteview[data-eqLogic_id=#id#]").hide();
           $(".selfview[data-eqLogic_id=#id#]").hide();
+          libererLecteurs();
           $(".calleridentitydisplay[data-eqLogic_id=#id#]").hide();
           ringtone.pause();
           $(".sipactionbutton[data-eqLogic_id=#id#]").unbind('click');
@@ -214,29 +254,139 @@
       return internalFunc(orgsdp);
     }
 
+    /* Le navigateur peut interdire la camera a la page elle-meme, independamment de
+     * toute autorisation utilisateur : l'image Docker de Jeedom envoie un en-tete
+     * Permissions-Policy contenant camera=(). Chrome refuse alors sans rien demander,
+     * et JsSIP rapporte "User Denied Media Access" — ce qui fait chercher du cote
+     * d'un refus qui n'a jamais eu lieu. Le micro, lui, n'est pas restreint. */
+    function cameraAutorisee() {
+      var politique = document.featurePolicy || document.permissionsPolicy;
+      if (!politique || typeof politique.allowsFeature !== 'function') {
+        return true;
+      }
+      try {
+        return politique.allowsFeature('camera');
+      } catch (e) {
+        return true;
+      }
+    }
+
+    /* Ramene les contraintes media reellement tenables sur cette machine, puis appelle
+     * suite(). Envoyer notre propre camera vers un portier sans ecran n'apporte rien :
+     * en cas d'obstacle on retombe sur l'audio seul plutot que d'echouer. */
+    function contraintesMedia(veutAudio, veutVideo, suite) {
+      navigator.mediaDevices.enumerateDevices().then(function (devices) {
+        var aCamera = devices.some(function (d) { return d.kind === 'videoinput'; });
+        var aMicro = devices.some(function (d) { return d.kind === 'audioinput'; });
+
+        if (veutAudio && !aMicro) {
+          SIPbuttonModalChange(redColor, 'Aucun micro sur cette machine');
+          console.log('JsSIP : aucun peripherique audioinput, appel abandonne.');
+          return;
+        }
+        if (veutVideo && !aCamera) {
+          console.log('JsSIP : aucun peripherique videoinput, repli sur laudio seul.');
+          veutVideo = false;
+        }
+        if (veutVideo && !cameraAutorisee()) {
+          console.log('JsSIP : la camera est interdite a cette page par lentete '
+            + 'Permissions-Policy, repli sur laudio seul. Voir la documentation, '
+            + 'section Client SIP.');
+          veutVideo = false;
+        }
+
+        suite({ 'audio': veutAudio, 'video': veutVideo });
+      }).catch(function (e) {
+        SIPbuttonModalChange(redColor, 'Peripheriques inaccessibles');
+        console.log('JsSIP : enumerateDevices a echoue : ' + e.message);
+      });
+    }
+
+    /* Apercu pendant la sonnerie. Le flux MJPEG reste connecte tant que l attribut
+     * src est renseigne : il faut donc le vider explicitement, sinon le portier
+     * conserve une session ouverte apres la fin de l appel. */
+    /* Charges utiles que le navigateur refuse de lire. La 2 est reservee par la
+     * RFC 3551 ; un serveur qui y place G726-32 rend son offre entierement
+     * illisible pour Chrome, qui rejette tout le SDP et non le seul codec. */
+    var chargesRefusees = [2];
+
+    function nettoyerSdpDistant(sdp) {
+      var lignes = sdp.split(/\r?\n/);
+      var sortie = [];
+      var retires = [];
+
+      for (var i = 0; i < lignes.length; i++) {
+        var ligne = lignes[i];
+
+        var attribut = ligne.match(/^a=(?:rtpmap|fmtp|rtcp-fb):(\d+)[ :]/);
+        if (attribut && chargesRefusees.indexOf(parseInt(attribut[1], 10)) !== -1) {
+          if (ligne.indexOf('a=rtpmap:') === 0) {
+            retires.push(ligne.substring(2));
+          }
+          continue;
+        }
+
+        if (ligne.indexOf('m=') === 0) {
+          var champs = ligne.split(' ');
+          var gardes = champs.slice(0, 3);
+          for (var j = 3; j < champs.length; j++) {
+            if (chargesRefusees.indexOf(parseInt(champs[j], 10)) === -1) {
+              gardes.push(champs[j]);
+            }
+          }
+          ligne = gardes.join(' ');
+        }
+
+        sortie.push(ligne);
+      }
+
+      if (retires.length > 0) {
+        console.log('JsSIP : offre distante nettoyee, codec(s) illisibles par le '
+          + 'navigateur retires : ' + retires.join(', '));
+      }
+      return sortie.join('\r\n');
+    }
+
+    function ouvrirApercu() {
+      if (!settings.preview_url) {
+        return;
+      }
+      previewView.src = settings.preview_url + '&t=' + Date.now();
+      $(".previewview[data-eqLogic_id=#id#]").show();
+      console.log('JsSIP : apercu du portier affiche pendant la sonnerie.');
+    }
+
+    function fermerApercu() {
+      $(".previewview[data-eqLogic_id=#id#]").hide();
+      if (previewView.getAttribute('src')) {
+        previewView.removeAttribute('src');
+      }
+    }
+
     function pickUpCall(){
       console.log("JsSip : User Action - Picking-Up Call.");
 
       sipClientState.sipRinging = false;
-      sipClientState.sipOnCall = true;
 
-      var incomingCalloptions = {
-        // 'RTCConstraints': { 
-        //   optional: [],
-        //   mandatory: { 
-        //     'OfferToReceiveAudio': settings.is_remote_call_offer_audio_enabled,
-        //     'OfferToReceiveVideo': settings.is_remote_call_offer_video_enabled 
-        //   } 
-        // },
-        'mediaConstraints' : {
-          'audio': settings.is_remote_call_audio_enabled,
-          'video': settings.is_remote_call_video_enabled
-        } 
-      };
+      contraintesMedia(!!settings.is_remote_call_audio_enabled,
+                       !!settings.is_remote_call_video_enabled,
+                       function (mediaConstraints) {
+        /* Etat pose ici seulement : si les peripheriques manquent, l'appel n'est
+         * pas decroche et le widget ne doit pas se croire en communication. */
+        sipClientState.sipOnCall = true;
 
-      console.log("JsSip : Incoming Call Options : " + JSON.stringify(incomingCalloptions));
+        var incomingCalloptions = {
+          'mediaConstraints' : mediaConstraints,
+          /* L offre du portier contient une ligne video. Si l on n annonce pas
+           * explicitement qu on veut la recevoir, JsSIP produit une reponse
+           * incoherente avec l offre et echoue sur un « WebRTC Error » sans detail. */
+          'rtcAnswerConstraints' : { 'offerToReceiveAudio': 1, 'offerToReceiveVideo': 1 }
+        };
 
-      session.answer(incomingCalloptions);
+        console.log("JsSip : Incoming Call Options : " + JSON.stringify(incomingCalloptions));
+
+        session.answer(incomingCalloptions);
+      });
     }
 
     function terminateCall(){
@@ -247,19 +397,127 @@
       sipClientState.sipRinging = false;
     }
 
+    /* Detache les flux des lecteurs. Sans cela le cadre conserve la derniere image
+     * du precedent appel, et la piste distante reste referencee apres sa fin. */
+    function libererLecteurs() {
+      if (remoteView.srcObject) {
+        remoteView.srcObject = null;
+      }
+      if (selfView.srcObject) {
+        selfView.srcObject = null;
+      }
+    }
+
+    /* Rattache le media distant aux lecteurs.
+     *
+     * L'ancienne API 'addstream' ne remettait qu'un seul MediaStream. En reception
+     * seule, le portier envoie sa video dans un flux distinct de son audio : cette
+     * video etait donc perdue, et le flux audio se retrouvait affecte a la balise
+     * video, seule a porter autoplay. D'ou du son sans image. On ecoute 'track', qui
+     * delivre chaque piste separement, et on envoie chacune a son lecteur. */
+    function attacherMedia(pc) {
+      if (!pc || pc.gds3710Attache) {
+        return;
+      }
+      pc.gds3710Attache = true;
+
+      var audioDistant = new MediaStream();
+      var videoDistant = new MediaStream();
+
+      pc.addEventListener('track', function (e) {
+        console.log('JsSIP : piste distante recue : ' + e.track.kind);
+        if (e.track.kind === 'audio') {
+          audioDistant.addTrack(e.track);
+          remoteAudio.srcObject = audioDistant;
+        } else {
+          videoDistant.addTrack(e.track);
+          remoteView.srcObject = videoDistant;
+          $(".remoteview[data-eqLogic_id=#id#]").show();
+        }
+      });
+
+      /* Notre propre image, quand on en envoie une. */
+      var local = new MediaStream();
+      pc.getSenders().forEach(function (s) {
+        if (s.track && s.track.kind === 'video') {
+          local.addTrack(s.track);
+        }
+      });
+      if (local.getTracks().length > 0) {
+        selfView.srcObject = local;
+        $(".selfview[data-eqLogic_id=#id#]").show();
+      }
+    }
+
+    /* Numero compose au clavier. Vide, le bouton appelle le portier configure. */
+    var composition = '';
+
+    function domaineSip() {
+      var uri = settings.portier_sip_uri || settings.client_sip_uri || '';
+      var arobase = uri.indexOf('@');
+      return arobase === -1 ? '' : uri.substring(arobase + 1);
+    }
+
+    function cibleAppel() {
+      if (composition === '') {
+        return settings.portier_sip_uri;
+      }
+      var domaine = domaineSip();
+      return domaine === '' ? composition : 'sip:' + composition + '@' + domaine;
+    }
+
+    function majComposition() {
+      $(".sipdialed[data-eqLogic_id=#id#]").text(composition);
+      if (!sipClientState.sipOnCall) {
+        SIPbuttonModalChange(greenColor,
+          composition === '' ? 'Appeler' : 'Appeler ' + composition);
+      }
+    }
+
+    /* Gestionnaires delegues et nommes : une reinitialisation du widget les remplace
+     * au lieu de les empiler, ce qui enverrait chaque touche plusieurs fois. */
+    $(document).off('click.gds3710clavier')
+      .on('click.gds3710clavier', '.sipkey[data-eqLogic_id=#id#]', function () {
+        var touche = $(this).attr('data-touche');
+        if (sipClientState.sipOnCall && session) {
+          /* En communication, le clavier envoie des tonalites DTMF : c'est par ce
+           * canal que le portier recoit son code d'ouverture de porte. */
+          session.sendDTMF(touche);
+          console.log('JsSIP : tonalite DTMF envoyee : ' + touche);
+          return;
+        }
+        composition += touche;
+        majComposition();
+      })
+      .on('click.gds3710clavier', '.sipclear[data-eqLogic_id=#id#]', function () {
+        composition = '';
+        majComposition();
+      });
+
     function startCall(){
-      console.log("JsSip : User Action - Start Call.");
+      /* Cible figee avant tout appel asynchrone, et composition remise a zero :
+       * l appel suivant doit repartir sur le portier, pas sur le dernier numero. */
+      var cible = cibleAppel();
+      composition = '';
+      $(".sipdialed[data-eqLogic_id=#id#]").text('');
 
-      var localCalloptions = {
-        'mediaConstraints' : {
-          'audio': settings.is_local_call_audio_enabled,
-          'video': settings.is_local_call_video_enabled
-        } 
-      };
+      console.log("JsSip : User Action - Start Call vers " + cible);
 
-      console.log("JsSip : Starting Call with Options : " + JSON.stringify(localCalloptions));
+      contraintesMedia(!!settings.is_local_call_audio_enabled,
+                       !!settings.is_local_call_video_enabled,
+                       function (mediaConstraints) {
+        var localCalloptions = {
+          'mediaConstraints' : mediaConstraints,
+          /* On continue de reclamer le flux du portier meme quand on n'envoie pas
+           * le notre : sans cela, JsSIP ne poserait pas de ligne video dans l'offre
+           * et l'image du portier disparaitrait avec la notre. */
+          'rtcOfferConstraints' : { 'offerToReceiveAudio': 1, 'offerToReceiveVideo': 1 }
+        };
 
-      session = sipClient.call(settings.portier_sip_uri, localCalloptions);
+        console.log("JsSip : Starting Call with Options : " + JSON.stringify(localCalloptions));
+
+        session = sipClient.call(cible, localCalloptions);
+      });
     }
 
     $(".sipDisplay[data-eqLogic_id=#id#]").dialog({
@@ -286,6 +544,8 @@
 
     var selfView = document.getElementById('selfView');
     var remoteView = document.getElementById('remoteView');
+    var remoteAudio = document.getElementById('remoteAudio');
+    var previewView = document.getElementById('previewView');
 
     var session;
     var request;
@@ -306,7 +566,10 @@
     {
       sipClient = new JsSIP.UA(configuration);
     } catch(e) {
-      console.log(error.message);
+      /* La variable du catch est e : lire error.message levait une ReferenceError
+       * qui masquait la vraie cause, puis sipClient restait indefini. */
+      gds3710SipProblem('la configuration SIP est invalide (' + e.message + ').');
+      return;
     } 
 
     var status;
@@ -329,7 +592,9 @@
     }
 
     sipClient.on('connecting', () =>{
-      console.log('JsSIP : Connecting to : ' + settings.client_sip_websocket + ' as ' + settings.client_sip_uri + ' with password ' + settings.client_sip_password);
+      /* Le mot de passe SIP ne doit jamais apparaitre dans la console : il y reste
+       * lisible par toute extension installee et par qui regarde lecran. */
+      console.log('JsSIP : Connecting to : ' + settings.client_sip_websocket + ' as ' + settings.client_sip_uri);
       sipClientState.sipConnectionState = false;
       sipClientState.sipStateText = 'connecting';
     });
@@ -394,6 +659,18 @@
       request = data.request;
       originator = data.originator;
 
+      /* Sur un appel sortant, 'peerconnection' a deja ete emis a cet instant : c'est
+       * ici, et pas dans son gestionnaire, qu'il faut rattacher le media. */
+      attacherMedia(data.session.connection);
+
+      /* JsSIP tient compte des modifications faites ici avant de passer la
+       * description au navigateur. */
+      data.session.on('sdp', function (e) {
+        if (e.originator === 'remote') {
+          e.sdp = nettoyerSdpDistant(e.sdp);
+        }
+      });
+
       if(originator=='local'){
           console.log('JsSIP : Local Call.');
           sipClientState.sipOnCall = true;
@@ -421,18 +698,14 @@
 
 
           data.session.on('connecting', function() {
-            console.log('JsSIP : Local Call - Connecting.'); 
-            data.session.connection.addEventListener('addstream',function(e) {
-              console.log('JsSIP : Local Call - Add Stream - Connecting');
-              remoteAudio.srcObject = (e.stream);
-              remoteView.srcObject = (e.stream);
-              selfView.srcObject = (session.connection.getLocalStreams()[0]);
-            });
+            console.log('JsSIP : Local Call - Connecting.');
+            attacherMedia(data.session.connection); 
 
           });
 
           data.session.on('peerconnection', function(e) {
             console.log('JsSIP : Local Call - Peer Connection Accepted');
+            attacherMedia(e.peerconnection || data.session.connection);
           });
 
           data.session.on('accepted', function(e) {
@@ -443,10 +716,6 @@
           data.session.on('confirmed', function(e) {
             console.log('JsSIP : Local Call - Confirmed');
 
-            data.session.connection.addEventListener('addstream',function(e) {
-              console.log('JsSIP : Local Call - Add Stream - Confirmed');
-              
-            });
 
           });
 
@@ -457,6 +726,10 @@
 
           data.session.on('failed', function(e) {
             sipClientState.sipOnCall = false;
+            /* Sans cette remise a zero, la tonalite dappel continue apres lechec. */
+            sipClientState.sipWaitingAnswer = false;
+            /* Affiche apres les deux affectations, qui repeignent le bouton. */
+            SIPbuttonModalChange(redColor, 'Echec : ' + e.cause);
             console.log('JsSIP : Local Call - Failed with cause : '+e.cause);
           });
       }
@@ -467,24 +740,23 @@
         $(".namedisplay[data-eqLogic_id=#id#]").html(data.session.remote_identity.display_name);
         $(".uridisplay[data-eqLogic_id=#id#]").html(data.session.remote_identity.uri.scheme+":"+data.session.remote_identity.uri.user+"@"+data.session.remote_identity.uri.host);
 
+        ouvrirApercu();
+
         sipClientState.sipRinging = true;
 
         console.log('JsSIP : Opening Modal Window.');
         $(".sipDisplay[data-eqLogic_uid=#uid#]").dialog("open");
 
         data.session.on('connecting', function() {
-          console.log('JsSIP : Incoming Call - Connecting.'); 
+          console.log('JsSIP : Incoming Call - Connecting.');
+            attacherMedia(data.session.connection); 
         });
 
         data.session.on('peerconnection', function(e) {
           console.log('JsSIP : Incoming Call - Peer Connection Accepted');
+          fermerApercu();
+          attacherMedia(e.peerconnection || data.session.connection);
           
-          data.session.connection.addEventListener('addstream',function(e) {
-            console.log('JsSIP : Incoming Call - Add Stream');
-            remoteAudio.srcObject = (e.stream);
-            remoteView.srcObject = (e.stream);
-            selfView.srcObject = (session.connection.getLocalStreams()[0]);
-          });
         });
 
         data.session.on('accepted', function(e) {
@@ -497,12 +769,21 @@
 
         data.session.on('ended', function(e) {
           console.log('JsSIP : Incoming Call - Ended with cause : '+e.cause);
+          fermerApercu();
           sipClientState.sipOnCall = false;
           sipClientState.sipRinging = false;
         });
 
         data.session.on('failed', function(e) {
-          console.log('JsSIP : Incoming Call - Failed with cause : '+e.cause);
+          console.log('JsSIP : Incoming Call - Failed with cause : ' + e.cause);
+          /* e.cause reste generique ; le detail utile se trouve dans le message. */
+          if (e.message) {
+            console.log('JsSIP : detail de lechec : ' + (e.message.reason_phrase || e.message));
+          }
+          sipClientState.sipRinging = false;
+          sipClientState.sipOnCall = false;
+          SIPbuttonModalChange(redColor, 'Echec : ' + e.cause);
+          fermerApercu();
           sipClientState.sipOnCall = false;
           sipClientState.sipRinging = false;
         });
@@ -512,6 +793,66 @@
     });
 
     sipClient.start();
+
+    }
+
+    /* Chargement de la configuration.
+     *
+     * Elle contient le mot de passe du compte SIP et ne transite donc plus par la valeur
+     * de la commande, qui est persistee en base, historisee et exposee par l'API. Elle est
+     * demandee par un appel ajax soumis a la session Jeedom et aux droits sur l'equipement.
+     * La valeur de la commande ne porte plus que l'identifiant de l'equipement. */
+    (function () {
+
+      if (typeof JsSIP === 'undefined') {
+        gds3710SipProblem("la bibliotheque JsSIP n'a pas ete chargee");
+        return;
+      }
+
+      /* Pre-requis le plus frequemment rencontre : les navigateurs refusent l'acces au
+       * micro et a la camera hors contexte securise. Sans ce controle, l'appel echouait
+       * sans explication et il fallait ouvrir la console pour le comprendre. */
+      var secure = (window.location.protocol === 'https:'
+                 || window.location.hostname === 'localhost'
+                 || window.location.hostname === '127.0.0.1');
+      if (!secure || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        gds3710SipProblem("Jeedom doit etre servi en HTTPS pour autoriser le micro et la camera");
+        return;
+      }
+
+      /* La politique de securite du serveur web peut interdire la connexion au serveur
+       * SIP : l'image Docker de Jeedom envoie une CSP sans directive connect-src, donc
+       * le navigateur retombe sur default-src 'self' et refuse tout websocket externe.
+       * L'echec est alors muet cote JsSIP. On ecoute l'evenement que le navigateur emet
+       * dans ce cas, pour nommer la cause au lieu de laisser chercher. */
+      document.addEventListener('securitypolicyviolation', function (e) {
+        var uri = e.blockedURI || '';
+        if (uri.indexOf('ws://') === 0 || uri.indexOf('wss://') === 0) {
+          gds3710SipProblem('la politique de securite (CSP) de ce Jeedom interdit la '
+            + 'connexion au serveur SIP. Voir la documentation, section Client SIP.');
+          console.log('GDS3710 SIP : CSP a bloque ' + uri
+            + ' (directive ' + (e.violatedDirective || 'default-src') + ')');
+        }
+      });
+
+      $.ajax({
+        type: 'POST',
+        url: 'plugins/gds3710/core/ajax/gds3710.ajax.php',
+        data: { action: 'getSipConfig', id: '#state#' },
+        dataType: 'json',
+        error: function (request, status, error) {
+          gds3710SipProblem('configuration inaccessible (' + status + ')');
+        },
+        success: function (data) {
+          if (data.state != 'ok') {
+            gds3710SipProblem(data.result);
+            return;
+          }
+          gds3710InitSip(data.result);
+        }
+      });
+
+    })();
 
   </script>
 </div>

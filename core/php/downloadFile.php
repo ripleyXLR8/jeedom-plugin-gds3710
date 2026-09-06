@@ -61,20 +61,52 @@
 		if (!file_exists($pathfile)) {
 			throw new Exception(__('Fichier non trouvé : ', __FILE__) . $pathfile);
 		}
-	} elseif (is_dir(str_replace('*', '', $pathfile))) {
+	} else {
+		/* Cas dun motif : « <dossier>/* » (tout le dossier) ou « <dossier>/<prefixe>* »
+		 * (une journee). Ces deux branches construisaient la commande tar par concatenation,
+		 * et le chemin nayant pas ete normalise par realpath() dans ce cas precis, tout
+		 * metacaractere du shell present dans le parametre etait interprete. On developpe
+		 * desormais le motif avec glob(), on revalide chaque resultat par son chemin reel,
+		 * et on echappe chaque argument. */
 		if (!isConnect('admin')) {
 			throw new Exception(__('401 - Accès non autorisé7', __FILE__));
 		}
-		system('cd ' . dirname($pathfile) . ';tar cfz ' . jeedom::getTmpFolder('downloads') . '/archive.tar.gz * > /dev/null 2>&1');
-		$pathfile = jeedom::getTmpFolder('downloads') . '/archive.tar.gz';
-	} else {
-		if (!isConnect('admin')) {
-			throw new Exception(__('401 - Accès non autorisé8', __FILE__));
-		}
-		$pattern = array_pop(explode('/', $pathfile));
 
-		system('cd ' . dirname($pathfile) . ';tar cfz ' . jeedom::getTmpFolder('downloads') . '/archive.tar.gz ' . $pattern . '> /dev/null 2>&1');
-		$pathfile = jeedom::getTmpFolder('downloads') . '/archive.tar.gz';
+		$dir = realpath(dirname($pathfile));
+		if ($dir === false) {
+			throw new Exception(__('401 - Accès non autorisé9', __FILE__));
+		}
+
+		$allowedRoots = array(realpath(dirname(__FILE__) . '/../../'));
+		if (config::byKey('recdir', 'gds3710') != '' && substr(config::byKey('recdir', 'gds3710'), 0, 1) == '/') {
+			$allowedRoots[] = realpath(config::byKey('recdir', 'gds3710'));
+		}
+		$insideAllowedRoot = false;
+		foreach ($allowedRoots as $root) {
+			if ($root !== false && strpos($dir . DIRECTORY_SEPARATOR, $root . DIRECTORY_SEPARATOR) === 0) {
+				$insideAllowedRoot = true;
+				break;
+			}
+		}
+		if (!$insideAllowedRoot) {
+			throw new Exception(__('401 - Accès non autorisé10', __FILE__));
+		}
+
+		$args = array();
+		foreach ((array) glob($dir . '/' . basename($pathfile)) as $match) {
+			$real = realpath($match);
+			if ($real !== false && is_file($real) && strpos($real, $dir . DIRECTORY_SEPARATOR) === 0) {
+				$args[] = escapeshellarg(basename($real));
+			}
+		}
+		if (count($args) === 0) {
+			throw new Exception(__('Aucun fichier a telecharger.', __FILE__));
+		}
+
+		$archive = jeedom::getTmpFolder('downloads') . '/archive.tar.gz';
+		system('cd ' . escapeshellarg($dir) . ' && tar cfz ' . escapeshellarg($archive)
+			. ' ' . implode(' ', $args) . ' > /dev/null 2>&1');
+		$pathfile = $archive;
 	}
 	$path_parts = pathinfo($pathfile);
 	header('Content-Type: application/octet-stream');

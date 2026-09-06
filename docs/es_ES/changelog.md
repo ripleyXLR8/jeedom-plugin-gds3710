@@ -1,5 +1,47 @@
 # Change Log - Plugin GDS 3710
 
+### 06/09/2026 (fiabilité des écritures)
+- Les commandes **LDC ON / OFF sont conservées**, après une fausse alerte. Le portier ne renvoie `P10573` dans aucune de ses sections de configuration, ce qui avait fait conclure à tort que le réglage n'existait plus. Il est en réalité bien accepté et appliqué, mais **seulement au redémarrage suivant** — d'où un bouton qui paraissait sans effet. Les commandes sont recréées sur les installations où la version précédente les avait supprimées, et la relecture ne signale plus ce paramètre comme une erreur.
+- **Toute écriture de configuration est désormais relue** sur le portier. Un paramètre inconnu de l'appareil est signalé dans le log au lieu de passer pour un succès.
+
+### 06/09/2026 (catalogue d'évènements)
+- Six types d'évènements ajoutés, relevés dans le firmware 1.0.13.15 du portier : `102` tentative d'ouverture non autorisée, `401` ouverture par SI, `1002` anomalie porte/serrure, `1110` accès hors planning, `1500` connexion administrateur, `1503` déconnexion administrateur.
+- Les types 102, 1002 et 1110 sont traités comme des évènements de sécurité : entrée au centre de messages et mise à jour de « Dernière alerte sécurité ».
+
+### 06/09/2026 (client SIP)
+- Le **client SIP** est disponible sur la version stable. Il permet de répondre au portier depuis le dashboard.
+- Le mot de passe du compte SIP ne transite plus par la valeur d'une commande — où il était persisté, historisé et exposé par l'API — mais par un appel authentifié soumis aux droits sur l'équipement.
+- Les six réglages de média audio et vidéo, que le widget lisait mais que l'interface n'a jamais proposés, sont désormais configurables. Ils étaient auparavant tous inactifs, ce qui empêchait toute négociation.
+- Les pré-requis (contexte sécurisé, bibliothèque chargée) sont vérifiés et signalés en clair sur le widget, au lieu d'un échec silencieux.
+- Nettoyage des valeurs de commande corrompues par un défaut d'affichage corrigé en mars 2023 mais jamais purgé.
+
+### 06/09/2026 (bloc C)
+- Les évènements sont **décomposés** en neuf commandes exploitables : code, libellé, date, badge, utilisateur, porte, numéro SIP, dernière personne entrée et dernière alerte sécurité. Le JSON brut reste disponible.
+- Les évènements de sécurité (arrachement, contrainte, alarme d'entrée, PIN erronés) écrivent au centre de messages.
+- Les commandes d'évènement portent un nom lisible : `1102 - Reboot` au lieu de `1102`.
+- Sept **réglages du portier** pilotables : luminosité de la LED du clavier au repos et à l'appui, luminosité, contraste et saturation de l'image, délai avant capture, raccrochage après ouverture distante. Chaque réglage associe une commande info et un curseur.
+- **Planning du rétroéclairage blanc** : activation, horaires, et lecture de l'état.
+
+### 06/09/2026 (bloc B)
+- Correction du bug « Une commande portant ce nom (Reboot) existe déjà », ouvert depuis 2020 : la collation de la base rendait indistinguables la commande action `reboot` et la commande d'évènement `Reboot`.
+- Les évènements sont désormais distribués à **tous** les équipements partageant une adresse MAC, et non plus à un seul.
+- Une adresse MAC inconnue répond 404, une requête sans type 400 — au lieu de 200 dans les deux cas.
+- Nouvelle commande **« Configurer le portier »** : écrit sur l'appareil toute la configuration de notification, puis la relit pour confirmer.
+- Remontée des **capteurs du portier** toutes les 15 minutes : entrées/sorties digitales, relais, anti-arrachement, deux températures historisées, uptime, firmware, mise à jour disponible.
+- **Purge configurable des captures**, désactivée par défaut.
+- Les échecs d'écriture de capture ne sont plus silencieux, et l'URL du flux MJPEG se répare toute seule.
+- Correction du `.htaccess`, livré sans les `Options` qu'exige sa règle de réécriture.
+
+### 06/09/2026
+- **Sécurité** : `camera.php` diffusait le flux vidéo du portier sans aucun contrôle d'accès ; il exige désormais une session Jeedom ou une clef API valide.
+- **Sécurité** : suppression de deux injections de commande shell, dans la suppression des captures et dans le téléchargement d'archives.
+- **Sécurité** : durcissement de l'endpoint de notification d'évènements — contournement de la clef API corrigé, Digest résistant au rejeu, et nouveau contrôle de l'adresse d'origine actif par défaut.
+- **Sécurité** : les mots de passe, jetons de session et URL signées ne sont plus écrits dans le log du plugin.
+- **Compatibilité PHP 8** : correction de plusieurs erreurs fatales, dont celle qui interrompait toute remontée d'évènements dès qu'un firmware émettait un type inconnu du plugin.
+- Les évènements envoyés en **GET** sont désormais acceptés, en plus du POST.
+- **Documentation** : le gabarit d'URL était incomplet — il manquait `username` et `doornum`, pourtant exploités par le plugin. Ajout des seuils de firmware réels et d'une section Sécurité.
+- Suppression de code mort (démon Python 2 jamais lancé, bibliothèque JsSIP non référencée, polices dupliquées).
+
 ### 20/09/2019
 - Correction de bugs + ajout de la possibilité d'activer le second contact sec.
 

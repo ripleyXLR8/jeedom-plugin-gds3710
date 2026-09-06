@@ -17,6 +17,16 @@
  */
 
 require_once __DIR__  . '/../../../../core/php/core.inc.php';
+include_file('core', 'authentification', 'php');
+
+/* Le widget charge cette URL en relatif depuis une page Jeedom : le cookie de session est
+ * donc transmis et isConnect() suffit. L'accès par clef API reste ouvert pour les clients
+ * qui n'ont pas de session (application mobile, tuile partagée, scénario). */
+if (!isConnect() && !jeedom::apiAccess(init('apikey')) && !jeedom::apiAccess(init('apikey'), 'gds3710')) {
+	log::add('gds3710', 'error', 'Accès non autorisé à camera.php depuis ' . (isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '?'));
+	header('HTTP/1.1 401 Unauthorized');
+	die();
+}
 
 log::add('gds3710', 'debug', 'Call to camera.php in progress.');
 
@@ -36,7 +46,7 @@ $password = $gds3710->getConfiguration('password');
 $mac = $gds3710->getConfiguration('macaddress');
 $remote_pin = 'GDS3710lDyTlHwNgZ';
 $auth_type = $gds3710->getConfiguration('auth_type');
-log::add('gds3710', 'debug', 'Config is :'.$mac." | ".$ip." | ".$password." | ".$remote_pin." | ".$auth_type);
+log::add('gds3710', 'debug', 'Config is : '.$mac.' | '.$ip.' | '.$auth_type);
 
 if($auth_type == 'challenge'){
 
@@ -50,20 +60,23 @@ if($auth_type == 'challenge'){
 	curl_setopt_array($ch, $optArray);
 	$AuthRequestResponse = curl_exec($ch);
 	log::add('gds3710', 'debug', 'Auth Request Response : '.print_r($AuthRequestResponse,true));
-	$auth_challenge = @simplexml_load_string($AuthRequestResponse);
-	log::add('gds3710', 'debug', 'Auth Challenge : '.print_r($auth_challenge, true));
+	$auth_challenge = gds3710::parseXml($AuthRequestResponse, 'flux MJPEG');
+	if ($auth_challenge === null) {
+		header('HTTP/1.1 502 Bad Gateway');
+		die();
+	}
 	$ChallengeCode = $auth_challenge->ChallengeCode[0];
 	$IDCode = $auth_challenge->IDCode[0];
 
 	$auth_response = md5($ChallengeCode.":".$remote_pin.":".$password);
 
 	$mjpeg_url = 'https://'.$ip.'/jpeg/stream?type=1&user=admin&authcode='.$auth_response.'&idcode='.$IDCode;
-	log::add('gds3710', 'debug', 'MJPEG url is : '.$mjpeg_url);
+	log::add('gds3710', 'debug', 'MJPEG url is : '.gds3710::redact($mjpeg_url));
 
 } elseif ($auth_type == 'basic'){
 
 	$mjpeg_url = 'https://admin:'.$password.'@'.$ip.'/jpeg/stream';
-	log::add('gds3710', 'debug', 'MJPEG url is : '.$mjpeg_url);
+	log::add('gds3710', 'debug', 'MJPEG url is : '.gds3710::redact($mjpeg_url));
 
 } else {
 
@@ -85,7 +98,11 @@ $opts = array(
 
 $context = stream_context_create($opts);
 set_time_limit(0);
-@apache_setenv('no-gzip', 1);
+/* apache_setenv nexiste que sous le SAPI Apache. Sous php-fpm lappel est un fatal,
+ * que loperateur @ ne masque pas. */
+if (function_exists('apache_setenv')) {
+	@apache_setenv('no-gzip', 1);
+}
 @ini_set('zlib.output_compression', 0);
 
 $fp = fopen($mjpeg_url, 'r', false, $context);
@@ -99,7 +116,10 @@ if ($fp) {
 	fclose($fp);
 } else {
 	log::add('gds3710', 'debug', 'Unable to get Camera MJPEG');
-	$d = file_get_contents("no-image-noir.png");
+	/* Le chemin etait relatif et ce fichier nexiste pas dans le depot : la branche de
+	 * repli echouait systematiquement. */
+	$fallback = __DIR__ . '/../img/no-image.png';
+	$d = file_exists($fallback) ? file_get_contents($fallback) : '';
 	Header("Content-Type: image/png");
 	Header("Content-Length: ".strlen($d));
 	header("Cache-Control: no-cache");

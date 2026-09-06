@@ -227,9 +227,33 @@
         </div>
 
         <div class="form-group">
-            <label class="col-sm-3 control-label">{{Débogage SIP :}}</label>
-            <div class="col-sm-3">
-                <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_sip_debug_enabled" checked/>{{Activer}}</label>
+            <label class="col-sm-3 control-label">{{Média acceptés sur appel entrant :}}<sup><i class="fa fa-question-circle tooltips" title="{{Ce que le client Jeedom accepte lorsque le portier l'appelle.}}" style="font-size : 1em;color:grey;"></i></sup></label>
+            <div class="col-sm-6">
+                <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_remote_call_audio_enabled" checked/>{{Audio}}</label>
+                <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_remote_call_video_enabled" checked/>{{Vidéo}}</label>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-sm-3 control-label">{{Média proposés sur appel entrant :}}<sup><i class="fa fa-question-circle tooltips" title="{{Ce que le client Jeedom propose en retour au portier. Décochez la vidéo si votre poste n'a pas de caméra.}}" style="font-size : 1em;color:grey;"></i></sup></label>
+            <div class="col-sm-6">
+                <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_remote_call_offer_audio_enabled" checked/>{{Audio}}</label>
+                <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_remote_call_offer_video_enabled" checked/>{{Vidéo}}</label>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-sm-3 control-label">{{Média sur appel sortant :}}<sup><i class="fa fa-question-circle tooltips" title="{{Ce que le client Jeedom demande lorsqu'il appelle le portier.}}" style="font-size : 1em;color:grey;"></i></sup></label>
+            <div class="col-sm-6">
+                <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_local_call_audio_enabled" checked/>{{Audio}}</label>
+                <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_local_call_video_enabled" checked/>{{Vidéo}}</label>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-sm-3 control-label">{{Débogage SIP :}}
+                <sup><i class="fas fa-question-circle tooltips" title="{{JsSIP journalise l'intégralité de sa configuration, mot de passe du compte SIP compris, dans la console du navigateur. À n'activer que le temps d'un diagnostic.}}"></i></sup>
+            </label>
+            <div class="col-sm-6">
+                <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_sip_debug_enabled"/>{{Activer}}</label>
+                <span class="text-danger">{{Expose le mot de passe SIP dans la console du navigateur.}}</span>
             </div>
         </div>
 
