@@ -30,6 +30,20 @@ io.open(sys.argv[2], 'w', encoding='utf-8', newline='\n').write(s[i+len('<script
   rm -f .widget.tmp.js /tmp/gdsjs.err
 fi
 
+# Le JavaScript de la page d equipement echappait au controle : une erreur y rend la
+# page muette, sans rien dans le log du plugin.
+echo "== syntaxe du JavaScript de la page d equipement =="
+for JS in desktop/js/*.js; do
+  case "$JS" in *jssip*) continue;; esac
+  [ -f "$JS" ] || continue
+  if docker run --rm -v "$(pwd -W 2>/dev/null || pwd)":/w -w //w node:22-alpine node --check "$JS" 2>/tmp/gdsjs2.err; then
+    echo "  OK  $JS"
+  else
+    echo "  ERREUR DE SYNTAXE dans $JS :"; sed -n "1,6p" /tmp/gdsjs2.err | sed "s/^/    /"; fail=1
+  fi
+  rm -f /tmp/gdsjs2.err
+done
+
 # Le README et docs/ ont deja diverge deux fois : une fois le README seul mis a jour,
 # une fois docs/ seul. Ces deux oublis ont laisse aux utilisateurs une documentation
 # fausse la ou elle comptait. Ce controle rend l oubli impossible a manquer.

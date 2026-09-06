@@ -93,6 +93,45 @@ function chargerValeursCommandes(_id) {
     });
 }
 
+
+/* Liste des commandes info de l equipement, sous forme d options. Le coeur la
+   construit par un appel asynchrone ; on ne l emet qu une fois et on sert toutes les
+   lignes avec le meme resultat, la ou le tableau en compte une quarantaine. */
+var optionsInfo = null;
+var optionsInfoAttente = [];
+
+function reinitialiserOptionsInfo() {
+    optionsInfo = null;
+    optionsInfoAttente = [];
+}
+
+function avecOptionsInfo(_rappel) {
+    if (optionsInfo !== null) {
+        _rappel(optionsInfo);
+        return;
+    }
+    optionsInfoAttente.push(_rappel);
+    if (optionsInfoAttente.length > 1) {
+        return;                       // une requete est deja en vol
+    }
+    jeedom.eqLogic.buildSelectCmd({
+        id: $('.eqLogicAttr[data-l1key=id]').value(),
+        filter: { type: 'info' },
+        error: function (error) {
+            optionsInfoAttente = [];
+            $('#div_alert').showAlert({ message: error.message, level: 'danger' });
+        },
+        success: function (result) {
+            optionsInfo = result;
+            var enAttente = optionsInfoAttente;
+            optionsInfoAttente = [];
+            for (var i = 0; i < enAttente.length; i++) {
+                enAttente[i](result);
+            }
+        }
+    });
+}
+
 function addCmdToTable(_cmd) {
     if (!isset(_cmd)) {
         var _cmd = {configuration: {}};
@@ -139,17 +178,26 @@ function addCmdToTable(_cmd) {
     tr += '</td>';
     tr += '</tr>';
     $('#table_cmd tbody').append(tr);
-    $('#table_cmd tbody tr:last').setValues(_cmd, '.cmdAttr');
+    /* Reference capturee maintenant : le rappel asynchrone plus bas s executera alors
+       que d autres lignes auront ete ajoutees, et « tr:last » ne designerait plus
+       celle-ci. */
+    var ligne = $('#table_cmd tbody tr:last');
+    ligne.setValues(_cmd, '.cmdAttr');
     if (isset(_cmd.type)) {
-        $('#table_cmd tbody tr:last .cmdAttr[data-l1key=type]').value(init(_cmd.type));
+        ligne.find('.cmdAttr[data-l1key=type]').value(init(_cmd.type));
     }
+    jeedom.cmd.changeType(ligne, init(_cmd.subType));
 
-    jeedom.cmd.changeType($('#table_cmd tbody tr:last'), init(_cmd.subType));
-    /* changeType() vient de reconstruire la liste : on y repose la valeur
-       enregistree, que setValues() avait appliquee a un select encore vide. */
-    if (isset(_cmd.value)) {
-        $('#table_cmd tbody tr:last .cmdAttr[data-l1key=value]').value(init(_cmd.value));
-    }
+    avecOptionsInfo(function (options) {
+        ligne.find('.cmdAttr[data-l1key=value]').append(options);
+        /* Les valeurs sont reposees maintenant que le select porte ses options :
+           le premier setValues() s appliquait a une liste encore vide. */
+        ligne.setValues(_cmd, '.cmdAttr');
+        if (isset(_cmd.type)) {
+            ligne.find('.cmdAttr[data-l1key=type]').value(init(_cmd.type));
+        }
+        jeedom.cmd.changeType(ligne, init(_cmd.subType));
+    });
 }
 
 $('.addAction').on('click', function () {
@@ -269,6 +317,10 @@ function saveEqLogic(_eqLogic) {
 
 
 function printEqLogic(_eqLogic) {
+    /* La liste des commandes info appartient a l equipement affiche : on la jette en
+       changeant d equipement. */
+    reinitialiserOptionsInfo();
+
     /* Differe : le coeur appelle printEqLogic AVANT de construire les lignes du
        tableau. Sans ce report, la reponse pourrait arriver avant qu il y ait des
        lignes a remplir. */
