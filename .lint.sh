@@ -20,6 +20,8 @@ MARQUEURS=(
   "Conserver les captures"
   "contrôle d'adresse d'origine|contrôle de l'adresse d'origine"
   "1.0.11.18"
+  "Dernière personne entrée"
+  "Réglages du portier"
   "DOOR_NUM"
 )
 for m in "${MARQUEURS[@]}"; do

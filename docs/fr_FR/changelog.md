@@ -1,5 +1,12 @@
 # Change Log - Plugin GDS 3710
 
+### 06/09/2026 (bloc C)
+- Les évènements sont **décomposés** en neuf commandes exploitables : code, libellé, date, badge, utilisateur, porte, numéro SIP, dernière personne entrée et dernière alerte sécurité. Le JSON brut reste disponible.
+- Les évènements de sécurité (arrachement, contrainte, alarme d'entrée, PIN erronés) écrivent au centre de messages.
+- Les commandes d'évènement portent un nom lisible : `1102 - Reboot` au lieu de `1102`.
+- Sept **réglages du portier** pilotables : luminosité de la LED du clavier au repos et à l'appui, luminosité, contraste et saturation de l'image, délai avant capture, raccrochage après ouverture distante. Chaque réglage associe une commande info et un curseur.
+- **Planning du rétroéclairage blanc** : activation, horaires, et lecture de l'état.
+
 ### 06/09/2026 (bloc B)
 - Correction du bug « Une commande portant ce nom (Reboot) existe déjà », ouvert depuis 2020 : la collation de la base rendait indistinguables la commande action `reboot` et la commande d'évènement `Reboot`.
 - Les évènements sont désormais distribués à **tous** les équipements partageant une adresse MAC, et non plus à un seul.

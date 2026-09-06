@@ -89,6 +89,46 @@ Le plugin relève toutes les 15 minutes les informations que le portier expose d
 
 Le champ **« Conserver les captures pendant (jours) »** supprime chaque nuit les captures plus anciennes. À `0`, valeur par défaut, aucune purge n'a lieu : c'est le comportement historique, où le répertoire grossit indéfiniment.
 
+# Exploiter les évènements
+
+Chaque évènement du portier reste disponible sous sa forme brute — le JSON complet, dans la commande du type concerné et dans « Last event ». Mais neuf commandes portent désormais les mêmes informations **décomposées**, renseignées à chaque évènement quel que soit son type :
+
+| Commande | Contenu |
+|---|---|
+| Dernier évènement - code | le code numérique, par exemple `301` |
+| Dernier évènement - libellé | son intitulé, par exemple `Open Door via Private PIN` |
+| Dernier évènement - date | l'horodatage transmis par le portier |
+| Dernier badge | numéro du badge RFID utilisé |
+| Dernier utilisateur | nom associé au badge ou au code PIN |
+| Dernière porte utilisée | numéro de porte |
+| Dernier numéro SIP | extension appelée |
+| Dernière personne entrée | qui est entré, et quand |
+| Dernière alerte sécurité | dernier évènement de sécurité |
+
+**Dernière personne entrée** ne se met à jour que sur les évènements où quelqu'un s'est identifié pour ouvrir : elle retient le nom, à défaut le numéro de badge, à défaut le libellé. Un appui sur la sonnette n'efface donc pas le nom de la personne entrée juste avant.
+
+**Dernière alerte sécurité** couvre l'arrachement, l'alarme sous contrainte, l'alarme d'entrée digitale et les codes PIN erronés répétés. Ces quatre évènements écrivent aussi un avertissement dans le log et une entrée au centre de messages.
+
+Les commandes d'évènement, autrefois nommées par leur simple code (`100`, `301`, `1102`), s'appellent maintenant `1102 - Reboot`. Un nom que vous avez personnalisé n'est pas écrasé.
+
+# Réglages du portier
+
+Sept réglages sont pilotables depuis Jeedom. Chacun se présente en deux commandes : une **info** qui affiche la valeur réellement lue sur l'appareil, et un **curseur** qui l'écrit.
+
+| Réglage | Plage |
+|---|---|
+| LED clavier - veille | 1 à 255 |
+| LED clavier - appui | 1 à 255 |
+| Image - luminosité, contraste, saturation | 0 à 128 |
+| Délai avant capture après appui sonnette | 0 à 10 s |
+| Raccrochage après ouverture distante | 3 à 1800 s |
+
+Le **planning du rétroéclairage blanc** dispose de son propre jeu : un état, les horaires configurés, deux actions pour activer ou désactiver le planning, et une commande message pour définir l'intervalle au format `HHMMSS`. Couplé au coucher du soleil, c'est le cas « éclairer l'entrée la nuit ».
+
+Toute écriture est bornée à la plage du réglage, puis relue sur l'appareil avant que la commande info ne soit mise à jour : une valeur refusée par le portier n'apparaîtra jamais comme appliquée.
+
+⚠️ Le planning du rétroéclairage exige le **firmware 1.0.13.9 ou supérieur**, et les réglages de luminosité de la LED le **1.0.13.5**. Sur un firmware antérieur, ces commandes resteront sans effet.
+
 # Sécurité
 
 Deux protections encadrent la remontée d'évènements.

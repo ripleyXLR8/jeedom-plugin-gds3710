@@ -28,6 +28,8 @@ Ce plugin permet l'intégration du portier GrandStream GDS3710 dans Jeedom. Il p
 - De configurer le portier lui-même en une commande, sans saisie manuelle.
 - De remonter les capteurs du portier : entrées et sorties digitales, état des relais, anti-arrachement, températures, uptime, version de firmware et disponibilité d'une mise à jour.
 - De purger automatiquement les captures au-delà d'une durée de conservation.
+- D'exploiter les évènements décomposés en commandes : code, libellé, date, badge, utilisateur, porte, numéro SIP, dernière personne entrée et dernière alerte sécurité.
+- De piloter les réglages du portier : luminosité de la LED du clavier, luminosité, contraste et saturation de l'image, délai avant capture, raccrochage après ouverture, et le planning du rétroéclairage blanc.
 - (Beta) D'enregistrer un client SIP directement depuis Jeedom et de répondre aux appels directement sur le dashboard.
 
 Ce plugin est basé sur la document fourni par GrandStream : http://www.grandstream.com/sites/default/files/Resources/gds37xx_http_api.pdf
@@ -189,6 +191,18 @@ Le plugin vous permet de transmettre des captures du flux MJPEG par l'intermédi
 | Conserver les captures pendant (jours) | Purge nocturne au-delà de cette durée. `0` désactive la purge, comportement historique. |
 | Autoriser les utilisateurs / utilisateurs limités à effacer les captures | Les administrateurs peuvent toujours effacer. |
 | Répertoire d'enregistrement des captures | Doit être accessible en écriture à l'utilisateur du serveur web. |
+
+# Exploiter les évènements
+
+Chaque évènement reste disponible sous sa forme brute, mais neuf commandes portent désormais les mêmes informations décomposées : code, libellé, date, badge, utilisateur, porte, numéro SIP, **Dernière personne entrée** et **Dernière alerte sécurité**.
+
+« Dernière personne entrée » ne se met à jour que sur les évènements où quelqu'un s'est identifié, et retient le nom, à défaut le badge. Un appui sur la sonnette n'efface donc pas le nom précédent.
+
+# Réglages du portier
+
+Sept réglages pilotables, chacun sous forme d'une commande info affichant la valeur lue sur l'appareil et d'un curseur qui l'écrit : LED du clavier au repos et à l'appui, luminosité, contraste et saturation de l'image, délai avant capture, raccrochage après ouverture distante. Le planning du rétroéclairage blanc dispose de ses propres commandes.
+
+Toute écriture est bornée puis relue avant mise à jour. ⚠️ Le planning du rétroéclairage exige le firmware **1.0.13.9**, les réglages de LED le **1.0.13.5**.
 
 ---
 
