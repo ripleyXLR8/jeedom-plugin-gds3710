@@ -1378,6 +1378,8 @@ class gds3710 extends eqLogic {
             'close'              => 'doorctrl0',
             'open2'              => 'doorctrl1',
             'close2'             => 'doorctrl1',
+            'backlight_on'       => 'backlight_schedule',
+            'backlight_off'      => 'backlight_schedule',
             'backlight_hours_set'=> 'backlight_hours',
         );
         $posees = 0;
@@ -1400,13 +1402,48 @@ class gds3710 extends eqLogic {
                 continue;
             }
             $cmd->setValue($info->getId());
+            $this->poserWidgetBinaire($cmd, $info);
             $cmd->save();
             $posees++;
+        }
+
+        /* Les liaisons deja en place mais posees avant l arrivee de ce widget doivent
+         * en beneficier aussi : on repasse dessus sans toucher a la liaison. */
+        foreach ($liaisons as $action => $etat) {
+            $cmd = $this->getCmd('action', $action);
+            $info = $this->getCmd('info', $etat);
+            if (is_object($cmd) && is_object($info)
+                && trim((string) $cmd->getValue()) === (string) $info->getId()) {
+                if ($this->poserWidgetBinaire($cmd, $info)) {
+                    $cmd->save();
+                }
+            }
         }
         if ($posees > 0) {
             log::add('gds3710', 'info', $posees . ' commande(s) reliee(s) a leur etat.');
         }
         return $posees;
+    }
+
+    /* Un bouton dont l etat lie est binaire s affiche en bouton binaire : il montre
+     * alors la position courante au lieu d etre un simple declencheur. Le reglage
+     * n est pose que sur un widget encore par defaut, pour ne pas defaire un choix
+     * de l utilisateur. */
+    private function poserWidgetBinaire($_cmd, $_info) {
+        if ($_info->getSubType() !== 'binary') {
+            return false;
+        }
+        /* setTemplate() prefixe par « core:: » : la valeur stockee pour un widget non
+         * personnalise est donc « core::default », pas « default ». */
+        $parDefaut = array('', 'default', 'core::default');
+        $pose = false;
+        foreach (array('dashboard', 'mobile') as $support) {
+            if (in_array(trim((string) $_cmd->getTemplate($support, '')), $parDefaut, true)) {
+                $_cmd->setTemplate($support, 'binaryDefault');
+                $pose = true;
+            }
+        }
+        return $pose;
     }
 
     /* Releve periodique des capteurs et reparation de lURL du flux.
