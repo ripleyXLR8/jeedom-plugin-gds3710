@@ -20,7 +20,10 @@
     </center>
   </div>
 
-  <script src="/plugins/gds3710/desktop/js/jssip-3.4.3.min.js"></script>
+  <!-- La bibliotheque vit dans core/template/ et non dans desktop/ : le .htaccess de
+       Jeedom refuse en 403 tout fichier .js servi depuis un chemin contenant /desktop/,
+       ce qui empechait JsSIP de se charger et rendait ce widget inoperant. -->
+  <script src="/plugins/gds3710/core/template/js/jssip-3.4.3.min.js"></script>
 
   <script>
 
