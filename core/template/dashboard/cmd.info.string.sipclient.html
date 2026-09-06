@@ -24,12 +24,19 @@
 
   <script>
 
-    var settings;
-    try {
-        settings = JSON.parse('#state#');
-    } catch(e) {
-        alert(e);
+    /* Signale un probleme sur le bouton du widget plutot que dans une alerte modale.
+     * Une fenetre modale bloque toute la page et n'explique rien a qui ne lit pas la console. */
+    function gds3710SipProblem(message) {
+      var button = $('.cmd[data-cmd_id=#id#] .action').eq(0);
+      button.css('color', 'rgb(185, 58, 62)');
+      button.attr('title', message);
+      button.text('SIP : ' + message);
+      console.log('GDS3710 SIP : ' + message);
     }
+
+    /* Tout le client vit dans cette fonction : elle n'est appelee qu'une fois la
+     * configuration recue et les pre-requis verifies. */
+    function gds3710InitSip(settings) {
 
     if(settings.is_sip_debug_enabled == 1){
       JsSIP.debug.enable('JsSIP:*');
@@ -512,6 +519,51 @@
     });
 
     sipClient.start();
+
+    }
+
+    /* Chargement de la configuration.
+     *
+     * Elle contient le mot de passe du compte SIP et ne transite donc plus par la valeur
+     * de la commande, qui est persistee en base, historisee et exposee par l'API. Elle est
+     * demandee par un appel ajax soumis a la session Jeedom et aux droits sur l'equipement.
+     * La valeur de la commande ne porte plus que l'identifiant de l'equipement. */
+    (function () {
+
+      if (typeof JsSIP === 'undefined') {
+        gds3710SipProblem("la bibliotheque JsSIP n'a pas ete chargee");
+        return;
+      }
+
+      /* Pre-requis le plus frequemment rencontre : les navigateurs refusent l'acces au
+       * micro et a la camera hors contexte securise. Sans ce controle, l'appel echouait
+       * sans explication et il fallait ouvrir la console pour le comprendre. */
+      var secure = (window.location.protocol === 'https:'
+                 || window.location.hostname === 'localhost'
+                 || window.location.hostname === '127.0.0.1');
+      if (!secure || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        gds3710SipProblem("Jeedom doit etre servi en HTTPS pour autoriser le micro et la camera");
+        return;
+      }
+
+      $.ajax({
+        type: 'POST',
+        url: 'plugins/gds3710/core/ajax/gds3710.ajax.php',
+        data: { action: 'getSipConfig', id: '#state#' },
+        dataType: 'json',
+        error: function (request, status, error) {
+          gds3710SipProblem('configuration inaccessible (' + status + ')');
+        },
+        success: function (data) {
+          if (data.state != 'ok') {
+            gds3710SipProblem(data.result);
+            return;
+          }
+          gds3710InitSip(data.result);
+        }
+      });
+
+    })();
 
   </script>
 </div>

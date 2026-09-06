@@ -520,6 +520,54 @@ class gds3710 extends eqLogic {
         return true;
     }
 
+    /* ------------------------------------------------------------------ *
+     *  Client SIP                                                         *
+     * ------------------------------------------------------------------ */
+
+    /* Le client SIP est considere configure des que le websocket et lURI sont
+     * renseignes. Sans cela la commande reste presente mais inerte. */
+    public function isSipConfigured() {
+        return trim((string) $this->getConfiguration('client_sip_websocket')) !== ''
+            && trim((string) $this->getConfiguration('client_sip_uri')) !== '';
+    }
+
+    /* Configuration transmise au widget.
+     *
+     * ATTENTION : elle contient le mot de passe du compte SIP. Elle ne doit JAMAIS
+     * etre placee dans la valeur dune commande : une valeur de commande est persistee
+     * en base, historisee, lisible par tout utilisateur voyant la tuile et exposee par
+     * lAPI de Jeedom. Elle est servie par un appel ajax authentifie, reserve aux
+     * utilisateurs ayant des droits sur cet equipement. */
+    public function getSipConfig() {
+        $flags = array(
+            'is_sip_debug_enabled'               => 0,
+            'is_remote_call_audio_enabled'       => 1,
+            'is_remote_call_video_enabled'       => 1,
+            'is_remote_call_offer_audio_enabled' => 1,
+            'is_remote_call_offer_video_enabled' => 1,
+            'is_local_call_audio_enabled'        => 1,
+            'is_local_call_video_enabled'        => 1,
+        );
+        $config = array(
+            'client_sip_websocket' => (string) $this->getConfiguration('client_sip_websocket'),
+            'client_sip_uri'       => (string) $this->getConfiguration('client_sip_uri'),
+            'client_sip_password'  => (string) $this->getConfiguration('client_sip_password'),
+            'portier_sip_uri'      => (string) $this->getConfiguration('portier_sip_uri'),
+        );
+        foreach ($flags as $key => $default) {
+            $value = $this->getConfiguration($key, $default);
+            $config[$key] = ($value === '' || $value === null) ? (bool) $default : (bool) $value;
+        }
+        /* Le client SIP de JsSIP produit un INVITE tres long. Certains serveurs le
+         * refusent au-dela dune taille limite : ces deux reglages permettent de
+         * lalleger. Voir la documentation. */
+        $codecs = trim((string) $this->getConfiguration('sip-codec-removal'));
+        $lines = trim((string) $this->getConfiguration('sip-invite-line-removal'));
+        $config['codec_to_remove'] = $codecs === '' ? array() : explode(',', $codecs);
+        $config['invite_line_to_remove'] = $lines === '' ? array() : explode(',', $lines);
+        return $config;
+    }
+
     public static function get_GDS3710_event_list()
     {
         $return = array (
@@ -882,6 +930,22 @@ class gds3710 extends eqLogic {
             $info->setEqLogic_id($this->getId());
             $info->save(); 
         }
+
+        // Client SIP. La valeur ne porte que l'id de l'équipement : le widget s'en
+        // sert pour aller chercher sa configuration par un appel ajax authentifié.
+        $sip = $this->getCmd('info', 'sip_client');
+        if (!is_object($sip)) {
+            $sip = new gds3710Cmd();
+            $sip->setIsVisible(0);
+        }
+        $sip->setName(__('Client SIP', __FILE__));
+        $sip->setType('info');
+        $sip->setSubType('string');
+        $sip->setLogicalId('sip_client');
+        $sip->setTemplate('dashboard', 'sipclient');
+        $sip->setEqLogic_id($this->getId());
+        $sip->save();
+        $sip->event((string) $this->getId());
 
         // Réglages de confort : une commande info + un curseur qui l'écrit
         foreach (gds3710::get_setting_list() as $lid => $def) {
