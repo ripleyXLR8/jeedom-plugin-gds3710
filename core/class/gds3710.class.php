@@ -243,6 +243,133 @@ class gds3710 extends eqLogic {
         );
     }
 
+    /* ------------------------------------------------------------------ *
+     *  Configuration automatique de la notification d evenements          *
+     * ------------------------------------------------------------------ */
+
+    /* Ecrit des P-values sur le portier.
+     *
+     * IMPERATIVEMENT en POST : une valeur contenant des & (le gabarit dURL en contient
+     * sept) est tronquee au premier & si elle part en GET. Le portier decode dabord
+     * lencodage pourcent, puis re-decoupe sa propre chaine de requete. Il repond
+     * ResCode 0 / OK malgre la troncature, donc lecriture doit toujours etre relue. */
+    private static function httpPostConfig($_ip, $_cookie, $_params) {
+        $body = 'cmd=set';
+        foreach ($_params as $key => $value) {
+            $body .= '&' . $key . '=' . urlencode((string) $value);
+        }
+        $ch = curl_init();
+        curl_setopt_array($ch, array(
+            CURLOPT_URL => 'https://' . $_ip . '/goform/config',
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $body,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_SSL_VERIFYHOST => false,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_COOKIE => $_cookie,
+            CURLOPT_TIMEOUT => 15,
+        ));
+        $result = curl_exec($ch);
+        curl_close($ch);
+        return $result;
+    }
+
+    /* Gabarit attendu. USERNAME et DOOR_NUM manquaient dans la documentation historique
+     * alors que le plugin les exploite. */
+    const EVENT_URL_TEMPLATE = 'mac=${MAC}&content=${WARNING_MSG}&type=${TYPE}&date=${DATE}&card=${CARDID}&sip=${SIPNUM}&username=${USERNAME}&doornum=${DOOR_NUM}';
+
+    /* Calcule la configuration que le portier devrait porter pour parler a ce Jeedom. */
+    public function expectedEventNotificationConfig() {
+        $internal = (string) network::getNetworkAccess('internal');
+        if (strpos($internal, '://') === false) {
+            return null;
+        }
+        list($scheme, $host) = explode('://', $internal, 2);
+        $host = rtrim($host, '/');
+
+        $login = trim((string) config::byKey('login', 'gds3710'));
+        $password = (string) config::byKey('password', 'gds3710');
+        if ($login === '') {
+            $login = 'jeedom';
+            config::save('login', $login, 'gds3710');
+        }
+        if ($password === '') {
+            $password = substr(md5(uniqid('', true) . mt_rand()), 0, 16);
+            config::save('password', $password, 'gds3710');
+        }
+
+        return array(
+            'P15410' => '1',                                   // notification activee
+            'P15417' => ($scheme === 'https' ? '2' : '1'),      // 1 = HTTP, 2 = HTTPS
+            'P15413' => $host . '/plugins/gds3710/core/php/jeeGDS3710.php',
+            'P15414' => $login,
+            'P15415' => $password,
+            'P15416' => self::EVENT_URL_TEMPLATE,
+            'P15553' => '0',                                   // POST
+        );
+    }
+
+    /* Compare la configuration du portier a celle attendue. Renvoie les ecarts.
+     * P15415 est exclu : le portier ne restitue jamais le mot de passe en clair. */
+    public function checkEventNotificationConfig() {
+        $expected = $this->expectedEventNotificationConfig();
+        if ($expected === null) {
+            return null;
+        }
+        $current = $this->readConfigSection('log');
+        if ($current === null) {
+            return null;
+        }
+        $diff = array();
+        foreach ($expected as $key => $value) {
+            if ($key === 'P15415') {
+                continue;
+            }
+            $got = isset($current[$key]) ? html_entity_decode($current[$key], ENT_QUOTES, 'UTF-8') : '';
+            if ($got !== $value) {
+                $diff[$key] = array('actuel' => $got, 'attendu' => $value);
+            }
+        }
+        return $diff;
+    }
+
+    /* Pousse la configuration puis la relit pour confirmer. */
+    public function pushEventNotificationConfig() {
+        $ip = trim((string) $this->getConfiguration('ip'));
+        if ($ip === '') {
+            log::add('gds3710', 'error', 'Adresse IP du portier absente : configuration impossible.');
+            return false;
+        }
+        $expected = $this->expectedEventNotificationConfig();
+        if ($expected === null) {
+            log::add('gds3710', 'error', 'Adresse interne de Jeedom introuvable. Renseignez-la dans Reglages > Systeme > Configuration > Reseaux.');
+            return false;
+        }
+        $cookie = $this->openSession();
+        if ($cookie === null) {
+            return false;
+        }
+
+        self::httpPostConfig($ip, $cookie, $expected);
+        config::save('password_protection', 1, 'gds3710');
+
+        $diff = $this->checkEventNotificationConfig();
+        if ($diff === null) {
+            log::add('gds3710', 'error', 'Configuration ecrite mais relecture impossible.');
+            return false;
+        }
+        if (count($diff) > 0) {
+            foreach ($diff as $key => $d) {
+                log::add('gds3710', 'error', 'Ecriture non confirmee pour ' . $key
+                    . ' : lu "' . $d['actuel'] . '", attendu "' . $d['attendu'] . '".');
+            }
+            return false;
+        }
+        log::add('gds3710', 'info', 'Portier ' . $this->getHumanName() . ' configure pour publier ses evenements vers '
+            . $expected['P15413'] . ' (relecture confirmee).');
+        return true;
+    }
+
     public static function get_GDS3710_event_list()
     {
         $return = array (
@@ -598,6 +725,20 @@ class gds3710 extends eqLogic {
             $info->save(); 
         }
 
+        // Création de la commande de configuration automatique du portier
+        $configure = $this->getCmd('action', 'configureDoorbell');
+        if (!is_object($configure)) {
+            $configure = new gds3710Cmd();
+        }
+        $configure->setName(__('Configurer le portier', __FILE__));
+        $configure->setEqLogic_id($this->getId());
+        $configure->setLogicalId('configureDoorbell');
+        $configure->setType('action');
+        $configure->setSubType('other');
+        $configure->setDisplay('icon', '<i class="fas fa-cogs"></i>');
+        $configure->setIsVisible(0);
+        $configure->save();
+
         /* Capteurs releves par cmd=get&type=sysinfo. Le plugin nappelait jamais cette
          * requete alors quelle expose gratuitement les entrees/sorties digitales, letat
          * des relais, deux temperatures, luptime et la version de firmware. */
@@ -648,6 +789,21 @@ class gds3710 extends eqLogic {
             $info = $eq->readConfigSection('sysinfo');
             if ($info === null) {
                 continue;
+            }
+
+            /* Un reset du portier, ou un changement dadresse de Jeedom, rendait la
+             * remontee d evenements muette sans aucun signe. On le detecte au lieu de
+             * laisser lutilisateur le decouvrir des mois plus tard. */
+            $drift = $eq->checkEventNotificationConfig();
+            if (is_array($drift) && count($drift) > 0) {
+                $keys = implode(', ', array_keys($drift));
+                log::add('gds3710', 'warning', 'La configuration de notification du portier ' . $eq->getHumanName()
+                    . ' ne correspond plus a ce Jeedom (' . $keys . '). Utilisez la commande « Configurer le portier ».');
+                if (cache::byKey('gds3710::drift::' . $eq->getId())->getValue(0) != 1) {
+                    cache::set('gds3710::drift::' . $eq->getId(), 1, 86400);
+                    message::add('gds3710', __('Le portier ', __FILE__) . $eq->getHumanName()
+                        . __(' ne publie plus ses evenements vers ce Jeedom. Lancez la commande « Configurer le portier » de l equipement.', __FILE__));
+                }
             }
             foreach (gds3710::get_sensor_list() as $lid => $def) {
                 if (!array_key_exists($lid, $info)) {
@@ -1216,6 +1372,9 @@ class gds3710Cmd extends cmd {
                 break;
             case 'reboot':
                 $this->reboot();
+                break;
+            case 'configureDoorbell':
+                $eqLogic->pushEventNotificationConfig();
                 break;
             case 'sendSnapshot':
                 if (!isset($_options['title'])) {
