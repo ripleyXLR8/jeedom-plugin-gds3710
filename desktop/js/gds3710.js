@@ -104,6 +104,11 @@ function addCmdToTable(_cmd) {
     tr += '<td>';
     tr += '<span class="cmdAttr" data-l1key="id" style="display:none;"></span>';
     tr += '<input class="cmdAttr form-control input-sm" data-l1key="name" style="width : 140px;" placeholder="{{Nom}}">';
+    /* Commande info liee. Jeedom peuple et revele ce select depuis changeType(), pour
+       les seules commandes action : il porte l etat que le bouton modifie. */
+    tr += '<select class="cmdAttr form-control input-sm" data-l1key="value" style="display:none;margin-top:5px;width:140px;" title="{{Commande information liée}}">';
+    tr += '<option value="">{{Aucune}}</option>';
+    tr += '</select>';
     tr += '</td>';
     tr += '<td>';
     tr += '<span class="type" type="' + init(_cmd.type) + '">' + jeedom.cmd.availableType() + '</span>';
@@ -140,6 +145,11 @@ function addCmdToTable(_cmd) {
     }
 
     jeedom.cmd.changeType($('#table_cmd tbody tr:last'), init(_cmd.subType));
+    /* changeType() vient de reconstruire la liste : on y repose la valeur
+       enregistree, que setValues() avait appliquee a un select encore vide. */
+    if (isset(_cmd.value)) {
+        $('#table_cmd tbody tr:last .cmdAttr[data-l1key=value]').value(init(_cmd.value));
+    }
 }
 
 $('.addAction').on('click', function () {
