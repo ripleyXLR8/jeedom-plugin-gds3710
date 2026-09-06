@@ -370,6 +370,77 @@ class gds3710 extends eqLogic {
         return true;
     }
 
+    /* ------------------------------------------------------------------ *
+     *  Decomposition des evenements                                       *
+     * ------------------------------------------------------------------ */
+
+    /* Chaque evenement etait stocke tel quel, en JSON brut, dans une commande string
+     * invisible. Inexploitable dans un scenario ou sur une tuile sans passer par des
+     * fonctions de manipulation de chaine. Ces commandes portent les memes donnees,
+     * decomposees. Elles sappliquent a tout evenement, quel que soit son type. */
+    public static function get_event_detail_list() {
+        return array(
+            'last_event_type'     => array('name' => 'Dernier évènement - code'),
+            'last_event_message'  => array('name' => 'Dernier évènement - libellé'),
+            'last_event_date'     => array('name' => 'Dernier évènement - date'),
+            'last_card'           => array('name' => 'Dernier badge'),
+            'last_username'       => array('name' => 'Dernier utilisateur'),
+            'last_doornum'        => array('name' => 'Dernière porte utilisée'),
+            'last_sip'            => array('name' => 'Dernier numéro SIP'),
+            'last_person_in'      => array('name' => 'Dernière personne entrée'),
+            'last_security_alert' => array('name' => 'Dernière alerte sécurité'),
+        );
+    }
+
+    /* Types dont on retient lidentite : quelquun a ouvert la porte et sest identifie. */
+    public static function get_entry_event_types() {
+        return array(100, 101, 200, 300, 301, 302, 600, 700, 800);
+    }
+
+    /* Types qui relevent de la securite et meritent une trace visible. */
+    public static function get_security_event_types() {
+        return array(1000, 1100, 1200, 1300);
+    }
+
+    /* Renseigne les commandes decomposees a partir dun evenement recu. */
+    public function dispatchEventDetails($_evt, $_type) {
+        $catalogue = gds3710::get_GDS3710_event_list();
+        $message = isset($catalogue[(string) $_type]) ? $catalogue[(string) $_type]['message'] : (string) $_type;
+
+        $values = array(
+            'last_event_type'    => (string) $_type,
+            'last_event_message' => $message,
+            'last_event_date'    => isset($_evt['date']) ? (string) $_evt['date'] : '',
+            'last_card'          => isset($_evt['card']) ? (string) $_evt['card'] : '',
+            'last_username'      => isset($_evt['username']) ? (string) $_evt['username'] : '',
+            'last_doornum'       => isset($_evt['doornum']) ? (string) $_evt['doornum'] : '',
+            'last_sip'           => isset($_evt['sip']) ? (string) $_evt['sip'] : '',
+        );
+
+        /* « Derniere personne entree » : lidentite la plus parlante disponible, et on ne
+         * lecrase pas avec du vide quand levenement nen porte pas. */
+        if (in_array((int) $_type, gds3710::get_entry_event_types(), true)) {
+            $who = $values['last_username'];
+            if ($who === '') { $who = $values['last_card'] !== '' ? __('badge ', __FILE__) . $values['last_card'] : ''; }
+            if ($who === '') { $who = $message; }
+            $values['last_person_in'] = $who . ' (' . $values['last_event_date'] . ')';
+        }
+
+        if (in_array((int) $_type, gds3710::get_security_event_types(), true)) {
+            $values['last_security_alert'] = $message . ' - ' . $values['last_event_date'];
+            log::add('gds3710', 'warning', 'Alerte securite sur ' . $this->getHumanName() . ' : ' . $message);
+            message::add('gds3710', $this->getHumanName() . ' : ' . $message
+                . ' (' . $values['last_event_date'] . ')');
+        }
+
+        foreach ($values as $lid => $value) {
+            $cmd = $this->getCmd('info', $lid);
+            if (is_object($cmd)) {
+                $this->checkAndUpdateCmd($cmd, $value);
+            }
+        }
+    }
+
     public static function get_GDS3710_event_list()
     {
         $return = array (
@@ -713,16 +784,39 @@ class gds3710 extends eqLogic {
         $cmd_array = gds3710::get_GDS3710_event_list();
         foreach ($cmd_array as $row){
             $info = $this->getCmd('info', $row['short_name']);
-            if (!is_object($info)) {
+            $isNew = !is_object($info);
+            if ($isNew) {
                 $info = new gds3710Cmd();
             }
-            $info->setName(__($row['type'], __FILE__));
+            /* Le nom historique etait le simple numero de type (« 1102 »), illisible dans
+             * une liste de 35 commandes. On le remplace par « 1102 - Reboot ». Le prefixe
+             * numerique garantit lunicite : le libelle seul entrerait en collision avec la
+             * commande action « Reboot ». Un nom deja personnalise par lutilisateur nest
+             * pas ecrase. */
+            if ($isNew || $info->getName() === (string) $row['type']) {
+                $info->setName($row['type'] . ' - ' . $row['message']);
+            }
             $info->setType('info');
             $info->setSubType('string');
             $info->setIsVisible(0);
             $info->setLogicalId($row['short_name']);
             $info->setEqLogic_id($this->getId());
             $info->save(); 
+        }
+
+        // Commandes issues de la décomposition des évènements
+        foreach (gds3710::get_event_detail_list() as $lid => $def) {
+            $cmd = $this->getCmd('info', $lid);
+            if (!is_object($cmd)) {
+                $cmd = new gds3710Cmd();
+                $cmd->setIsVisible(0);
+            }
+            $cmd->setName(__($def['name'], __FILE__));
+            $cmd->setType('info');
+            $cmd->setSubType('string');
+            $cmd->setLogicalId($lid);
+            $cmd->setEqLogic_id($this->getId());
+            $cmd->save();
         }
 
         // Création de la commande de configuration automatique du portier

@@ -290,6 +290,11 @@ if ($evtType !== '') {
             log::add('gds3710', 'debug', "Last event set to : ".$data);
         }
 
+        /* Renseigne les commandes decomposees : code, libelle, date, badge, utilisateur,
+         * porte, numero SIP, derniere personne entree et derniere alerte securite. Le JSON
+         * brut reste disponible dans « Last event » et dans la commande du type. */
+        $gds3710->dispatchEventDetails($evt, $type);
+
         $action_list = $logical_id === null ? array() : $gds3710->getConfiguration($logical_id);
         if (!is_array($action_list)) {
             $action_list = array();
