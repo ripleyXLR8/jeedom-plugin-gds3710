@@ -12,6 +12,7 @@
       <div class="namedisplay" style="font-size: 5em" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">Name</div>
       <div class="uridisplay" style="font-size: 3em" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">uri</div>
     </center>
+    <img class="previewview" style="width: 100%; border: 3px solid grey; max-height: 700px; display:none" id="previewView" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" />
     <video class="selfview" style="height: 240px; width: 320px; border: 3px solid grey; display:none" id="selfView" autoplay muted=true autoplay data-eqLogic_uid="#uid#" data-eqLogic_id="#id#"></video>
     <video class="remoteview" style="width: 100%; border: 3px solid grey; max-height: 700px; display:none" id="remoteView" autoplay data-eqLogic_uid="#uid#" data-eqLogic_id="#id#"></video>
     <center>
@@ -272,6 +273,67 @@
       });
     }
 
+    /* Apercu pendant la sonnerie. Le flux MJPEG reste connecte tant que l attribut
+     * src est renseigne : il faut donc le vider explicitement, sinon le portier
+     * conserve une session ouverte apres la fin de l appel. */
+    /* Charges utiles que le navigateur refuse de lire. La 2 est reservee par la
+     * RFC 3551 ; un serveur qui y place G726-32 rend son offre entierement
+     * illisible pour Chrome, qui rejette tout le SDP et non le seul codec. */
+    var chargesRefusees = [2];
+
+    function nettoyerSdpDistant(sdp) {
+      var lignes = sdp.split(/\r?\n/);
+      var sortie = [];
+      var retires = [];
+
+      for (var i = 0; i < lignes.length; i++) {
+        var ligne = lignes[i];
+
+        var attribut = ligne.match(/^a=(?:rtpmap|fmtp|rtcp-fb):(\d+)[ :]/);
+        if (attribut && chargesRefusees.indexOf(parseInt(attribut[1], 10)) !== -1) {
+          if (ligne.indexOf('a=rtpmap:') === 0) {
+            retires.push(ligne.substring(2));
+          }
+          continue;
+        }
+
+        if (ligne.indexOf('m=') === 0) {
+          var champs = ligne.split(' ');
+          var gardes = champs.slice(0, 3);
+          for (var j = 3; j < champs.length; j++) {
+            if (chargesRefusees.indexOf(parseInt(champs[j], 10)) === -1) {
+              gardes.push(champs[j]);
+            }
+          }
+          ligne = gardes.join(' ');
+        }
+
+        sortie.push(ligne);
+      }
+
+      if (retires.length > 0) {
+        console.log('JsSIP : offre distante nettoyee, codec(s) illisibles par le '
+          + 'navigateur retires : ' + retires.join(', '));
+      }
+      return sortie.join('\r\n');
+    }
+
+    function ouvrirApercu() {
+      if (!settings.preview_url) {
+        return;
+      }
+      previewView.src = settings.preview_url + '&t=' + Date.now();
+      $(".previewview[data-eqLogic_id=#id#]").show();
+      console.log('JsSIP : apercu du portier affiche pendant la sonnerie.');
+    }
+
+    function fermerApercu() {
+      $(".previewview[data-eqLogic_id=#id#]").hide();
+      if (previewView.getAttribute('src')) {
+        previewView.removeAttribute('src');
+      }
+    }
+
     function pickUpCall(){
       console.log("JsSip : User Action - Picking-Up Call.");
 
@@ -284,7 +346,13 @@
          * pas decroche et le widget ne doit pas se croire en communication. */
         sipClientState.sipOnCall = true;
 
-        var incomingCalloptions = { 'mediaConstraints' : mediaConstraints };
+        var incomingCalloptions = {
+          'mediaConstraints' : mediaConstraints,
+          /* L offre du portier contient une ligne video. Si l on n annonce pas
+           * explicitement qu on veut la recevoir, JsSIP produit une reponse
+           * incoherente avec l offre et echoue sur un « WebRTC Error » sans detail. */
+          'rtcAnswerConstraints' : { 'offerToReceiveAudio': 1, 'offerToReceiveVideo': 1 }
+        };
 
         console.log("JsSip : Incoming Call Options : " + JSON.stringify(incomingCalloptions));
 
@@ -386,6 +454,7 @@
     var selfView = document.getElementById('selfView');
     var remoteView = document.getElementById('remoteView');
     var remoteAudio = document.getElementById('remoteAudio');
+    var previewView = document.getElementById('previewView');
 
     var session;
     var request;
@@ -499,6 +568,18 @@
       request = data.request;
       originator = data.originator;
 
+      /* Sur un appel sortant, 'peerconnection' a deja ete emis a cet instant : c'est
+       * ici, et pas dans son gestionnaire, qu'il faut rattacher le media. */
+      attacherMedia(data.session.connection);
+
+      /* JsSIP tient compte des modifications faites ici avant de passer la
+       * description au navigateur. */
+      data.session.on('sdp', function (e) {
+        if (e.originator === 'remote') {
+          e.sdp = nettoyerSdpDistant(e.sdp);
+        }
+      });
+
       if(originator=='local'){
           console.log('JsSIP : Local Call.');
           sipClientState.sipOnCall = true;
@@ -526,7 +607,8 @@
 
 
           data.session.on('connecting', function() {
-            console.log('JsSIP : Local Call - Connecting.'); 
+            console.log('JsSIP : Local Call - Connecting.');
+            attacherMedia(data.session.connection); 
 
           });
 
@@ -567,17 +649,21 @@
         $(".namedisplay[data-eqLogic_id=#id#]").html(data.session.remote_identity.display_name);
         $(".uridisplay[data-eqLogic_id=#id#]").html(data.session.remote_identity.uri.scheme+":"+data.session.remote_identity.uri.user+"@"+data.session.remote_identity.uri.host);
 
+        ouvrirApercu();
+
         sipClientState.sipRinging = true;
 
         console.log('JsSIP : Opening Modal Window.');
         $(".sipDisplay[data-eqLogic_uid=#uid#]").dialog("open");
 
         data.session.on('connecting', function() {
-          console.log('JsSIP : Incoming Call - Connecting.'); 
+          console.log('JsSIP : Incoming Call - Connecting.');
+            attacherMedia(data.session.connection); 
         });
 
         data.session.on('peerconnection', function(e) {
           console.log('JsSIP : Incoming Call - Peer Connection Accepted');
+          fermerApercu();
           attacherMedia(e.peerconnection || data.session.connection);
           
         });
@@ -592,12 +678,21 @@
 
         data.session.on('ended', function(e) {
           console.log('JsSIP : Incoming Call - Ended with cause : '+e.cause);
+          fermerApercu();
           sipClientState.sipOnCall = false;
           sipClientState.sipRinging = false;
         });
 
         data.session.on('failed', function(e) {
-          console.log('JsSIP : Incoming Call - Failed with cause : '+e.cause);
+          console.log('JsSIP : Incoming Call - Failed with cause : ' + e.cause);
+          /* e.cause reste generique ; le detail utile se trouve dans le message. */
+          if (e.message) {
+            console.log('JsSIP : detail de lechec : ' + (e.message.reason_phrase || e.message));
+          }
+          sipClientState.sipRinging = false;
+          sipClientState.sipOnCall = false;
+          SIPbuttonModalChange(redColor, 'Echec : ' + e.cause);
+          fermerApercu();
           sipClientState.sipOnCall = false;
           sipClientState.sipRinging = false;
         });

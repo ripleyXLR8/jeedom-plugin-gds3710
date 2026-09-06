@@ -248,9 +248,12 @@
             </div>
         </div>
         <div class="form-group">
-            <label class="col-sm-3 control-label">{{Débogage SIP :}}</label>
-            <div class="col-sm-3">
-                <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_sip_debug_enabled" checked/>{{Activer}}</label>
+            <label class="col-sm-3 control-label">{{Débogage SIP :}}
+                <sup><i class="fas fa-question-circle tooltips" title="{{JsSIP journalise l'intégralité de sa configuration, mot de passe du compte SIP compris, dans la console du navigateur. À n'activer que le temps d'un diagnostic.}}"></i></sup>
+            </label>
+            <div class="col-sm-6">
+                <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_sip_debug_enabled"/>{{Activer}}</label>
+                <span class="text-danger">{{Expose le mot de passe SIP dans la console du navigateur.}}</span>
             </div>
         </div>
 

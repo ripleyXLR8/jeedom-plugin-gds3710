@@ -163,6 +163,20 @@ Utilisez des **adresses joignables depuis le navigateur**, pas un nom de domaine
 
 Le mot de passe du compte SIP n'est **jamais** placé dans la valeur d'une commande. Il est transmis au widget par un appel authentifié, soumis à la session Jeedom et aux droits sur l'équipement. La valeur de la commande ne contient que l'identifiant de l'équipement.
 
+## Voir le visiteur avant de décrocher
+
+Quand le portier appelle, le widget affiche son image **dès la sonnerie**, avant tout décrochage. L'aperçu disparaît lorsque l'appel est pris, la vidéo temps réel prenant le relais.
+
+L'image affichée est le flux MJPEG que le plugin sert déjà, relayé et authentifié par Jeedom. Le portier annonce pourtant sa propre adresse dans un en-tête `Call-Info` de l'INVITE, mécanisme qu'exploitent les téléphones Grandstream :
+
+```
+Call-Info: <https://ADRESSE-DU-PORTIER:443/capture/8001> ;purpose=GDS-view
+```
+
+Cette adresse n'est pas utilisable ici. Sur un GDS3710 en 1.0.13.15 elle répond `404`, y compris pendant l'appel et avec une session ouverte sur l'appareil ; et elle serait de toute façon servie en HTTPS avec un certificat auto-signé, qu'un navigateur refuse sans afficher la moindre erreur. Le flux du plugin n'a ni l'un ni l'autre de ces défauts.
+
+⚠️ **L'extension utilisée par Jeedom doit être appelée par le portier**, sinon le widget ne sonnera jamais. Si votre portier appelle un groupe de sonnerie, ajoutez-y l'extension de Jeedom : c'est une omission facile, puisque le client SIP fonctionne parfaitement en émission sans cela.
+
 ## Politique de sécurité du navigateur (CSP)
 
 L'image Docker de Jeedom envoie un en-tête `Content-Security-Policy` sans directive `connect-src`. Le navigateur retombe donc sur `default-src 'self'` et **refuse toute connexion websocket vers un autre domaine** — y compris votre serveur SIP. Le widget détecte ce cas et l'affiche sur son bouton.
@@ -225,6 +239,12 @@ Si vous tenez à émettre votre image, remplacez l'en-tête sur votre reverse pr
 proxy_hide_header Permissions-Policy;
 add_header Permissions-Policy "accelerometer=(),battery=(),fullscreen=(self),geolocation=(),camera=(self),ambient-light-sensor=(self),autoplay=(self)" always;
 ```
+
+## Débogage SIP
+
+L'option **Débogage SIP** de la configuration de l'équipement active la journalisation détaillée de JsSIP dans la console du navigateur. Elle est précieuse pour diagnostiquer un échec d'appel : elle donne les messages SIP complets et, surtout, la cause réelle d'une erreur WebRTC que le widget ne peut afficher que sous forme générique.
+
+⚠️ **Elle expose le mot de passe du compte SIP.** JsSIP journalise l'intégralité de son objet de configuration au démarrage, mot de passe compris, en clair dans la console. N'activez cette option que le temps d'un diagnostic, et **désactivez-la ensuite**. Si vous avez partagé un journal obtenu ainsi, changez le mot de passe de l'extension.
 
 ## Les deux réglages « HACK »
 

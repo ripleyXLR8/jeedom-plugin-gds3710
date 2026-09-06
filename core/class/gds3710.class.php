@@ -563,6 +563,11 @@ class gds3710 extends eqLogic {
             'client_sip_uri'       => (string) $this->getConfiguration('client_sip_uri'),
             'client_sip_password'  => (string) $this->getConfiguration('client_sip_password'),
             'portier_sip_uri'      => (string) $this->getConfiguration('portier_sip_uri'),
+            /* Flux affiche pendant la sonnerie, avant tout decrochage. On sert le notre
+             * plutot que l URL annoncee par le portier dans son en-tete Call-Info : ce
+             * dernier repond 404 sur ce firmware, et son certificat auto-signe ferait
+             * echouer le chargement sans le moindre message. */
+            'preview_url'          => '/plugins/gds3710/core/php/camera.php?id=' . $this->getId(),
         );
         foreach ($flags as $key => $default) {
             $value = $this->getConfiguration($key, $default);

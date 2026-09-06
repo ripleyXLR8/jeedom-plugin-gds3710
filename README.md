@@ -215,6 +215,8 @@ Il requiert un **serveur SIP acceptant le WebSocket**, un **Jeedom servi en HTTP
 
 ⚠️ **Caméra** : la même image envoie un en-tête `Permissions-Policy` contenant `camera=()`, qui interdit la caméra à la page. Le widget le détecte et bascule l'appel en audio seul, sans cesser de réclamer le flux vidéo du portier. JsSIP rapporte sinon `User Denied Media Access`, alors qu'aucun refus utilisateur n'a eu lieu.
 
+Quand le portier appelle, le widget affiche son image **dès la sonnerie**, avant tout décrochage — l'aperçu laisse place à la vidéo temps réel une fois l'appel pris. L'extension utilisée par Jeedom doit évidemment figurer parmi celles que le portier appelle.
+
 Le mot de passe du compte SIP n'est jamais placé dans la valeur d'une commande : il est servi par un appel authentifié soumis aux droits sur l'équipement.
 
 Si l'appel échoue côté serveur avec une erreur inexpliquée, essayez le champ « Codec(s) à supprimer » : le message d'invitation produit par le client est long et certains serveurs le refusent au-delà d'une taille limite.
