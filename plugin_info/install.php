@@ -34,6 +34,19 @@ function gds3710_update() {
     if (config::byKey('password_protection', 'gds3710', '') === '') {
         config::save('password_protection', 0, 'gds3710');
     }
+
+    /* La valeur de la commande « Stream MJPEG » nest ecrite que par postSave(). Elle se
+     * perd des quun evenement la vide — notamment un vidage de cache, qui remet a blanc
+     * toutes les valeurs de commandes de linstallation. Le widget affichait alors une
+     * image vide et le log crachait « No id parameter provided to camera.php », le seul
+     * remede connu etant de re-sauvegarder chaque equipement a la main. On republie ici,
+     * et le cron repare aussi en continu. */
+    foreach (eqLogic::byType('gds3710') as $eq) {
+        $cmd = $eq->getCmd('info', 'stream_mjpeg');
+        if (is_object($cmd)) {
+            $cmd->event('/plugins/gds3710/core/php/camera.php?id=' . $eq->getId());
+        }
+    }
 }
 
 function gds3710_remove() {

@@ -1,7 +1,15 @@
 options -indexes
 
 <IfModule mod_rewrite.c>
-Options +FollowSymlinks
+# FollowSymLinks est requis par RewriteRule. Sans cette ligne, Apache refuse la
+# reecriture avec « Options FollowSymLinks or SymLinksIfOwnerMatch is off » et
+# len-tete Authorization napparait jamais : lauthentification Digest de
+# jeeGDS3710.php echoue en silence. SymLinksIfOwnerMatch sert de repli sur les
+# hebergements qui interdisent FollowSymLinks.
+<IfModule mod_authz_core.c>
+Options +SymLinksIfOwnerMatch
+</IfModule>
+Options +FollowSymLinks
 RewriteEngine on
 RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization},L]
 </IfModule>

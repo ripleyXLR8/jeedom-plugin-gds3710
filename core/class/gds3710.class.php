@@ -160,8 +160,17 @@ class gds3710 extends eqLogic {
         $this->setLogicalId(strtolower($MAC));
         $this->save(true);
        
+        /* Le type est obligatoire dans chaque getCmd() ci-dessous. La colonne logicalId est
+         * en collation utf8mb3_unicode_ci, donc insensible a la casse : la commande action
+         * 'reboot' et la commande info 'Reboot' (evenement 1102 du catalogue) sont
+         * indistinguables pour MySQL. Sans filtre de type, getCmd() renvoyait l'une ou
+         * l'autre selon l'ordre des lignes, et sur une reinstallation le code tentait de
+         * renommer la commande info en « Reboot », nom deja porte par la commande action.
+         * Jeedom refusait, postSave() avortait, et l'equipement devenait insauvegardable.
+         * C'est le bug « Une commande portant ce nom (Reboot) existe deja ». */
+
         // Création de la commande reboot si elle n'existe pas dèjà
-        $reboot = $this->getCmd(null, 'reboot');
+        $reboot = $this->getCmd('action', 'reboot');
         if (!is_object($reboot)) {
             $reboot = new gds3710Cmd();
         }
@@ -174,7 +183,7 @@ class gds3710 extends eqLogic {
         $reboot->save();
             
         // Création de la commande open si elle n'existe pas dèjà
-        $open = $this->getCmd(null, 'open');
+        $open = $this->getCmd('action', 'open');
         if (!is_object($open)) {
             $open = new gds3710Cmd();
         }
@@ -187,7 +196,7 @@ class gds3710 extends eqLogic {
         $open->save();
 
         // Création de la commande open2 si elle n'existe pas dèjà
-        $open2 = $this->getCmd(null, 'open2');
+        $open2 = $this->getCmd('action', 'open2');
         if (!is_object($open2)) {
             $open2 = new gds3710Cmd();
         }
@@ -200,7 +209,7 @@ class gds3710 extends eqLogic {
         $open2->save();
         
         // Création de la commande close si elle n'existe pas dèjà
-        $close = $this->getCmd(null, 'close');
+        $close = $this->getCmd('action', 'close');
         if (!is_object($close)) {
             $close = new gds3710Cmd();
         }
@@ -213,7 +222,7 @@ class gds3710 extends eqLogic {
         $close->save();
 
         // Création de la commande close2 si elle n'existe pas dèjà
-        $close2 = $this->getCmd(null, 'close2');
+        $close2 = $this->getCmd('action', 'close2');
         if (!is_object($close2)) {
             $close2 = new gds3710Cmd();
         }
@@ -226,7 +235,7 @@ class gds3710 extends eqLogic {
         $close2->save();
 
         // Création de la commande snapshot
-        $snapshot = $this->getCmd(null, 'snapshot');
+        $snapshot = $this->getCmd('action', 'snapshot');
         if (!is_object($snapshot)) {
             $snapshot = new gds3710Cmd();
         }
@@ -241,7 +250,7 @@ class gds3710 extends eqLogic {
         $snapshot->save();
 
         // Création de la commande Modify Config
-        $modifyconfig = $this->getCmd(null, 'modifyConfig');
+        $modifyconfig = $this->getCmd('action', 'modifyConfig');
         if (!is_object($modifyconfig)) {
             $modifyconfig = new gds3710Cmd();
         }
@@ -258,7 +267,7 @@ class gds3710 extends eqLogic {
         $modifyconfig->save();
 
         // Création de la commande Send SnapShot
-        $sendSnapshot = $this->getCmd(null, 'sendSnapshot');
+        $sendSnapshot = $this->getCmd('action', 'sendSnapshot');
         if (!is_object($sendSnapshot)) {
             $sendSnapshot = new gds3710Cmd();
         }
@@ -276,7 +285,7 @@ class gds3710 extends eqLogic {
         $sendSnapshot->save();
 
         // Création de la commande d'historique
-        $history = $this->getCmd(null, 'Open_Snapshots_Folder');
+        $history = $this->getCmd('action', 'Open_Snapshots_Folder');
         if (!is_object($history)) {
             $history = new gds3710Cmd();
         }
@@ -290,7 +299,7 @@ class gds3710 extends eqLogic {
         $history->save();
 
         // Création de la commande de récupération du dernier snapshot
-        $lastest_snapshot = $this->getCmd(null, 'Lastest_Snapshot_Path');
+        $lastest_snapshot = $this->getCmd('info', 'Lastest_Snapshot_Path');
         if (!is_object($lastest_snapshot)) {
             $lastest_snapshot = new gds3710Cmd();
         }
@@ -302,7 +311,7 @@ class gds3710 extends eqLogic {
         $lastest_snapshot->setIsVisible(0);
         $lastest_snapshot->save();
 
-        $lastest_snapshot_URL = $this->getCmd(null, 'Lastest_Snapshot_URL');
+        $lastest_snapshot_URL = $this->getCmd('info', 'Lastest_Snapshot_URL');
         if (!is_object($lastest_snapshot_URL)) {
             $lastest_snapshot_URL = new gds3710Cmd();
         }
@@ -317,7 +326,7 @@ class gds3710 extends eqLogic {
         $lastest_snapshot_URL->save();
 
         // Création de la commande LDC ON
-        $ldc_ON = $this->getCmd(null, 'ldc_ON');
+        $ldc_ON = $this->getCmd('action', 'ldc_ON');
         if (!is_object($ldc_ON)) {
             $ldc_ON = new gds3710Cmd();
         }
@@ -330,7 +339,7 @@ class gds3710 extends eqLogic {
         $ldc_ON->save();
 
         // Création de la commande LDC OFF
-        $ldc_OFF = $this->getCmd(null, 'ldc_off');
+        $ldc_OFF = $this->getCmd('action', 'ldc_off');
         if (!is_object($ldc_OFF)) {
             $ldc_OFF = new gds3710Cmd();
         }
@@ -343,7 +352,7 @@ class gds3710 extends eqLogic {
         $ldc_OFF->save();
 
         // Création de CMOS Normal
-        $cmos_NORMAL = $this->getCmd(null, 'cmos_normal');
+        $cmos_NORMAL = $this->getCmd('action', 'cmos_normal');
         if (!is_object($cmos_NORMAL)) {
             $cmos_NORMAL = new gds3710Cmd();
         }
@@ -356,7 +365,7 @@ class gds3710 extends eqLogic {
         $cmos_NORMAL->save();
 
         // Création de CMOS Low Light
-        $cmos_LOWLIGHT = $this->getCmd(null, 'cmos_lowlight');
+        $cmos_LOWLIGHT = $this->getCmd('action', 'cmos_lowlight');
         if (!is_object($cmos_LOWLIGHT)) {
             $cmos_LOWLIGHT = new gds3710Cmd();
         }
@@ -369,7 +378,7 @@ class gds3710 extends eqLogic {
         $cmos_LOWLIGHT->save();
 
         // Création de CMOS WDR
-        $cmos_WDR = $this->getCmd(null, 'cmos_wdr');
+        $cmos_WDR = $this->getCmd('action', 'cmos_wdr');
         if (!is_object($cmos_WDR)) {
             $cmos_WDR = new gds3710Cmd();
         }
@@ -847,13 +856,13 @@ class gds3710Cmd extends cmd {
 
         log::add('gds3710', 'debug', "Registering path to lastest picture");
         $eqLogic = $this->getEqLogic();
-        $lastest_snapshot = $eqLogic->getCmd(null, 'Lastest_Snapshot_Path');
+        $lastest_snapshot = $eqLogic->getCmd('info', 'Lastest_Snapshot_Path');
         $lastest_snapshot->event(realpath($output_file));
         $lastest_snapshot->save();
 
         log::add('gds3710', 'debug', "Registering URL to the lastest snapshot");
         $eqLogic = $this->getEqLogic();
-        $lastest_snapshot_URL = $eqLogic->getCmd(null, 'Lastest_Snapshot_URL');
+        $lastest_snapshot_URL = $eqLogic->getCmd('info', 'Lastest_Snapshot_URL');
         $lastest_snapshot_URL->event(substr($output_file, strpos($output_file, '/plugins')));
         $lastest_snapshot_URL->save();
 
