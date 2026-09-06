@@ -217,7 +217,9 @@ Il requiert un **serveur SIP acceptant le WebSocket**, un **Jeedom servi en HTTP
 
 Quand le portier appelle, le widget affiche son image **dès la sonnerie**, avant tout décrochage — l'aperçu laisse place à la vidéo temps réel une fois l'appel pris. L'extension utilisée par Jeedom doit évidemment figurer parmi celles que le portier appelle.
 
-La fenêtre d'appel comporte un **clavier** : au repos il compose un numéro à joindre, en communication il envoie des tonalités DTMF — c'est ainsi que l'on transmet au portier son code d'ouverture de porte sans quitter le dashboard.
+La fenêtre d'appel présente un **bouton par commande d'ouverture visible** de l'équipement, qui exécute la commande du plugin — donc sans confier de code supplémentaire au navigateur, et même hors appel.
+
+Elle comporte aussi un **clavier** : au repos il compose un numéro à joindre, en communication il envoie des tonalités DTMF — c'est ainsi que l'on transmet au portier son code d'ouverture de porte sans quitter le dashboard.
 
 Le mot de passe du compte SIP n'est jamais placé dans la valeur d'une commande : il est servi par un appel authentifié soumis aux droits sur l'équipement.
 

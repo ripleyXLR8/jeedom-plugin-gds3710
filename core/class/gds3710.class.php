@@ -578,6 +578,22 @@ class gds3710 extends eqLogic {
          * lalleger. Voir la documentation. */
         $codecs = trim((string) $this->getConfiguration('sip-codec-removal'));
         $lines = trim((string) $this->getConfiguration('sip-invite-line-removal'));
+        /* Boutons d ouverture de la fenetre d appel. On ne transmet que les commandes
+         * visibles : masquer « Ouvrir la porte 2 » dans Jeedom retire son bouton, sans
+         * reglage supplementaire. Le widget execute ces commandes plutot que d envoyer
+         * le code par DTMF : le chemin HTTP est deja eprouve et n expose aucun secret
+         * de plus au navigateur. */
+        $config['door_commands'] = array();
+        foreach (array('open', 'open2') as $logicalId) {
+            $porte = $this->getCmd('action', $logicalId);
+            if (is_object($porte) && $porte->getIsVisible()) {
+                $config['door_commands'][] = array(
+                    'id'   => (int) $porte->getId(),
+                    'name' => (string) $porte->getName(),
+                );
+            }
+        }
+
         $config['codec_to_remove'] = $codecs === '' ? array() : explode(',', $codecs);
         $config['invite_line_to_remove'] = $lines === '' ? array() : explode(',', $lines);
         return $config;
