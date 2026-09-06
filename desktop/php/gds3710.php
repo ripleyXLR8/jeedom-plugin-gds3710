@@ -311,7 +311,7 @@
           <tr>
               <th style="width:250px;">{{Type d'évènement}}</th>
               <th style="width:250px;">{{Type}}</th>
-              <th>{{Dernier évènement}}</th>
+              <th>{{Valeur actuelle}}</th>
               <th style="width:250px;">{{Paramètres}}</th>
               <th style="width:150px;">{{Action}}</th>
           </tr>

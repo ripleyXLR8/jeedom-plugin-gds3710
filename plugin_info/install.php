@@ -93,7 +93,18 @@ function gds3710_clean_html_values() {
     foreach (eqLogic::byType('gds3710') as $eq) {
         foreach ($eq->getCmd() as $cmd) {
             $value = (string) $cmd->getConfiguration('value');
-            if ($value === '' || strpos($value, '<') === false) {
+            if ($value === '') {
+                continue;
+            }
+            /* « Array » est le resultat d une conversion tableau-vers-chaine de
+             * l ancien code : la colonne affichait ce mot au lieu de la charge utile. */
+            if ($value === 'Array') {
+                $cmd->setConfiguration('value', '');
+                $cmd->save();
+                $cleaned++;
+                continue;
+            }
+            if (strpos($value, '<') === false) {
                 continue;
             }
             /* On ne vise que le balisage de linterface, jamais une valeur legitime :
