@@ -357,7 +357,8 @@ class gds3710 extends eqLogic {
      * sept) est tronquee au premier & si elle part en GET. Le portier decode dabord
      * lencodage pourcent, puis re-decoupe sa propre chaine de requete. Il repond
      * ResCode 0 / OK malgre la troncature, donc lecriture doit toujours etre relue. */
-    private static function httpPostConfig($_ip, $_cookie, $_params) {
+    /* Publique : gds3710Cmd::setConfig() ecrit par ce meme chemin, pour la meme raison. */
+    public static function httpPostConfig($_ip, $_cookie, $_params) {
         $body = 'cmd=set';
         foreach ($_params as $key => $value) {
             $body .= '&' . $key . '=' . urlencode((string) $value);
@@ -1701,26 +1702,16 @@ class gds3710Cmd extends cmd {
         }
 
         $ip = $gds3710->getConfiguration('ip');
-        $password = $gds3710->getConfiguration('password');
-        $salt = "GDS3710lZpRsFzCbM";
 
-        $ch = curl_init();
-        $url = 'https://'.$ip.'/goform/config?cmd=set&'.$id.'='.$parameter_value;
-
-        $optArray = array(
-            CURLOPT_URL => $url,
-            CURLOPT_SSL_VERIFYPEER  => false,
-            CURLOPT_SSL_VERIFYHOST => false,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_COOKIE => $cookie_string
-        );
-
-        log::add('gds3710', 'debug', 'Calling url : '.$url);
-
-        $ch = curl_init();
-        curl_setopt_array($ch, $optArray);
-
-        $result =  gds3710::parseXml(curl_exec($ch), 'requete configuration');
+        /* Ecriture en POST, et non plus dans la chaine de requete. Le portier decode
+         * l'encodage pourcent PUIS re-decoupe sa propre chaine de requete sur les « & » :
+         * une valeur qui en contient — un gabarit d'URL, par exemple — etait tronquee au
+         * premier, en silence et avec un ResCode 0. La valeur n'etait meme pas encodee ici,
+         * donc une simple espace suffisait aussi a la couper. C'est le chemin de la commande
+         * « Modifier la configuration », de LDC et des modes CMOS. */
+        log::add('gds3710', 'debug', 'Ecriture de ' . $id . ' en POST sur ' . $ip);
+        $result = gds3710::parseXml(gds3710::httpPostConfig($ip, $cookie_string, array($id => $parameter_value)),
+                                    'requete configuration');
         log::add('gds3710', 'debug', 'Result is : '. print_r($result, true));
 
         /* Relecture : un ResCode 0 ne prouve rien, le portier repond OK meme pour un
@@ -1733,9 +1724,13 @@ class gds3710Cmd extends cmd {
                 continue;
             }
             $trouve = true;
-            if ((string) $lu[$id] !== (string) $parameter_value) {
+            /* Le portier rend les caracteres speciaux sous forme d'entites : « &amp; » pour
+             * un « & ». Sans decodage, une valeur desormais ecrite correctement serait
+             * signalee comme non confirmee. */
+            $relu = html_entity_decode((string) $lu[$id], ENT_QUOTES, 'UTF-8');
+            if ($relu !== (string) $parameter_value) {
                 log::add('gds3710', 'error', 'Ecriture non confirmee pour ' . $id . ' : lu "'
-                    . $lu[$id] . '", attendu "' . $parameter_value . '".');
+                    . $relu . '", attendu "' . $parameter_value . '".');
             }
             break;
         }
