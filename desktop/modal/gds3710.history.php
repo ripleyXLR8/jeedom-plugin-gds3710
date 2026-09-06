@@ -16,9 +16,14 @@
 * along with Jeedom. If not, see <http://www.gnu.org/licenses/>.
 */
 
-// if (!isConnect('admin')) {
-//     throw new Exception('{{401 - Accès non autorisé}}');
-// }
+/* Ce controle etait commente : la bibliotheque de captures s'ouvrait a tout compte
+ * connecte, y compris un utilisateur restreint sans le moindre droit sur le portier.
+ * Exiger « admin » serait trop dur — un utilisateur normal doit pouvoir consulter ses
+ * captures. Le droit de lecture sur l'equipement est verifie plus bas, une fois
+ * celui-ci resolu. */
+if (!isConnect()) {
+	throw new Exception('{{401 - Accès non autorisé}}');
+}
 
 if (init('eqlogic') == '' && init('id') == '') {
 	throw new Exception(__('L\'id et l\'eqlogic ne peuvent etre vide en même temps', __FILE__));
@@ -26,6 +31,10 @@ if (init('eqlogic') == '' && init('id') == '') {
 
 if(init('eqlogic') == ''){
 	$cmd = cmd::byId(init('id'));
+	/* Un id de commande inconnu donnait false, et l'appel de methode suivant un fatal. */
+	if (!is_object($cmd)) {
+		throw new Exception(__('La commande est introuvable : ', __FILE__) . init('id'));
+	}
 	$gds3710 = gds3710::byId($cmd->getEqLogic_id());
 } else {
 	$gds3710 = gds3710::byId(init('eqlogic'));
@@ -37,6 +46,12 @@ if (!is_object($gds3710)) {
 
 if ($gds3710->getEqType_name() != 'gds3710') {
 	throw new Exception(__('Cet équipement n\'est pas de type gds3710 : ', __FILE__) . $gds3710->getEqType_name());
+}
+
+/* Meme regle que pour le flux video : les captures d'une porte ne se consultent qu'avec
+ * un droit de lecture sur l'equipement qui les a prises. */
+if (!$gds3710->hasRight('r')) {
+	throw new Exception(__('401 - Accès non autorisé à cet équipement', __FILE__));
 }
 
 $dir = calculPath(config::byKey('recdir', 'gds3710')) . '/' . $gds3710->getId();
