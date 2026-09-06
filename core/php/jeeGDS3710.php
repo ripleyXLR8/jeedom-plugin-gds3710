@@ -200,17 +200,24 @@ $temp = "Event received : ".$temp;
 log::add('gds3710','info',$temp);
 
 $mac = '';
-$gds3710 = null;
+$equipments = array();
 
-
-if (isset($evt['mac']) && $evt['mac'] != '') { // L'adresse MAC est bien présente dans la requête, on sélectionne l'équipement correspondant
+if (isset($evt['mac']) && $evt['mac'] != '') { // L'adresse MAC est bien présente dans la requête, on sélectionne les équipements correspondants
     $mac = $evt['mac'];
-    $gds3710 = gds3710::byLogicalId($mac, 'gds3710');
-    log::add('gds3710','debug','MAC Address detected : '.$mac);
+    $found = gds3710::byLogicalId($mac, 'gds3710', true);
+    if (is_array($found)) {
+        $equipments = $found;
+    } elseif (is_object($found)) {
+        $equipments = array($found);
+    }
+    log::add('gds3710','debug','MAC Address detected : '.$mac.' -> '.count($equipments).' equipement(s)');
 }
 
-if (!is_object($gds3710)) { // Si l'adresse MAC ne correspond à aucun équipement alors on arrête
+if (count($equipments) === 0) { // Si l'adresse MAC ne correspond à aucun équipement alors on arrête
     log::add('gds3710', 'error', "Aucun équipement trouvé avec l'adresse MAC : " . $mac);
+    /* Renvoyer 200 laissait croire au portier que son evenement avait ete traite. Un statut
+     * explicite rend la mauvaise configuration visible des deux cotes. */
+    header('HTTP/1.1 404 Not Found');
     die();
 }
 
@@ -221,97 +228,113 @@ if (!is_object($gds3710)) { // Si l'adresse MAC ne correspond à aucun équipeme
  * mais cela impose d'usurper l'adresse du portier au lieu de simplement lire son étiquette,
  * et cela protège les installations qui n'ont pas activé la protection par mot de passe.
  * L'option de contournement existe pour les installations derrière un NAT ou un proxy. */
-$expectedIp = trim((string) $gds3710->getConfiguration('ip'));
-$clientIp   = gds3710_client_ip();
+$clientIp = gds3710_client_ip();
+$skipOriginCheck = config::byKey('skip_source_ip_check', 'gds3710', 0) == 1;
+$acceptedEquipments = array();
 
-if (filter_var($expectedIp, FILTER_VALIDATE_IP)
-    && $clientIp !== '?'
-    && $clientIp !== $expectedIp
-    && config::byKey('skip_source_ip_check', 'gds3710', 0) != 1) {
-    log::add('gds3710', 'error', 'Evenement refuse : recu depuis ' . $clientIp . ' alors que le portier '
-        . $mac . ' est configure sur ' . $expectedIp
-        . '. Si votre Jeedom est derriere un NAT ou un proxy, desactivez le controle d origine dans la configuration du plugin.');
+foreach ($equipments as $candidate) {
+    $expectedIp = trim((string) $candidate->getConfiguration('ip'));
+    if (!$skipOriginCheck
+        && filter_var($expectedIp, FILTER_VALIDATE_IP)
+        && $clientIp !== '?'
+        && $clientIp !== $expectedIp) {
+        log::add('gds3710', 'error', 'Evenement refuse pour ' . $candidate->getHumanName()
+            . ' : recu depuis ' . $clientIp . ' alors que le portier ' . $mac
+            . ' est configure sur ' . $expectedIp
+            . '. Si votre Jeedom est derriere un NAT ou un proxy, desactivez le controle d origine dans la configuration du plugin.');
+        continue;
+    }
+    $acceptedEquipments[] = $candidate;
+}
+
+if (count($acceptedEquipments) === 0) {
     header('HTTP/1.1 403 Forbidden');
     die();
 }
 
 if ($evtType !== '') {
-    $type = $evtType;
-    log::add('gds3710','debug','Type detected : '.$type);
-    $logical_id = getTypeFromLogicalID($type);
-    $data = json_encode($evt);
+    /* Une meme adresse MAC peut correspondre a plusieurs equipements : le meme portier
+     * declare deux fois, ou deux portiers mal configures. Le plugin nen servait quun
+     * seul, choisi par lordre des lignes en base. */
+    foreach ($acceptedEquipments as $gds3710) {
+        $type = $evtType;
+        log::add('gds3710','debug','Type detected : '.$type);
+        $logical_id = getTypeFromLogicalID($type);
+        $data = json_encode($evt);
 
-    /* Un firmware plus recent que le catalogue emet des types inconnus. Avant, getCmd()
-     * renvoyait false et le premier appel de methode tuait l endpoint : plus aucun
-     * evenement ne remontait, y compris les types connus. */
-    if ($logical_id === null) {
-        log::add('gds3710', 'warning', 'Type d evenement inconnu du plugin : ' . $type
-            . '. Seule la commande « Last event » sera mise a jour.');
-    } else {
-        log::add('gds3710','debug','Logical ID is : '.$logical_id);
-        $CMD = $gds3710->getCmd('info', $logical_id);
+        /* Un firmware plus recent que le catalogue emet des types inconnus. Avant, getCmd()
+         * renvoyait false et le premier appel de methode tuait l endpoint : plus aucun
+         * evenement ne remontait, y compris les types connus. */
+        if ($logical_id === null) {
+            log::add('gds3710', 'warning', 'Type d evenement inconnu du plugin : ' . $type
+                . '. Seule la commande « Last event » sera mise a jour.');
+        } else {
+            log::add('gds3710','debug','Logical ID is : '.$logical_id);
+            $CMD = $gds3710->getCmd('info', $logical_id);
+            if (is_object($CMD)) {
+                $CMD->setConfiguration('value', $data);
+                $CMD->event($data);
+                $CMD->save();
+                log::add('gds3710', 'debug', "Commande ".$logical_id." - ".$type." set to : " .$data);
+            } else {
+                log::add('gds3710', 'error', 'Commande ' . $logical_id
+                    . ' absente de l equipement. Sauvegardez l equipement pour la recreer.');
+            }
+        }
+
+        $CMD = $gds3710->getCmd('info', 'Last event');
         if (is_object($CMD)) {
             $CMD->setConfiguration('value', $data);
             $CMD->event($data);
             $CMD->save();
-            log::add('gds3710', 'debug', "Commande ".$logical_id." - ".$type." set to : " .$data);
-        } else {
-            log::add('gds3710', 'error', 'Commande ' . $logical_id
-                . ' absente de l equipement. Sauvegardez l equipement pour la recreer.');
+            log::add('gds3710', 'debug', "Last event set to : ".$data);
         }
-    }
 
-    $CMD = $gds3710->getCmd('info', 'Last event');
-    if (is_object($CMD)) {
-        $CMD->setConfiguration('value', $data);
-        $CMD->event($data);
-        $CMD->save();
-        log::add('gds3710', 'debug', "Last event set to : ".$data);
-    }
-
-    $action_list = $logical_id === null ? array() : $gds3710->getConfiguration($logical_id);
-    if (!is_array($action_list)) {
-        $action_list = array();
-    }
-    log::add('gds3710', 'debug', "Action list is : ".print_r($action_list, true));
-
-    foreach ($action_list as $action) { // On va itérer sur la liste des commandes présentes dans la configuration
-        if (!isset($action['cmd'])) {
-            continue;
+        $action_list = $logical_id === null ? array() : $gds3710->getConfiguration($logical_id);
+        if (!is_array($action_list)) {
+            $action_list = array();
         }
-        log::add('gds3710', 'debug', "Trying to execute action : ".print_r($action, true));
-        try {
-            $options = array();
-            if (isset($action['options'])) {
-                $options = $action['options'];
+        log::add('gds3710', 'debug', "Action list is : ".print_r($action_list, true));
 
-                if (isset($action['options']['scenario_id'])) {
-                    /* Les valeurs viennent du reseau : un guillemet dans le contenu cassait
-                     * la chaine de tags et permettait d en injecter d autres. */
-                    $tags = isset($options['tags']) ? $options['tags'] : '';
-                    foreach (array('mac','content','type','date','card','sip','username','doornum') as $field) {
-                        $value = isset($evt[$field]) ? (string) $evt[$field] : '';
-                        $value = str_replace(array('"', "\r", "\n"), array("'", ' ', ' '), $value);
-                        $tags .= ' ' . $field . '="' . $value . '"';
-                    }
-                    $options['tags'] = $tags;
-                }
+        foreach ($action_list as $action) { // On va itérer sur la liste des commandes présentes dans la configuration
+            if (!isset($action['cmd'])) {
+                continue;
             }
-            log::add('gds3710', 'debug', "with options : ".print_r($options, true));
-            scenarioExpression::createAndExec('action', $action['cmd'], $options);
-            log::add('gds3710', 'debug', "Commande ".print_r($action['cmd'],true)." has been executed.");
+            log::add('gds3710', 'debug', "Trying to execute action : ".print_r($action, true));
+            try {
+                $options = array();
+                if (isset($action['options'])) {
+                    $options = $action['options'];
 
-        } catch (Exception $e) {
-            /* $this n existe pas ici : ce fichier n est pas dans une classe. Le gestionnaire
-             * d erreur provoquait donc lui-meme un fatal en PHP 7 et 8. */
-            log::add('gds3710', 'error', $gds3710->getHumanName() . ' : Erreur lors de l execution de '
-                . $action['cmd'] . '. Details : ' . $e->getMessage());
+                    if (isset($action['options']['scenario_id'])) {
+                        /* Les valeurs viennent du reseau : un guillemet dans le contenu cassait
+                         * la chaine de tags et permettait d en injecter d autres. */
+                        $tags = isset($options['tags']) ? $options['tags'] : '';
+                        foreach (array('mac','content','type','date','card','sip','username','doornum') as $field) {
+                            $value = isset($evt[$field]) ? (string) $evt[$field] : '';
+                            $value = str_replace(array('"', "\r", "\n"), array("'", ' ', ' '), $value);
+                            $tags .= ' ' . $field . '="' . $value . '"';
+                        }
+                        $options['tags'] = $tags;
+                    }
+                }
+                log::add('gds3710', 'debug', "with options : ".print_r($options, true));
+                scenarioExpression::createAndExec('action', $action['cmd'], $options);
+                log::add('gds3710', 'debug', "Commande ".print_r($action['cmd'],true)." has been executed.");
+
+            } catch (Exception $e) {
+                /* $this n existe pas ici : ce fichier n est pas dans une classe. Le gestionnaire
+                 * d erreur provoquait donc lui-meme un fatal en PHP 7 et 8. */
+                log::add('gds3710', 'error', $gds3710->getHumanName() . ' : Erreur lors de l execution de '
+                    . $action['cmd'] . '. Details : ' . $e->getMessage());
+            }
+
         }
 
     }
-
 } else {
-    log::add('gds3710','error','no type detected');
+    log::add('gds3710', 'error', 'Aucun type dans la requete : verifiez le gabarit URL Template du portier.');
+    header('HTTP/1.1 400 Bad Request');
     die();
 }
 
