@@ -679,6 +679,31 @@ class gds3710 extends eqLogic {
          * Jeedom refusait, postSave() avortait, et l'equipement devenait insauvegardable.
          * C'est le bug « Une commande portant ce nom (Reboot) existe deja ». */
 
+        // Création des commandes LDC (correction de distorsion optique)
+        $ldc_ON = $this->getCmd('action', 'ldc_ON');
+        if (!is_object($ldc_ON)) {
+            $ldc_ON = new gds3710Cmd();
+        }
+        $ldc_ON->setName(__('LDC - ON', __FILE__));
+        $ldc_ON->setEqLogic_id($this->getId());
+        $ldc_ON->setLogicalId('ldc_ON');
+        $ldc_ON->setType('action');
+        $ldc_ON->setSubType('other');
+        $ldc_ON->setIsVisible(1);
+        $ldc_ON->save();
+
+        $ldc_OFF = $this->getCmd('action', 'ldc_off');
+        if (!is_object($ldc_OFF)) {
+            $ldc_OFF = new gds3710Cmd();
+        }
+        $ldc_OFF->setName(__('LDC - OFF', __FILE__));
+        $ldc_OFF->setEqLogic_id($this->getId());
+        $ldc_OFF->setLogicalId('ldc_off');
+        $ldc_OFF->setType('action');
+        $ldc_OFF->setSubType('other');
+        $ldc_OFF->setIsVisible(1);
+        $ldc_OFF->save();
+
         // Création de la commande reboot si elle n'existe pas dèjà
         $reboot = $this->getCmd('action', 'reboot');
         if (!is_object($reboot)) {
@@ -1312,6 +1337,16 @@ class gds3710Cmd extends cmd {
      * pendant des annees apres le retrait du reglage par Grandstream. */
     private static $configSections = array('video', 'door', 'play', 'log', 'access', 'net', 'sip');
 
+    /* Parametres que le portier accepte et applique, mais qu'il ne renvoie dans aucune
+     * section de configuration. La relecture ne peut donc rien confirmer : sans cette
+     * liste, elle les declarait « inconnus de ce portier » et le reglage LDC a ete
+     * retire du plugin a tort. Verifie sur un GDS3710 en 1.0.13.15 : P10573 n'apparait
+     * dans aucune des sept sections ni dans le script video de l'appareil, et l'effet
+     * est pourtant bien visible sur l'image apres un redemarrage. */
+    private static $paramsSansRelecture = array(
+        'P10573' => 'LDC (correction de distorsion) : effet visible apres redemarrage du portier',
+    );
+
     private function setConfig($id, $parameter_value, $_section = ''){
 
         if( $id == '' || $parameter_value == ''){
@@ -1368,12 +1403,29 @@ class gds3710Cmd extends cmd {
             break;
         }
         if (!$trouve) {
-            log::add('gds3710', 'error', 'Le parametre ' . $id . ' est inconnu de ce portier : '
-                . 'ecriture acceptee mais sans effet. Il a peut-etre ete retire par une mise a '
-                . 'jour du firmware.');
+            if (array_key_exists($id, self::$paramsSansRelecture)) {
+                log::add('gds3710', 'info', 'Le parametre ' . $id . ' n est pas relisible sur ce '
+                    . 'portier, l ecriture ne peut donc pas etre confirmee. ' . self::$paramsSansRelecture[$id]);
+            } else {
+                log::add('gds3710', 'error', 'Le parametre ' . $id . ' est inconnu de ce portier : '
+                    . 'ecriture acceptee mais sans effet. Il a peut-etre ete retire par une mise a '
+                    . 'jour du firmware.');
+            }
         }
     }
    
+    /* Le reglage n est pas relisible et ne s applique qu au demarrage du portier :
+     * le bouton ne produit donc aucun effet immediat, ce qui est normal. */
+    private function ldc_ON(){
+        log::add('gds3710', 'info', 'Activation du LDC. Le changement sera visible apres un redemarrage du portier.');
+        $this->setConfig('P10573', '1');
+    }
+
+    private function ldc_OFF(){
+        log::add('gds3710', 'info', 'Desactivation du LDC. Le changement sera visible apres un redemarrage du portier.');
+        $this->setConfig('P10573', '0');
+    }
+
     private function reboot(){
         log::add('gds3710', 'info', 'Requesting reboot');
 
@@ -1723,6 +1775,12 @@ class gds3710Cmd extends cmd {
                 break;
             case 'snapshot':
                 $this->take_snapshot();
+                break;
+            case 'ldc_ON':
+                $this->ldc_ON();
+                break;
+            case 'ldc_off':
+                $this->ldc_OFF();
                 break;
             case 'reboot':
                 $this->reboot();

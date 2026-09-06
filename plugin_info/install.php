@@ -49,30 +49,38 @@ function gds3710_update() {
     }
 
     gds3710_clean_html_values();
-    gds3710_remove_ldc_commands();
+    gds3710_restore_ldc_commands();
 }
 
-/* Les commandes LDC ecrivaient P10573, retire du firmware par Grandstream. Le portier
- * repondait ResCode 0 a l ecriture sans rien faire : les boutons semblaient fonctionner
- * et l image ne changeait jamais. Verifie sur un GDS3710 en 1.0.13.15 : le parametre
- * n est expose par aucune des vingt sections de configuration, et le propre script video
- * de l appareil ne le mentionne plus. */
-function gds3710_remove_ldc_commands() {
-    $removed = 0;
+/* Les commandes LDC avaient ete retirees a tort. P10573 n est renvoye par aucune section
+ * de configuration du portier, et la relecture ajoutee en meme temps l avait donc classe
+ * « inconnu de l appareil ». Il est en realite bien accepte et applique — mais seulement
+ * au demarrage suivant, ce qui rendait le bouton muet a l usage. Constate sur un GDS3710
+ * en 1.0.13.15 : l effet est apparu apres un redemarrage. On les recree pour les
+ * installations ou la mise a jour precedente les a supprimees. */
+function gds3710_restore_ldc_commands() {
+    $recrees = 0;
     foreach (eqLogic::byType('gds3710') as $eq) {
-        foreach (array('ldc_ON', 'ldc_off') as $lid) {
-            $cmd = $eq->getCmd('action', $lid);
-            if (is_object($cmd)) {
-                $cmd->remove();
-                $removed++;
+        foreach (array('ldc_ON' => 'LDC - ON', 'ldc_off' => 'LDC - OFF') as $lid => $nom) {
+            if (is_object($eq->getCmd('action', $lid))) {
+                continue;
             }
+            $cmd = new gds3710Cmd();
+            $cmd->setName(__($nom, __FILE__));
+            $cmd->setEqLogic_id($eq->getId());
+            $cmd->setLogicalId($lid);
+            $cmd->setType('action');
+            $cmd->setSubType('other');
+            $cmd->setIsVisible(1);
+            $cmd->save();
+            $recrees++;
         }
     }
-    if ($removed > 0) {
-        log::add('gds3710', 'info', $removed . ' commande(s) LDC supprimee(s) : le reglage '
-            . 'n existe plus dans les firmwares recents du portier.');
+    if ($recrees > 0) {
+        log::add('gds3710', 'info', $recrees . ' commande(s) LDC recreee(s) : le reglage existe '
+            . 'bien, son effet apparait apres un redemarrage du portier.');
     }
-    return $removed;
+    return $recrees;
 }
 
 /* Jusquen mars 2023, le tableau des commandes ouvrait sa zone de saisie avec une balise

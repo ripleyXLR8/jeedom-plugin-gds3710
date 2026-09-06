@@ -127,7 +127,11 @@ Sept réglages sont pilotables depuis Jeedom. Chacun se présente en deux comman
 
 Le **planning du rétroéclairage blanc** dispose de son propre jeu : un état, les horaires configurés, deux actions pour activer ou désactiver le planning, et une commande message pour définir l'intervalle au format `HHMMSS`. Couplé au coucher du soleil, c'est le cas « éclairer l'entrée la nuit ».
 
-⚠️ **Un réglage retiré par une mise à jour du firmware ne provoque aucune erreur côté portier** : celui-ci répond `ResCode 0 / OK` à l'écriture d'un paramètre qu'il ne connaît pas. Le plugin relit donc systématiquement ce qu'il vient d'écrire et signale dans son log tout paramètre absent de l'appareil. C'est ce mécanisme qui a permis d'identifier la disparition du réglage LDC.
+⚠️ **Les réglages vidéo ne s'appliquent qu'au redémarrage du portier.** Écrire un mode CMOS ou la correction de distorsion ne modifie pas l'image sur le moment : l'appareil enregistre la valeur et ne l'applique qu'au démarrage suivant. Un bouton qui semble « ne rien faire » n'est donc pas forcément cassé — utilisez la commande **Reboot** pour constater le résultat.
+
+⚠️ **La correction de distorsion (LDC) n'est pas relisible.** Le portier accepte et applique `P10573`, mais ne le renvoie dans aucune de ses sections de configuration. Le plugin ne peut donc pas confirmer l'écriture : il l'indique par un message d'information dans son log, et non par une erreur. Les boutons `LDC - ON` et `LDC - OFF` fonctionnent normalement.
+
+⚠️ **Un réglage retiré par une mise à jour du firmware ne provoque aucune erreur côté portier** : celui-ci répond `ResCode 0 / OK` à l'écriture d'un paramètre qu'il ne connaît pas. Le plugin relit donc systématiquement ce qu'il vient d'écrire et signale dans son log tout paramètre absent de l'appareil, à l'exception des quelques paramètres non relisibles listés ci-dessus.
 
 Toute écriture est bornée à la plage du réglage, puis relue sur l'appareil avant que la commande info ne soit mise à jour : une valeur refusée par le portier n'apparaîtra jamais comme appliquée.
 

@@ -1,7 +1,7 @@
 # Change Log - Plugin GDS 3710
 
 ### 06/09/2026 (fiabilité des écritures)
-- Les commandes **LDC ON / OFF sont supprimées** : le réglage `P10573` n'existe plus dans les firmwares récents du portier. Celui-ci répondait `OK` à l'écriture sans rien faire, les boutons semblaient donc fonctionner alors que l'image ne changeait jamais. Les commandes sont retirées automatiquement des équipements existants.
+- Les commandes **LDC ON / OFF sont conservées**, après une fausse alerte. Le portier ne renvoie `P10573` dans aucune de ses sections de configuration, ce qui avait fait conclure à tort que le réglage n'existait plus. Il est en réalité bien accepté et appliqué, mais **seulement au redémarrage suivant** — d'où un bouton qui paraissait sans effet. Les commandes sont recréées sur les installations où la version précédente les avait supprimées, et la relecture ne signale plus ce paramètre comme une erreur.
 - **Toute écriture de configuration est désormais relue** sur le portier. Un paramètre inconnu de l'appareil est signalé dans le log au lieu de passer pour un succès.
 
 ### 06/09/2026 (catalogue d'évènements)
