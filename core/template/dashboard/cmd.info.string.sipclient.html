@@ -1,3 +1,54 @@
+<style>
+  /* Disposition de la fenetre d appel : une colonne dont seule la zone media est
+     elastique. Les commandes conservent leur hauteur et restent donc visibles. */
+  .sipDisplay[data-eqLogic_id="#id#"] {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    height: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+  .sipDisplay[data-eqLogic_id="#id#"] .sipmedia {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .sipDisplay[data-eqLogic_id="#id#"] .remoteview,
+  .sipDisplay[data-eqLogic_id="#id#"] .previewview {
+    max-height: 100%;
+    max-width: 100%;
+    width: auto;
+    object-fit: contain;
+  }
+  /* Notre image en incrustation : elle ne prend plus de hauteur a la colonne. */
+  .sipDisplay[data-eqLogic_id="#id#"] .selfview {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    width: 22%;
+    max-width: 190px;
+    height: auto;
+  }
+  .sipDisplay[data-eqLogic_id="#id#"] .sipdoors,
+  .sipDisplay[data-eqLogic_id="#id#"] .sipkeypad,
+  .sipDisplay[data-eqLogic_id="#id#"] .calleridentitydisplay {
+    flex: 0 0 auto;
+  }
+  .sipDisplay[data-eqLogic_id="#id#"] .sipkeypad .sipkeygrid {
+    display: inline-grid;
+    grid-template-columns: repeat(3, 3em);
+    gap: 4px;
+  }
+  .sipDisplay[data-eqLogic_id="#id#"] .sipkeypad .sipkey {
+    font-size: 1.15em;
+    padding: 4px 0;
+  }
+</style>
+
 <div
   class="cmd cmd-widget"
   data-type="info"
@@ -8,13 +59,15 @@
 
   <div class="sipDisplay" style="display:none;" title="#name_display#" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">
     <audio id="remoteAudio" autoplay></audio>
-    <center class="calleridentitydisplay" style="padding:50px; display:none" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">
-      <div class="namedisplay" style="font-size: 5em" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">Name</div>
-      <div class="uridisplay" style="font-size: 3em" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">uri</div>
+    <center class="calleridentitydisplay" style="padding:8px; display:none" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">
+      <div class="namedisplay" style="font-size: 2.2em" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">Name</div>
+      <div class="uridisplay" style="font-size: 1.3em; opacity:0.75" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">uri</div>
     </center>
-    <img class="previewview" style="width: 100%; border: 3px solid grey; max-height: 700px; display:none" id="previewView" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" />
-    <video class="selfview" style="height: 240px; width: 320px; border: 3px solid grey; display:none" id="selfView" autoplay muted=true autoplay data-eqLogic_uid="#uid#" data-eqLogic_id="#id#"></video>
-    <video class="remoteview" style="width: 100%; border: 3px solid grey; max-height: 700px; display:none" id="remoteView" autoplay data-eqLogic_uid="#uid#" data-eqLogic_id="#id#"></video>
+    <div class="sipmedia" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">
+    <img class="previewview" style="border: 3px solid grey; display:none" id="previewView" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" />
+    <video class="selfview" style="border: 3px solid grey; display:none" id="selfView" autoplay muted=true autoplay data-eqLogic_uid="#uid#" data-eqLogic_id="#id#"></video>
+    <video class="remoteview" style="border: 3px solid grey; display:none" id="remoteView" autoplay data-eqLogic_uid="#uid#" data-eqLogic_id="#id#"></video>
+    </div>
     <center>
       <a class="sipactionbutton btn btn-sm btn-default action" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">Action</a>
       <a class="sipactionbisbutton btn btn-sm btn-default action" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="display:none">Action Bis</a>
@@ -22,19 +75,19 @@
     <center class="sipdoors" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="margin-top:10px"></center>
     <center class="sipkeypad" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="margin-top:12px">
       <div class="sipdialed" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.8em; min-height:1.3em; letter-spacing:0.15em; font-family:monospace"></div>
-      <div style="display:inline-grid; grid-template-columns:repeat(3, 3.5em); gap:6px; margin-top:6px">
-        <a class="sipkey btn btn-default" data-touche="1" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.4em; padding:8px 0">1</a>
-        <a class="sipkey btn btn-default" data-touche="2" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.4em; padding:8px 0">2</a>
-        <a class="sipkey btn btn-default" data-touche="3" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.4em; padding:8px 0">3</a>
-        <a class="sipkey btn btn-default" data-touche="4" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.4em; padding:8px 0">4</a>
-        <a class="sipkey btn btn-default" data-touche="5" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.4em; padding:8px 0">5</a>
-        <a class="sipkey btn btn-default" data-touche="6" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.4em; padding:8px 0">6</a>
-        <a class="sipkey btn btn-default" data-touche="7" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.4em; padding:8px 0">7</a>
-        <a class="sipkey btn btn-default" data-touche="8" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.4em; padding:8px 0">8</a>
-        <a class="sipkey btn btn-default" data-touche="9" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.4em; padding:8px 0">9</a>
-        <a class="sipkey btn btn-default" data-touche="*" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.4em; padding:8px 0">*</a>
-        <a class="sipkey btn btn-default" data-touche="0" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.4em; padding:8px 0">0</a>
-        <a class="sipkey btn btn-default" data-touche="#" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" style="font-size:1.4em; padding:8px 0">#</a>
+      <div class="sipkeygrid" style="margin-top:6px">
+        <a class="sipkey btn btn-default" data-touche="1" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">1</a>
+        <a class="sipkey btn btn-default" data-touche="2" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">2</a>
+        <a class="sipkey btn btn-default" data-touche="3" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">3</a>
+        <a class="sipkey btn btn-default" data-touche="4" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">4</a>
+        <a class="sipkey btn btn-default" data-touche="5" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">5</a>
+        <a class="sipkey btn btn-default" data-touche="6" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">6</a>
+        <a class="sipkey btn btn-default" data-touche="7" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">7</a>
+        <a class="sipkey btn btn-default" data-touche="8" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">8</a>
+        <a class="sipkey btn btn-default" data-touche="9" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">9</a>
+        <a class="sipkey btn btn-default" data-touche="*" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">*</a>
+        <a class="sipkey btn btn-default" data-touche="0" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">0</a>
+        <a class="sipkey btn btn-default" data-touche="#" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">#</a>
       </div>
       <div style="margin-top:8px">
         <a class="sipclear btn btn-sm btn-default" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">Effacer</a>
@@ -570,12 +623,25 @@
       modal: true,
       resizable: true,
       closeText: '',
-      height: 800,
-      width: 800,
+      /* Dimensionnee sur la zone visible : une hauteur figee poussait les commandes
+       * hors du cadre des que l ecran etait moins haut. */
+      height: Math.min(880, Math.max(420, $(window).height() - 60)),
+      width: Math.min(820, Math.max(320, $(window).width() - 40)),
       close: function(){
         if(sipClientState.sipOnCall){
           terminateCall();
         }
+      }
+    });
+
+    /* La fenetre de jQuery UI ne suit pas le redimensionnement : on l y aide. */
+    $(window).off('resize.gds3710sip').on('resize.gds3710sip', function () {
+      var fenetre = $(".sipDisplay[data-eqLogic_id=#id#]");
+      if (fenetre.length && fenetre.hasClass('ui-dialog-content') && fenetre.dialog('isOpen')) {
+        fenetre.dialog('option', {
+          height: Math.min(880, Math.max(420, $(window).height() - 60)),
+          width: Math.min(820, Math.max(320, $(window).width() - 40))
+        });
       }
     });
 
