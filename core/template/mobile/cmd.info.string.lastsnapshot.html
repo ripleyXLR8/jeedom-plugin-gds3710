@@ -1,27 +1,49 @@
 <div class="cmd cmd-widget" data-type="info" data-subtype="string" data-template="default" data-version="#version#" data-eqLogic_id="#eqLogic_id#" data-cmd_id="#id#" data-cmd_uid="#uid#">
 	<span class="cmdName #hide_name#">#name_display#</span>
-	<img style="max-width:100%; max-height: 100%" class="img-responsive imgCmd#uid#" data-eqLogic_id="#id#" src="#state#"/>
+	<!-- Pas de src ici : voir gds3710UrlCapture() ci-dessous. -->
+	<img style="max-width:100%; max-height: 100%" class="img-responsive imgCmd#uid#" data-eqLogic_id="#id#"/>
 	<script>
+
+		/* Une capture n'est PAS servie a son chemin direct : Jeedom refuse en 403 tout
+		   fichier sous plugins/<id>/data/. Le widget posait ce chemin en src, puis un
+		   HEAD dessus decidait de l'afficher ou non — le HEAD renvoyant 403, il se
+		   masquait donc systematiquement. On passe par downloadFile.php, qui exige une
+		   session ou une clef API.
+
+		   calculPath() ne prefixe la racine de Jeedom que si le chemin ne commence pas
+		   par « / » ; un chemin absolu serait pris pour un chemin disque. D'ou le retrait
+		   de la barre initiale. */
+		if (typeof gds3710UrlCapture !== 'function') {
+			window.gds3710UrlCapture = function (chemin) {
+				if (!chemin) {
+					return '';
+				}
+				return 'plugins/gds3710/core/php/downloadFile.php?pathfile='
+				     + encodeURIComponent(String(chemin).replace(/^\//, ''));
+			};
+		}
 
 		// Widget Refresh Code
 	    jeedom.cmd.update['#id#'] = function(_options){
+	    	if (!_options.display_value) {
+	    		$('.cmd[data-cmd_id=#id#]').hide();
+	    		return;
+	    	}
 	    	$('.cmd[data-cmd_id=#id#]').show();
-	    	$('.imgCmd#uid#').attr('src', _options.display_value);
+	    	$('.imgCmd#uid#').attr('src', gds3710UrlCapture(_options.display_value));
 	    }
 
-	    // Image URL checker (hide the widget if not available)
-	    $.ajax({
-	    	url: '#state#',
-	    	type:'HEAD',
-	    	error: function()
-	    	{
-	        	$('.cmd[data-cmd_id=#id#]').hide();
-	    	},
-		    success: function()
-		    {
-		        $('.cmd[data-cmd_id=#id#]').show();
-		    }
-		});
+	    /* Le widget se masque s'il n'y a pas de capture, ou si celle-ci ne se charge pas.
+	       Le verdict s'appuie sur le chargement reel de l'image et non sur une requete
+	       HEAD separee : une requete de moins, et il porte sur ce qui est affiche. */
+	    if ('#state#' == '') {
+	    	$('.cmd[data-cmd_id=#id#]').hide();
+	    } else {
+	    	$('.imgCmd#uid#')
+	    		.on('load', function () { $('.cmd[data-cmd_id=#id#]').show(); })
+	    		.on('error', function () { $('.cmd[data-cmd_id=#id#]').hide(); })
+	    		.attr('src', gds3710UrlCapture('#state#'));
+	    }
 
 	</script>
 </div>
