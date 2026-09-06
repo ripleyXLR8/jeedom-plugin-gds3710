@@ -5,6 +5,16 @@
   $plugin = plugin::byId('gds3710');
   sendVarToJS('eqType', $plugin->getId());
   $eqLogics = eqLogic::byType($plugin->getId());
+  /* Le JavaScript portait sa propre copie du catalogue d'évènements, écrite à la main,
+     et elle avait divergé : neuf types y étaient associés au mauvais conteneur et les
+     types ajoutés depuis n'y figuraient pas du tout. On lui sert désormais la seule
+     source de vérité, celle qui produit aussi les onglets ci-dessous. */
+  $gds3710Types = array();
+  foreach (gds3710::get_GDS3710_event_list() as $row) {
+    $gds3710Types[(string) $row['type']] = $row['short_name'];
+  }
+  sendVarToJS('gds3710EventTypes', $gds3710Types);
+
 ?>
 
 <div class="row row-overflow">
