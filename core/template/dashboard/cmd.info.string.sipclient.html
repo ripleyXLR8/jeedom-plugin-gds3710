@@ -7,7 +7,7 @@
   <a class="btn btn-sm btn-default action">#name#</a>
 
   <div class="sipDisplay" style="display:none;" title="#name_display#" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">
-    <audio id="remoteAudio"></audio>
+    <audio id="remoteAudio" autoplay></audio>
     <center class="calleridentitydisplay" style="padding:50px; display:none" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">
       <div class="namedisplay" style="font-size: 5em" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">Name</div>
       <div class="uridisplay" style="font-size: 3em" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">uri</div>
@@ -300,6 +300,47 @@
       sipClientState.sipRinging = false;
     }
 
+    /* Rattache le media distant aux lecteurs.
+     *
+     * L'ancienne API 'addstream' ne remettait qu'un seul MediaStream. En reception
+     * seule, le portier envoie sa video dans un flux distinct de son audio : cette
+     * video etait donc perdue, et le flux audio se retrouvait affecte a la balise
+     * video, seule a porter autoplay. D'ou du son sans image. On ecoute 'track', qui
+     * delivre chaque piste separement, et on envoie chacune a son lecteur. */
+    function attacherMedia(pc) {
+      if (!pc || pc.gds3710Attache) {
+        return;
+      }
+      pc.gds3710Attache = true;
+
+      var audioDistant = new MediaStream();
+      var videoDistant = new MediaStream();
+
+      pc.addEventListener('track', function (e) {
+        console.log('JsSIP : piste distante recue : ' + e.track.kind);
+        if (e.track.kind === 'audio') {
+          audioDistant.addTrack(e.track);
+          remoteAudio.srcObject = audioDistant;
+        } else {
+          videoDistant.addTrack(e.track);
+          remoteView.srcObject = videoDistant;
+          $(".remoteview[data-eqLogic_id=#id#]").show();
+        }
+      });
+
+      /* Notre propre image, quand on en envoie une. */
+      var local = new MediaStream();
+      pc.getSenders().forEach(function (s) {
+        if (s.track && s.track.kind === 'video') {
+          local.addTrack(s.track);
+        }
+      });
+      if (local.getTracks().length > 0) {
+        selfView.srcObject = local;
+        $(".selfview[data-eqLogic_id=#id#]").show();
+      }
+    }
+
     function startCall(){
       console.log("JsSip : User Action - Start Call.");
 
@@ -344,6 +385,7 @@
 
     var selfView = document.getElementById('selfView');
     var remoteView = document.getElementById('remoteView');
+    var remoteAudio = document.getElementById('remoteAudio');
 
     var session;
     var request;
@@ -485,17 +527,12 @@
 
           data.session.on('connecting', function() {
             console.log('JsSIP : Local Call - Connecting.'); 
-            data.session.connection.addEventListener('addstream',function(e) {
-              console.log('JsSIP : Local Call - Add Stream - Connecting');
-              remoteAudio.srcObject = (e.stream);
-              remoteView.srcObject = (e.stream);
-              selfView.srcObject = (session.connection.getLocalStreams()[0]);
-            });
 
           });
 
           data.session.on('peerconnection', function(e) {
             console.log('JsSIP : Local Call - Peer Connection Accepted');
+            attacherMedia(e.peerconnection || data.session.connection);
           });
 
           data.session.on('accepted', function(e) {
@@ -506,10 +543,6 @@
           data.session.on('confirmed', function(e) {
             console.log('JsSIP : Local Call - Confirmed');
 
-            data.session.connection.addEventListener('addstream',function(e) {
-              console.log('JsSIP : Local Call - Add Stream - Confirmed');
-              
-            });
 
           });
 
@@ -545,13 +578,8 @@
 
         data.session.on('peerconnection', function(e) {
           console.log('JsSIP : Incoming Call - Peer Connection Accepted');
+          attacherMedia(e.peerconnection || data.session.connection);
           
-          data.session.connection.addEventListener('addstream',function(e) {
-            console.log('JsSIP : Incoming Call - Add Stream');
-            remoteAudio.srcObject = (e.stream);
-            remoteView.srcObject = (e.stream);
-            selfView.srcObject = (session.connection.getLocalStreams()[0]);
-          });
         });
 
         data.session.on('accepted', function(e) {
