@@ -7,8 +7,10 @@ name: Contrôles
 # exactement ce qui avait fait perdre les actions de neuf types d'évènements.
 
 on:
+  # « push » sur master seulement : sur une branche de travail, la publication et la
+  # demande de fusion declencheraient deux executions identiques du meme commit.
   push:
-    branches: ['**']
+    branches: [master]
   pull_request:
   workflow_dispatch:
 
