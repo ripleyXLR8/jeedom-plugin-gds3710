@@ -1,112 +1,125 @@
-# Plugin GDS 3710
+# GDS 3710 plugin
 > by Richard Perez | richard@perez-mail.fr
 
-# Compatibilité
+# Compatibility
 
 | | |
 |---|---|
-| Jeedom | 4.4 et supérieur (PHP 8) |
-| Firmware du portier | testé jusqu'à la version 1.0.13.15 (juillet 2025) |
-| Firmware minimum conseillé | 1.0.11.18 |
+| Jeedom | 4.4 and above (PHP 8) |
+| Door station firmware | tested up to 1.0.13.15 (July 2025) |
+| Minimum recommended firmware | 1.0.11.18 |
 
-Deux points de compatibilité liés au firmware du portier :
+Two firmware-related compatibility notes:
 
-- **En dessous de 1.0.11.18**, la notification d'évènements envoyait un `Content-Type` incorrect avec les gabarits fournis par le portier, ce que PHP ne sait pas décoder. Le plugin sait désormais rattraper ce cas, mais la mise à jour du firmware reste conseillée.
-- **Si l'accès web du portier est configuré en HTTPS**, le firmware 1.0.13.2 ou supérieur est nécessaire : avant cette version, l'API HTTP ne répondait pas dans ce mode.
+- **Below 1.0.11.18**, event notification sent an incorrect `Content-Type` together with the templates supplied by the door station, which PHP cannot decode. The plugin now recovers from that case, but upgrading the firmware is still recommended.
+- **If the door station's web access is configured for HTTPS**, firmware 1.0.13.2 or above is required: before that version the HTTP API did not answer in that mode.
 
 # Introduction
-Ce plugin permet l'intégration du portier GrandStream GDS3710 dans Jeedom. Il permet de :
-- Récupérer les évènements du portier et de les gérer via des scénarios ou des commandes.
-- De modifier la configuration du portier.
-- D'activer les contacts secs du portier permettant de manoeuvrer une porte ou autre.
-- D'afficher le flux MJPEG du portier dans un widget de dashboard ou de mobile.
-- D'enregistrer des images extraites du flux MJPEG.
-- De consulter les images enregistrées via une bibliothèque intégrée.
-- D'envoyer des images enregistrées via une autre commmande (testé avec le plugin Telegram).
-- De changer le réglage du capteur vidéo du portier (normal, low-light et WDR)
-- De configurer le portier lui-même en une commande, sans saisie manuelle.
-- De remonter les capteurs du portier : entrées et sorties digitales, état des relais, anti-arrachement, températures, uptime, version de firmware et disponibilité d'une mise à jour.
-- De purger automatiquement les captures au-delà d'une durée de conservation.
-- D'exploiter les évènements décomposés en commandes : code, libellé, date, badge, utilisateur, porte, numéro SIP, dernière personne entrée et dernière alerte sécurité.
-- De piloter les réglages du portier : luminosité de la LED du clavier, luminosité, contraste et saturation de l'image, délai avant capture, raccrochage après ouverture, et le planning du rétroéclairage blanc.
-- D'enregistrer un **client SIP** depuis Jeedom et de répondre aux appels du portier sur le dashboard, image et son compris.
 
-Ce plugin est basé sur la document fourni par GrandStream : http://www.grandstream.com/sites/default/files/Resources/gds37xx_http_api.pdf
+This plugin integrates the GrandStream GDS3710 door station into Jeedom. It can:
 
-# Configuration du portier GrandStream GDS3710
+- Receive the door station's events and act on them through scenarios or commands.
+- Change the door station's configuration.
+- Trigger the dry contacts that open a door or drive any other equipment.
+- Display the door station's MJPEG stream in a dashboard or mobile widget.
+- Record snapshots taken from the MJPEG stream.
+- Browse those snapshots through a built-in library.
+- Forward snapshots to another command (tested with the Telegram plugin).
+- Change the video sensor mode (normal, low light, WDR).
+- Configure the door station itself with a single command, with no manual entry.
+- Report the door station's sensors: digital inputs and outputs, relay state, tamper switch, temperatures, uptime, firmware version and update availability.
+- Automatically purge snapshots older than a retention period.
+- Expose each event broken down into commands: code, label, date, badge, user, door, SIP number, last person in and last security alert.
+- Drive the door station's settings: keypad LED brightness, image brightness, contrast and saturation, snapshot delay, on-hook timer after a remote opening, and the white backlight schedule.
+- Register a **SIP client** from Jeedom and answer the door station's calls on the dashboard, video and audio included.
 
-> **Le plus simple : la commande « Configurer le portier ».** Une fois l'équipement créé avec son adresse IP et son mot de passe, cette commande écrit elle-même sur l'appareil l'activation de la notification, l'adresse de ce Jeedom, le gabarit d'URL complet, la méthode et les identifiants — puis relit tout pour confirmer. La saisie manuelle décrite ci-dessous reste documentée, mais c'est la première cause de panne du plugin.
+This plugin is based on the documentation published by GrandStream: http://www.grandstream.com/sites/default/files/Resources/gds37xx_http_api.pdf
+
+# Configuring the GrandStream GDS3710
+
+> **The easy way: the "Configurer le portier" command.** Once the equipment has been created with its IP address and password, this command writes the whole event-notification setup to the device itself — enabling notification, this Jeedom's address, the full URL template, the method and the credentials — then reads it all back to confirm. The manual procedure below is still documented, but getting it wrong is the single most common cause of the plugin appearing dead.
 >
-> Le plugin vérifie ensuite toutes les 15 minutes que le portier pointe toujours vers ce Jeedom, et prévient au centre de messages si ce n'est plus le cas.
+> Every 15 minutes the plugin then checks that the door station still points at this Jeedom, and posts to the message centre if it no longer does.
 
-## Pré-requis
-Afin de récupérer les évènements générés par le portier nous allons utiliser la foncitonnalité "Event Notification" qui est disponible à partir de la version 10.0.3.32 du firmware du GrandStream GDS3710. Si vous disposez d'une version antérieure la fonctionnalité "Event notification" ne sera peut-être pas disponible et il vous faudra mettre à jour le firmware de votre GDS3710 vers la dernière version.
+## Prerequisites
 
-## Configuration de la fonctionnalité "Event Notification"
-- Rendez-vous dans l'interface de gestion de votre GDS3710 puis dans Maintenance -> Event Notification.
-- Cochez la case "Enable Event Notification".
-- Sélectionnez le type de communication avec le serveur "http" ou "https" selon la configuration de votre serveur Jeedom.
-- Optionnel mais fortement recommandé : Saisissez un identifiant et un mot de passe que votre portier devra fournir a Jeedom pour publier un évènement.
-- Dans champs "HTTP/HTTPS Server", entrez la chaine suivante en remplacant IP_DE_VOTRE_JEEDOM par l'adresse IP de votre serveur Jeedom : `"IP_DE_VOTRE_JEEDOM/plugins/gds3710/core/php/jeeGDS3710.php"`.
-- Dans le champs URL Template, entrez la chaine suivante : `mac=${MAC}&content=${WARNING_MSG}&type=${TYPE}&date=${DATE}&card=${CARDID}&sip=${SIPNUM}&username=${USERNAME}&doornum=${DOOR_NUM}`.
+To receive the events generated by the door station we use the "Event Notification" feature, available from firmware 10.0.3.32 onwards. On an earlier version the feature may be missing, and the GDS3710 firmware will have to be upgraded.
 
-> Les deux dernières variables (`USERNAME` et `DOOR_NUM`) étaient absentes des versions précédentes de cette documentation alors que le plugin les exploite : sans elles, le nom de la personne et le numéro de porte ne remontent pas dans les tags de scénario.
+## Setting up "Event Notification"
 
-- La méthode HTTP peut être réglée sur POST ou sur GET selon le firmware : le plugin accepte les deux.
-- Sauvegarder la configuration.
+- Open your GDS3710 management interface, then Maintenance → Event Notification.
+- Tick "Enable Event Notification".
+- Select the transport used to reach the server, `http` or `https`, according to your Jeedom setup.
+- Optional but strongly recommended: set a username and a password that the door station will have to present to Jeedom in order to publish an event.
+- In "HTTP/HTTPS Server", enter the following, replacing YOUR_JEEDOM_IP with the address of your Jeedom server: `"YOUR_JEEDOM_IP/plugins/gds3710/core/php/jeeGDS3710.php"`.
+- In "URL Template", enter: `mac=${MAC}&content=${WARNING_MSG}&type=${TYPE}&date=${DATE}&card=${CARDID}&sip=${SIPNUM}&username=${USERNAME}&doornum=${DOOR_NUM}`.
+
+> The last two variables (`USERNAME` and `DOOR_NUM`) were missing from earlier versions of this documentation even though the plugin uses them: without them the person's name and the door number never reach the scenario tags.
+
+- The HTTP method can be POST or GET depending on the firmware: the plugin accepts both.
+- Save the configuration.
 
 ![GDS3710 Configuration](docs/assets/images/ConfigGDS3710.png)
 
-## Configuration de l'authentification pour le flux MJPEG
-- Rendez-vous dans l'interface de gestion de votre GDS3710 puis dans System Settings -> Access Settings.
-- Sélectionnez le mode d'authentification du flux MJPEG (MJPEG Authentication Mode). Nous vous conseillons le mode "Challenge+Response" pour plus de sécurité.
+## Setting up MJPEG stream authentication
 
-## Activation de l'API HTTP pour l'ouverture de la porte
-- Rendez-vous dans l'interface de gestion de votre GDS3710 puis dans Door System Settings -> Basic Settings.
-- Cochez la case "Enable HTTP API Remote Open Door".
-- Choisissez un PIN pour l'option "Remote PIN to Open Door".
-- Sauvegardez la configuration.
+- Open your GDS3710 management interface, then System Settings → Access Settings.
+- Choose the MJPEG Authentication Mode. "Challenge+Response" is recommended, as the more secure option.
 
-NB : Assurez-vous d'avoir changer le mot-de-passe par défaut du compte admin avant d'activer cette fonctionnalité.
+## Enabling the HTTP API for door opening
 
-## Relevez de l'adresse IP et de l'adresse Mac de votre portier
-- Rendez-vous dans l'interface de gestion de votre GDS3710 puis dans Status -> Network info.
-- Relevez l'adresse Mac et l'adresse IP de votre portier, nous en aurons besoin plus tard.
+- Open your GDS3710 management interface, then Door System Settings → Basic Settings.
+- Tick "Enable HTTP API Remote Open Door".
+- Choose a PIN for "Remote PIN to Open Door".
+- Save the configuration.
 
-# Sécurité
+Note: make sure you have changed the default password of the admin account before enabling this feature.
 
-Deux protections encadrent la remontée d'évènements :
+## Noting your door station's IP and MAC addresses
 
-- **Contrôle de l'adresse d'origine** (actif par défaut, sans configuration). Un évènement n'est accepté que s'il provient de l'adresse IP renseignée pour l'équipement. L'adresse MAC du portier sert d'identifiant, pas de secret : elle est lisible sur l'appareil. Si votre Jeedom est derrière un NAT ou un proxy qui masque l'adresse réelle du portier, désactivez ce contrôle dans la configuration du plugin.
-- **Protection par mot de passe** (activée par défaut sur les nouvelles installations). Elle est vivement conseillée dès lors que des évènements du portier déclenchent des actions sensibles. Sur une installation existante, le réglage n'est pas modifié par la mise à jour : pensez à l'activer.
+- Open your GDS3710 management interface, then Status → Network info.
+- Note the MAC address and the IP address, both are needed later.
 
-Les captures et le flux vidéo ne sont accessibles qu'à un utilisateur connecté à Jeedom, ou avec une clef API valide.
+# Security
 
-# Configuration du plugin GDS3710 dans Jeedom
-## Configuration générale
-- Allez à la page de configuration du plugin et saisissez l'identifiant et le mot-de-passe que vous avez choisis à l'étape "Configuration de la fonctionnalité 'Event Notification'".
-- Renseignez un répertoire pour le stockage des captures d'écran. Par défaut ce répertoire est : "plugins/gds3710/data/records".
+Two protections guard the incoming events:
 
-## Création et configuration de votre équipement
-- Une fois le plugins installé, créez un nouvel équipement "GDS3710" et activez le.
-- Entrez l'adresse MAC (sans les ":") de votre portier dans le champs correspondant.
-- Entrez l'Adresse IP de votre portier dans le champs correspondant.
-- Saisissez le mot-de-passe du compte admin dans le champs correspondant.
-- Saisissez le remote PIN dans le champs correspondant (il s'agit du PIN permettant d'ouvrir la porte 1).
-- Saisissez le remote PIN 2 dans le champs correspondant (il s'agit du PIN permettant d'ouvrir la porte 2).
-- Sélectionnez le mode d'authentification du flux MJPEG que vous avez choisis précédement.
-- Sauvegardez les modifications apportées à l'équipement.
+- **Source address check** (enabled by default, no configuration needed). An event is accepted only if it comes from the IP address configured for the equipment. The door station's MAC address is an identifier, not a secret: it is printed on the device. If your Jeedom sits behind a NAT or a proxy that hides the door station's real address, disable this check in the plugin configuration.
+- **Password protection** (enabled by default on new installations). It is strongly advised as soon as door station events trigger anything sensitive. On an existing installation an update does not change your setting: remember to enable it.
 
-## Configuration et test du client SIP
-TODO
+Snapshots and the video stream are only reachable by a user logged into Jeedom, or with a valid API key.
 
-**C'est terminé, tout est configuré.**
+# Configuring the GDS3710 plugin in Jeedom
 
-# Utilisation
-## Principe de fonctionnement
-Chaque évènement envoyé par le GDS3710 comporte un type dont voici la liste (extrait de la documentation du GDS3710 sur la fonctionnalité "event notification", disponible ici : http://www.grandstream.com/sites/default/files/Resources/gds_event_logs_guide.pdf):
+## General configuration
 
-| Type d'évènement | Nom | Description de l'évènement|
+- Go to the plugin configuration page and enter the username and password chosen during "Setting up Event Notification".
+- Set a directory for snapshot storage. The default is `plugins/gds3710/data/records`.
+
+## Creating and configuring your equipment
+
+- Once the plugin is installed, create a new "GDS3710" equipment and enable it.
+- Enter your door station's MAC address, without the `:` separators.
+- Enter your door station's IP address.
+- Enter the admin account password.
+- Enter the remote PIN — the one that opens door 1.
+- Enter remote PIN 2 — the one that opens door 2.
+- Select the MJPEG authentication mode chosen earlier.
+- Save the equipment.
+
+## Configuring and testing the SIP client
+
+See the "SIP client" section below, and the full documentation for the exact nginx block.
+
+**That's it, everything is configured.**
+
+# Usage
+
+## How it works
+
+Every event sent by the GDS3710 carries a type. The list below is taken from the GDS3710 event notification guide, available here: http://www.grandstream.com/sites/default/files/Resources/gds_event_logs_guide.pdf
+
+| Event type | Name | Description |
 | ------------ | ------------ |------------ |
 |100 |Open Door via Card|Indicates that someone opens the door via card or key fob.|
 | 101  |  Open Door via Card (over Wiegand) | Indicates that someone opens the door via card or key fob using Wiegand interface connected to GDS.|
@@ -144,89 +157,112 @@ Chaque évènement envoyé par le GDS3710 comporte un type dont voici la liste (
 |1404 |Sensor Temperature(32°C) Too Low |Indicates that device's sensor temperature is normal too low.|
 |1405 |Sensor Temperature(32°C) Too High |Indicates that device's sensor temperature is normal too high.|
 
-## Utilisation des évènements déclenchés avec des commandes d'actions
-Pour chaque code d'évènement vous avez la possibilité dans les onglets "Appel", "Ouverture Porte", "Maintient de l'ouverture", "Sécurité", "Surveillance Matériel" et "Surveillance Logiciel" de créer une liste de commandes qui seront exécutées lors de la réception de ces évènements. Utilisez simplement le bouton "Ajouter une action", présent à coté de chaque type d'évènement puis sélectionner l'action à réaliser. Une fois les actions ajoutées, vous avez la possibilité de changer l'ordre d'éxécution en les faisant glisser.
+## Reacting to events with action commands
 
-## Utilisation des évènements déclenchés avec des scénarios
-L'ajout d'un scénario en réponse à un évènement reçu se fait en saisissant "scenario" dans le champs "action" après avoir cliqué sur le bouton "Ajouter une action". Une nouvelle boite de dialogue vous permettra alors de sélectionner le scénario à exécuter.
+For every event code, the "Appel", "Ouverture Porte", "Maintient de l'ouverture", "Sécurité", "Surveillance Matériel" and "Surveillance Logiciel" tabs let you build a list of commands to run when that event arrives. Use the "Ajouter une action" button next to each event type, then pick the action. Once added, actions can be reordered by dragging them.
 
-Lors de l'exécution du scénario, les informations reçues par jeedom seront transmises au scénario par les biais des Tags suivant :
+## Reacting to events with scenarios
 
-|Tag|Contenu|
+To run a scenario in response to an event, type `scenario` in the "action" field after clicking "Ajouter une action". A dialog then lets you select the scenario.
+
+When the scenario runs, the information received by Jeedom is passed through the following tags:
+
+|Tag|Content|
 |-------|--------|
-|#mac#|Contient l'adresse Mac de l'appareil ayant envoyé la notification|
-|#content# |Contient un message de description de la notification envoyé par le GDS3710|
-|#type#|Contient le type de la notification|
-|#date#|Contient l'heure et la date de la notification|
-|#sip#|Contient le numéro SIP relatif à la notification|
-|#card#|Contient le numéro de la carte relatif à la notification|
+|#mac#|MAC address of the device that sent the notification|
+|#content#|Description message sent by the GDS3710|
+|#type#|Notification type|
+|#date#|Notification date and time|
+|#sip#|SIP number related to the notification|
+|#card#|Card number related to the notification|
 
-## Utilisation des commandes de type INFO de l'équipement
-L'onglet "commandes" contient des commandes de type info contenant pour chaque type d'évènement le dernier évènement reçue au format JSON. La commande "Last event" contient la dernier évèneement réceptionné.
+## Info commands
 
-## Utilisation des commandes de type ACTION de l'équipement
-L'équipement dispose de commandes de type ACTION permettant de réaliser les actions suivantes :
-- Ouverture de la porte.
-- Fermeture de la porte.
-- Réalisation d'une capture d'écran.
-- Activation et désactivation du LDC (Lens Distortion Correction).
-- Changement du mode du cpateur CMOS (Normal, Low Light , WDR)
+The "Commandes" tab holds one info command per event type, each carrying the last event received for that type as JSON. The "Last event" command holds the most recent event, whatever its type.
 
-## Envoi de captures du flux MJPEG via un scénario
-Le plugin vous permet de transmettre des captures du flux MJPEG par l'intermédiaire d'un plugin tiers (testé avec Telegram).
-- Ajoutez un bloc d'action dans un scénario et sélectionnez la commande "[Envoyer un snapshot]" de votre équipement GDS3710.
-- Dans le champs "Nombre captures ou options" entrez le nombre de captures à envoyer.
-- Dans le champs "Commande message d'envoi des captures" sélectionner la commande pour envoyer la ou les captures (il s'agit de la commande de votre bot Telegram).
+## Action commands
 
-![Envoyer un snapshot dans un scénario](docs/assets/images/EnvoyerCaptureGDS3710.png)
+The equipment provides action commands to:
 
-# Options de configuration du plugin
+- Open the door.
+- Close the door.
+- Take a snapshot.
+- Enable and disable LDC (Lens Distortion Correction).
+- Change the CMOS sensor mode (Normal, Low Light, WDR).
 
-| Option | Effet |
+## Sending MJPEG snapshots from a scenario
+
+The plugin can forward snapshots taken from the MJPEG stream through a third-party plugin (tested with Telegram).
+
+- Add an action block to a scenario and select the "[Envoyer un snapshot]" command of your GDS3710 equipment.
+- In "Nombre captures ou options", enter how many snapshots to send.
+- In "Commande message d'envoi des captures", select the command that will deliver them — your Telegram bot command, for instance.
+
+![Sending a snapshot from a scenario](docs/assets/images/EnvoyerCaptureGDS3710.png)
+
+# Plugin configuration options
+
+| Option | Effect |
 |---|---|
-| Protection par mot de passe | Exige une authentification Digest sur la remontée d'évènements. Activée par défaut sur les nouvelles installations. |
-| Désactiver le contrôle d'adresse d'origine | À cocher uniquement si Jeedom est derrière un NAT ou un proxy qui masque l'adresse réelle du portier. |
-| Remonter les capteurs du portier | Relève toutes les 15 minutes. ⚠️ Le portier n'accepte qu'une session administrateur : chaque relève déconnecte une session ouverte sur son interface web. À décocher le temps d'une configuration sur l'appareil. |
-| Conserver les captures pendant (jours) | Purge nocturne au-delà de cette durée. `0` désactive la purge, comportement historique. |
-| Autoriser les utilisateurs / utilisateurs limités à effacer les captures | Les administrateurs peuvent toujours effacer. |
-| Répertoire d'enregistrement des captures | Doit être accessible en écriture à l'utilisateur du serveur web. |
+| Password protection | Requires Digest authentication on incoming events. Enabled by default on new installations. |
+| Disable the source address check | Tick only if Jeedom sits behind a NAT or a proxy that hides the door station's real address. |
+| Poll the door station's sensors | Reads every 15 minutes. ⚠️ The door station allows a single administrator session: every read disconnects a session open on its web interface. Untick it while configuring the device. |
+| Keep snapshots for (days) | Nightly purge beyond that age. `0` disables the purge, which is the historical behaviour. |
+| Allow users / restricted users to delete snapshots | Administrators can always delete. |
+| Snapshot storage directory | Must be writable by the web server user. |
 
-# Exploiter les évènements
+# Working with events
 
-Chaque évènement reste disponible sous sa forme brute, mais neuf commandes portent désormais les mêmes informations décomposées : code, libellé, date, badge, utilisateur, porte, numéro SIP, **Dernière personne entrée** et **Dernière alerte sécurité**.
+Every event is still available in its raw form, but nine commands now carry the same information broken down: code, label, date, badge, user, door, SIP number, **last person in** and **last security alert**.
 
-Le catalogue couvre **41 types d'évènements** relevés sur un portier en firmware 1.0.13.15 ; un type inconnu est accepté sans erreur plutôt que d'interrompre la remontée.
+The catalogue covers **41 event types** observed on a door station running firmware 1.0.13.15; an unknown type is accepted rather than breaking the whole notification.
 
-« Dernière personne entrée » ne se met à jour que sur les évènements où quelqu'un s'est identifié, et retient le nom, à défaut le badge. Un appui sur la sonnette n'efface donc pas le nom précédent.
+"Last person in" is only updated by events where somebody identified themselves, and keeps the name, falling back to the badge. Pressing the doorbell therefore does not erase the previous name.
 
-# Réglages du portier
+# Door station settings
 
-Sept réglages pilotables, chacun sous forme d'une commande info affichant la valeur lue sur l'appareil et d'un curseur qui l'écrit : LED du clavier au repos et à l'appui, luminosité, contraste et saturation de l'image, délai avant capture, raccrochage après ouverture distante. Le planning du rétroéclairage blanc dispose de ses propres commandes.
+Nine settings can be driven, each as an info command showing the value read from the device plus a slider that writes it: keypad LED at rest and when pressed, image brightness, contrast and saturation, snapshot delay, on-hook timer after a remote opening, system volume and doorbell volume. The white backlight schedule has its own commands.
 
-Toute écriture est bornée puis relue avant mise à jour. ⚠️ Le planning du rétroéclairage exige le firmware **1.0.13.9**, les réglages de LED le **1.0.13.5**.
+Every write is clamped, then read back before the info command is updated. ⚠️ The backlight schedule requires firmware **1.0.13.9**, and the LED settings **1.0.13.5**.
 
-# Client SIP
+⚠️ **Video settings only take effect when the door station restarts.** Writing a CMOS mode or the distortion correction changes nothing on the image at the time: the device stores the value and applies it on the next boot. A button that seems to do nothing is not necessarily broken — use the **Reboot** command to see the result.
 
-Le plugin embarque un client SIP permettant de répondre au portier depuis le dashboard.
+# States read from the device
 
-Il requiert un **serveur SIP acceptant le WebSocket**, un **Jeedom servi en HTTPS** — les navigateurs refusent micro et caméra hors contexte sécurisé — et un **certificat valide sur le serveur SIP**. Ces pré-requis sont vérifiés au chargement et signalés sur le bouton du widget plutôt que d'échouer en silence.
+Twelve states are reported, read from four of the door station's configuration sections: CMOS mode, LDC, mains frequency, shutter speed, audio codec, timestamp and text overlay, NTP, daylight saving and time zone. They are refreshed every fifteen minutes, and immediately after an LDC command.
 
-⚠️ **Politique de sécurité du navigateur** : l'image Docker de Jeedom envoie une CSP sans `connect-src`, ce qui interdit au navigateur toute connexion websocket vers un autre domaine — donc vers votre serveur SIP. Le widget le détecte et l'affiche. Aucun plugin ne peut lever cette restriction. La solution recommandée est de relayer le websocket SIP derrière le domaine de Jeedom (`wss://mon-jeedom/sipws`) : l'URL devient *same-origin* et la CSP n'a pas à être modifiée. La documentation donne le bloc nginx exact, ainsi que la variante par remplacement de l'en-tête.
+💡 Three of them are worth a look on a European installation: a **mains frequency** set to 60 Hz makes the picture flicker under artificial light; **daylight saving** left disabled shifts the timestamp of every event the door station reports by an hour in summer; and the **audio codec** may sit on PCMU while the SIP server offers better.
 
-⚠️ **Caméra** : la même image envoie un en-tête `Permissions-Policy` contenant `camera=()`, qui interdit la caméra à la page. Le widget le détecte et bascule l'appel en audio seul, sans cesser de réclamer le flux vidéo du portier. JsSIP rapporte sinon `User Denied Media Access`, alors qu'aucun refus utilisateur n'a eu lieu.
+# Commands are linked to their state
 
-Quand le portier appelle, le widget affiche son image **dès la sonnerie**, avant tout décrochage — l'aperçu laisse place à la vidéo temps réel une fois l'appel pris. L'extension utilisée par Jeedom doit évidemment figurer parmi celles que le portier appelle.
+Every action button points at the info command it changes, so Jeedom shows the current state on the button and renders an on/off pair as a switch rather than two buttons with no memory. When the linked state is binary the button also gets a suitable widget: the LDC pair as a **switch**, the backlight pair as a **binary button**.
 
-Une option publie les **appels non décrochés dans le centre de messages** de Jeedom, avec l'heure et un lien vers la capture prise à la sonnerie. Elle est désactivée par défaut : le portier n'émettant aucun évènement de fin d'appel, le plugin ne peut constater qu'une chose — que personne n'a décroché *depuis Jeedom*.
+A link or a widget you set yourself is never replaced. Neither are names, units and ranges: the plugin only fills in what is empty.
 
-La fenêtre d'appel présente un **bouton par commande d'ouverture visible** de l'équipement, qui exécute la commande du plugin — donc sans confier de code supplémentaire au navigateur, et même hors appel.
+# SIP client
 
-Elle comporte aussi un **clavier** : au repos il compose un numéro à joindre, en communication il envoie des tonalités DTMF — c'est ainsi que l'on transmet au portier son code d'ouverture de porte sans quitter le dashboard.
+The plugin embeds a SIP client that answers the door station from the dashboard.
 
-Le mot de passe du compte SIP n'est jamais placé dans la valeur d'une commande : il est servi par un appel authentifié soumis aux droits sur l'équipement.
+It requires a **SIP server accepting WebSocket**, a **Jeedom served over HTTPS** — browsers refuse microphone and camera outside a secure context — and a **valid certificate on the SIP server**. These prerequisites are checked on load and reported on the widget button rather than failing silently.
 
-Si l'appel échoue côté serveur avec une erreur inexpliquée, essayez le champ « Codec(s) à supprimer » : le message d'invitation produit par le client est long et certains serveurs le refusent au-delà d'une taille limite.
+⚠️ **Browser security policy**: the Jeedom Docker image sends a CSP with no `connect-src`, which forbids the browser any websocket connection to another domain — including your SIP server. The widget detects it and says so. No plugin can lift that restriction. The recommended answer is to relay the SIP websocket behind Jeedom's own domain (`wss://my-jeedom/sipws`): the URL becomes *same-origin* and the CSP does not have to be touched. The documentation gives the exact nginx block, along with the header-replacement alternative.
+
+⚠️ **Camera**: the same image sends a `Permissions-Policy` header containing `camera=()`, which forbids the camera to the page. The widget detects it and switches the call to audio only, without giving up on receiving the door station's video. Otherwise JsSIP reports `User Denied Media Access` when no user ever refused anything.
+
+When the door station calls, the widget shows its picture **as soon as it rings**, before answering — the preview gives way to live video once the call is picked up. The extension Jeedom uses must of course be among those the door station calls.
+
+An option publishes **unanswered calls to Jeedom's message centre**, with the time and a link to the snapshot taken as it rang. It is disabled by default: since the door station emits no end-of-call event, the plugin can only establish one thing — that nobody answered *from Jeedom*.
+
+The call window offers **one button per visible opening command** of the equipment, running the plugin's own command — so no extra secret reaches the browser, and it works even outside a call.
+
+It also carries a **keypad**: at rest it dials a number, during a call it sends DTMF tones — which is how the door station receives its door-opening code without leaving the dashboard.
+
+The SIP account password is never placed in a command value: it is served by an authenticated call subject to the rights on the equipment.
+
+If a call fails on the server side with an unexplained error, try the "Codec(s) à supprimer" field: the invitation message produced by the client is long, and some servers reject it beyond a size limit.
 
 ---
 
-📖 **La documentation complète et à jour se trouve dans [`docs/fr_FR/index.md`](docs/fr_FR/index.md)**, également publiée sur le [site de documentation](https://ripleyxlr8.github.io/jeedom-plugin-gds3710/fr_FR/). En cas de divergence avec ce README, c'est la documentation qui fait foi.
+📖 **The complete and up-to-date documentation lives in [`docs/fr_FR/index.md`](docs/fr_FR/index.md)**, also published on the [documentation site](https://ripleyxlr8.github.io/jeedom-plugin-gds3710/fr_FR/). Should this README and the documentation disagree, the documentation wins.
+
+The in-plugin documentation is currently written in French only; the four language folders Jeedom expects hold the same text. This README is the English entry point.

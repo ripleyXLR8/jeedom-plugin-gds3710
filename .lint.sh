@@ -48,15 +48,18 @@ done
 # une fois docs/ seul. Ces deux oublis ont laisse aux utilisateurs une documentation
 # fausse la ou elle comptait. Ce controle rend l oubli impossible a manquer.
 echo "== parite README / documentation =="
+# Le README est en anglais et la documentation en francais : chaque marqueur doit donc
+# reconnaitre les deux formulations, sans quoi le controle signalerait une divergence
+# sur chaque concept.
 MARQUEURS=(
   "Configurer le portier"
-  "Remonter les capteurs"
-  "Conserver les captures"
-  "contrôle d'adresse d'origine|contrôle de l'adresse d'origine"
+  "Remonter les capteurs|Poll the door station"
+  "Conserver les captures|Keep snapshots"
+  "contrôle d'adresse d'origine|contrôle de l'adresse d'origine|source address check"
   "1.0.11.18"
-  "Dernière personne entrée"
-  "Réglages du portier"
-  "Client SIP"
+  "Dernière personne entrée|last person in"
+  "Réglages du portier|Door station settings"
+  "Client SIP|SIP client"
   "connect-src|Politique de sécurité"
   "DOOR_NUM"
 )
