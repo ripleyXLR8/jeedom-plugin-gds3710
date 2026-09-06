@@ -15,6 +15,6 @@
 		"forum":"https://community.jeedom.com/tag/plugin-gds3710",
 		"video" : ""
 	},
-	"language" : ["fr_FR"],
+	"language" : ["fr_FR","en_US","de_DE","es_ES"],
 	"compatibility" : ["miniplus","smart","rpi","docker","diy"]
 }

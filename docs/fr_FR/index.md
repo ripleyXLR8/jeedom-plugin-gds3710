@@ -422,3 +422,9 @@ Le plugin vous permet de transmettre des captures du flux MJPEG par l'intermédi
 - Dans le champs "Commande message d'envoi des captures" sélectionner la commande pour envoyer la ou les captures (il s'agit de la commande de votre bot Telegram).
 
 ![Envoyer un snapshot dans un scénario](../assets/images/EnvoyerCaptureGDS3710.png)
+
+# Langues
+
+**L'interface du plugin est traduite** en anglais, en allemand et en espagnol. Le catalogue vit dans `core/i18n/` et couvre 152 chaînes ; `tools/extract_i18n.py` le tient en phase avec le code, et un contrôle refuse toute chaîne ajoutée sans traduction. Le français est la langue source : il n'a pas de catalogue.
+
+⚠️ **Cette documentation, elle, n'existe qu'en français.** Les quatre dossiers de langue attendus par Jeedom contiennent le même texte français.
