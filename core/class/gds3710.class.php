@@ -46,6 +46,40 @@ class gds3710 extends eqLogic {
       }
      */
 
+    /* Masque les secrets avant journalisation. Les logs de ce plugin sont regulierement
+     * colles tels quels sur le forum de la communaute : ils ne doivent contenir ni mot de
+     * passe, ni jeton de session, ni code d authentification. */
+    public static function redact($_text) {
+        $text = is_string($_text) ? $_text : print_r($_text, true);
+        $text = preg_replace('/(authcode=)[^&\s]+/i', '$1***', $text);
+        $text = preg_replace('/(idcode=)[^&\s]+/i', '$1***', $text);
+        $text = preg_replace('/((?:mjpeg_)?sess(?:ion)?=)[^;\s]+/i', '$1***', $text);
+        $text = preg_replace('/(:\/\/[^:\/\s]+:)[^@\s]+@/', '$1***@', $text);
+        return $text;
+    }
+
+    /* Parse une reponse du portier. Auparavant le constructeur SimpleXMLElement etait
+     * appele directement sur le retour de curl : il levait une exception non rattrapee des
+     * que le portier etait injoignable ou repondait autre chose que du XML, soit une erreur
+     * 500 cote Jeedom au lieu dune ligne de log. */
+    public static function parseXml($_raw, $_context = '') {
+        $where = $_context === '' ? '' : ' (' . $_context . ')';
+        if (!is_string($_raw) || trim($_raw) === '') {
+            log::add('gds3710', 'error', 'Portier injoignable ou reponse vide' . $where);
+            return null;
+        }
+        $previous = libxml_use_internal_errors(true);
+        $xml = simplexml_load_string($_raw);
+        libxml_clear_errors();
+        libxml_use_internal_errors($previous);
+        if ($xml === false) {
+            log::add('gds3710', 'error', 'Reponse non XML du portier' . $where . ' : '
+                . gds3710::redact(substr($_raw, 0, 200)));
+            return null;
+        }
+        return $xml;
+    }
+
     public static function get_GDS3710_event_list()
     {
         $return = array (
@@ -490,8 +524,11 @@ class gds3710Cmd extends cmd {
             CURLOPT_RETURNTRANSFER => true
         );
         curl_setopt_array($ch, $optArray);
-        log::add('gds3710', 'debug', 'curl options are : '.print_r($optArray, true));
-        $auth_challenge = new SimpleXMLElement(curl_exec($ch));
+        log::add('gds3710', 'debug', 'curl options are : '.gds3710::redact($optArray));
+        $auth_challenge = gds3710::parseXml(curl_exec($ch), 'ouverture porte');
+        if ($auth_challenge === null) {
+            return;
+        }
         $ChallengeCode = $auth_challenge->ChallengeCode[0];
         $IDCode = $auth_challenge->IDCode[0];
 
@@ -526,7 +563,10 @@ class gds3710Cmd extends cmd {
             CURLOPT_RETURNTRANSFER => true
         );
         curl_setopt_array($ch, $optArray);
-        $auth_challenge = new SimpleXMLElement(curl_exec($ch));
+        $auth_challenge = gds3710::parseXml(curl_exec($ch), 'ouverture porte');
+        if ($auth_challenge === null) {
+            return;
+        }
         $ChallengeCode = $auth_challenge->ChallengeCode[0];
         $IDCode = $auth_challenge->IDCode[0];
 
@@ -554,7 +594,7 @@ class gds3710Cmd extends cmd {
 
         $gds3710 = eqLogic::byId($this->getEqLogic_id());
         $cookies = $this->getAuthCookies($gds3710);
-        log::add('gds3710', 'debug', 'Auth cookies is : '.print_r($cookies, true));
+        log::add('gds3710', 'debug', 'Auth cookies is : '.gds3710::redact($cookies));
 
         $cookie_string = "";
         foreach ($cookies as $key => $value) {
@@ -581,7 +621,7 @@ class gds3710Cmd extends cmd {
         $ch = curl_init();
         curl_setopt_array($ch, $optArray);
 
-        $result =  new SimpleXMLElement(curl_exec($ch));
+        $result = gds3710::parseXml(curl_exec($ch), 'requete configuration');
         log::add('gds3710', 'debug', 'Result is : '. print_r($result, true));
     }
    
@@ -590,7 +630,7 @@ class gds3710Cmd extends cmd {
 
         $gds3710 = eqLogic::byId($this->getEqLogic_id());
         $cookies = $this->getAuthCookies($gds3710);
-        log::add('gds3710', 'debug', 'Auth cookies is : '.print_r($cookies, true));
+        log::add('gds3710', 'debug', 'Auth cookies is : '.gds3710::redact($cookies));
 
         $cookie_string = "";
         foreach ($cookies as $key => $value) {
@@ -618,7 +658,7 @@ class gds3710Cmd extends cmd {
         $ch = curl_init();
         curl_setopt_array($ch, $optArray);
 
-        $result =  new SimpleXMLElement(curl_exec($ch));
+        $result = gds3710::parseXml(curl_exec($ch), 'requete configuration');
         log::add('gds3710', 'debug', 'Result is : '. print_r($result, true));
 
     }
@@ -639,7 +679,10 @@ class gds3710Cmd extends cmd {
         );
 
         curl_setopt_array($ch, $optArray);
-        $auth_challenge = new SimpleXMLElement(curl_exec($ch));
+        $auth_challenge = gds3710::parseXml(curl_exec($ch), 'ouverture de session');
+        if ($auth_challenge === null) {
+            return array();
+        }
 
         $ChallengeCode = $auth_challenge->ChallengeCode[0];
         $IDCode = $auth_challenge->IDCode[0];
@@ -713,18 +756,22 @@ class gds3710Cmd extends cmd {
             CURLOPT_RETURNTRANSFER => true
         );
 
-        log::add('gds3710', 'debug', 'URL array : '.print_r($optArray, true));
+        log::add('gds3710', 'debug', 'URL array : '.gds3710::redact($optArray));
 
         curl_setopt_array($ch, $optArray);
         $data = curl_exec($ch);
 
-        log::add('gds3710', 'debug', 'URL return : '.print_r($data, true));
+        log::add('gds3710', 'debug', 'URL return : '.gds3710::redact($data));
 
-        $auth_challenge = new SimpleXMLElement($data);
+        $auth_challenge = gds3710::parseXml($data, 'capture');
+        if ($auth_challenge === null) {
+            return null;
+        }
         $ChallengeCode = $auth_challenge->ChallengeCode[0];
         $string_to_be_hashed = $ChallengeCode.":".$salt.":".$password;
 
-        log::add('gds3710', 'debug', 'String to be hashed : '.print_r($string_to_be_hashed, true));
+        /* Ne jamais journaliser cette chaine : elle contient le mot de passe en clair. */
+        log::add('gds3710', 'debug', 'Challenge recu : '.$ChallengeCode);
 
         $auth_response = md5($string_to_be_hashed);
         $url ='https://'.$ip.'/goform/login?cmd=login&user=admin&authcode='.$auth_response.'&type=1';
@@ -737,13 +784,13 @@ class gds3710Cmd extends cmd {
             CURLOPT_HEADER => true
         );
 
-        log::add('gds3710', 'debug', 'URL array : '.print_r($optArray, true));
+        log::add('gds3710', 'debug', 'URL array : '.gds3710::redact($optArray));
 
         $ch = curl_init();
         curl_setopt_array($ch, $optArray);
         $data = curl_exec($ch);
 
-        log::add('gds3710', 'debug', 'URL return : '.print_r($data, true));
+        log::add('gds3710', 'debug', 'URL return : '.gds3710::redact($data));
 
         preg_match_all('/^Set-Cookie:\s*([^;]*)/mi', $data, $matches);
         $cookies = array();
@@ -786,13 +833,13 @@ class gds3710Cmd extends cmd {
             CURLOPT_FILE => $fp
         );
 
-        log::add('gds3710', 'debug', 'URL array : '.print_r($optArray, true));
+        log::add('gds3710', 'debug', 'URL array : '.gds3710::redact($optArray));
 
         $ch = curl_init();
         curl_setopt_array($ch, $optArray);
 
         $data = curl_exec($ch);
-        log::add('gds3710', 'debug', 'URL return : '.print_r($data, true));
+        log::add('gds3710', 'debug', 'URL return : '.gds3710::redact($data));
 
         curl_close ($ch);
         fclose($fp);
@@ -831,7 +878,17 @@ class gds3710Cmd extends cmd {
         $files =array();
 
         for ($i = 1; $i <= $nbsnap; $i++) {
-            array_push($files,$this->take_snapshot());            
+            $shot = $this->take_snapshot();
+            if ($shot === null) { // portier injoignable : inutile denvoyer une image vide
+                log::add('gds3710', 'error', 'Capture ' . $i . ' sur ' . $nbsnap . ' echouee, envoi interrompu.');
+                break;
+            }
+            array_push($files, $shot);
+        }
+
+        if (count($files) === 0) {
+            log::add('gds3710', 'error', 'Aucune capture disponible, rien a envoyer.');
+            return;
         }
 
         $options = array();

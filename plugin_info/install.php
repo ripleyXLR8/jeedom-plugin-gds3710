@@ -18,17 +18,26 @@
 
 require_once dirname(__FILE__) . '/../../../core/php/core.inc.php';
 
-function template_install() {
-    
+/* Ces fonctions doivent porter le nom du plugin pour que le coeur les appelle.
+ * Elles s'appelaient template_*() depuis la creation du plugin et n'ont donc
+ * jamais ete executees. */
+
+function gds3710_install() {
+    /* Nouvelle installation : la protection par mot de passe de l'endpoint
+     * d'evenements est active par defaut. Les installations existantes passent par
+     * gds3710_update() et conservent leur reglage, pour ne pas voir leur remontee
+     * d'evenements s'interrompre a la mise a jour. */
+    config::save('password_protection', 1, 'gds3710');
 }
 
-function template_update() {
-    
+function gds3710_update() {
+    if (config::byKey('password_protection', 'gds3710', '') === '') {
+        config::save('password_protection', 0, 'gds3710');
+    }
 }
 
+function gds3710_remove() {
 
-function template_remove() {
-    
 }
 
 ?>

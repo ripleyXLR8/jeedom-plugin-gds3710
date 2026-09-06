@@ -1,12 +1,21 @@
 # Plugin GDS 3710
-> Version du 28 avril 2020
 > by Richard Perez | richard@perez-mail.fr
 
-# IMPORTANT
-Il semble y avoir un problème avec la version 1.0.4.9 du firmware du GDS3710 (la réalisation de capture du flux échoue). Les autres version supérieures à la 10.0.3.32 fonctionnent. Le plugin a été testé jusqu'à la version 10.0.7.8.
+# Compatibilité
+
+| | |
+|---|---|
+| Jeedom | 4.4 et supérieur (PHP 8) |
+| Firmware du portier | testé jusqu'à la version 1.0.13.15 (juillet 2025) |
+| Firmware minimum conseillé | 1.0.11.18 |
+
+Deux points de compatibilité liés au firmware du portier :
+
+- **En dessous de 1.0.11.18**, la notification d'évènements envoyait un `Content-Type` incorrect avec les gabarits fournis par le portier, ce que PHP ne sait pas décoder. Le plugin sait désormais rattraper ce cas, mais la mise à jour du firmware reste conseillée.
+- **Si l'accès web du portier est configuré en HTTPS**, le firmware 1.0.13.2 ou supérieur est nécessaire : avant cette version, l'API HTTP ne répondait pas dans ce mode.
 
 # Introduction
-Ce plugin permet l'intégration du portier GrandStream GDS3710 dans Jeedom. Dans sa version actuelle (28 avril 2020), il permet de :
+Ce plugin permet l'intégration du portier GrandStream GDS3710 dans Jeedom. Il permet de :
 - Récupérer les évènements du portier et de les gérer via des scénarios ou des commandes.
 - De modifier la configuration du portier.
 - D'activer les contacts secs du portier permettant de manoeuvrer une porte ou autre.
@@ -30,7 +39,11 @@ Afin de récupérer les évènements générés par le portier nous allons utili
 - Sélectionnez le type de communication avec le serveur "http" ou "https" selon la configuration de votre serveur Jeedom.
 - Optionnel mais fortement recommandé : Saisissez un identifiant et un mot de passe que votre portier devra fournir a Jeedom pour publier un évènement.
 - Dans champs "HTTP/HTTPS Server", entrez la chaine suivante en remplacant IP_DE_VOTRE_JEEDOM par l'adresse IP de votre serveur Jeedom : `"IP_DE_VOTRE_JEEDOM/plugins/gds3710/core/php/jeeGDS3710.php"`.
-- Dans le champs URL Template, entrez la chaine suivante : `mac=${MAC}&content=${WARNING_MSG}&type=${TYPE}&date=${DATE}&card=${CARDID}&sip=${SIPNUM}`.
+- Dans le champs URL Template, entrez la chaine suivante : `mac=${MAC}&content=${WARNING_MSG}&type=${TYPE}&date=${DATE}&card=${CARDID}&sip=${SIPNUM}&username=${USERNAME}&doornum=${DOOR_NUM}`.
+
+> Les deux dernières variables (`USERNAME` et `DOOR_NUM`) étaient absentes des versions précédentes de cette documentation alors que le plugin les exploite : sans elles, le nom de la personne et le numéro de porte ne remontent pas dans les tags de scénario.
+
+- La méthode HTTP peut être réglée sur POST ou sur GET selon le firmware : le plugin accepte les deux.
 - Sauvegarder la configuration.
 
 ![GDS3710 Configuration](docs/assets/images/ConfigGDS3710.png)
@@ -50,6 +63,15 @@ NB : Assurez-vous d'avoir changer le mot-de-passe par défaut du compte admin av
 ## Relevez de l'adresse IP et de l'adresse Mac de votre portier
 - Rendez-vous dans l'interface de gestion de votre GDS3710 puis dans Status -> Network info.
 - Relevez l'adresse Mac et l'adresse IP de votre portier, nous en aurons besoin plus tard.
+
+# Sécurité
+
+Deux protections encadrent la remontée d'évènements :
+
+- **Contrôle de l'adresse d'origine** (actif par défaut, sans configuration). Un évènement n'est accepté que s'il provient de l'adresse IP renseignée pour l'équipement. L'adresse MAC du portier sert d'identifiant, pas de secret : elle est lisible sur l'appareil. Si votre Jeedom est derrière un NAT ou un proxy qui masque l'adresse réelle du portier, désactivez ce contrôle dans la configuration du plugin.
+- **Protection par mot de passe** (activée par défaut sur les nouvelles installations). Elle est vivement conseillée dès lors que des évènements du portier déclenchent des actions sensibles. Sur une installation existante, le réglage n'est pas modifié par la mise à jour : pensez à l'activer.
+
+Les captures et le flux vidéo ne sont accessibles qu'à un utilisateur connecté à Jeedom, ou avec une clef API valide.
 
 # Configuration du plugin GDS3710 dans Jeedom
 ## Configuration générale
