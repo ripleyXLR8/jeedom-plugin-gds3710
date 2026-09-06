@@ -413,6 +413,95 @@ class gds3710 extends eqLogic {
     }
 
     /* Renseigne les commandes decomposees a partir dun evenement recu. */
+    /* Evenements marquant le debut d un appel emis par le portier. */
+    public static function get_ring_event_types() {
+        return array(500, 504);
+    }
+
+    public function isMissedCallReportEnabled() {
+        return (bool) $this->getConfiguration('missed_call_message', 0);
+    }
+
+    private function missedCallKey() {
+        return 'gds3710::sonnerie::' . $this->getId();
+    }
+
+    /* Arme le signalement. La capture est prise tout de suite : quelques secondes plus
+     * tard le visiteur peut avoir quitte le champ. */
+    public function armMissedCallReport($_date) {
+        $url = '';
+        $declencheur = $this->getCmd('action', 'snapshot');
+        if (is_object($declencheur)) {
+            try {
+                $declencheur->execCmd();
+                $lien = $this->getCmd('info', 'Lastest_Snapshot_URL');
+                if (is_object($lien)) {
+                    $url = (string) $lien->execCmd();
+                }
+            } catch (Exception $e) {
+                log::add('gds3710', 'warning', 'Capture impossible pour le signalement d appel : ' . $e->getMessage());
+            }
+        }
+        cache::set($this->missedCallKey(), json_encode(array(
+            'date' => (string) $_date,
+            'url'  => $url,
+            'ts'   => time(),
+        )), 3600);
+    }
+
+    /* Appele par le widget des qu il decroche : il n y a plus d appel manque. */
+    public function cancelMissedCallReport() {
+        cache::set($this->missedCallKey(), '', 1);
+    }
+
+    /* Verifie une sonnerie en attente et publie le message si le delai est ecoule. */
+    public function checkMissedCall() {
+        $brut = cache::byKey($this->missedCallKey())->getValue('');
+        if ($brut === '' || $brut === null) {
+            return false;
+        }
+        $sonnerie = json_decode($brut, true);
+        if (!is_array($sonnerie) || !isset($sonnerie['ts'])) {
+            $this->cancelMissedCallReport();
+            return false;
+        }
+        $delai = (int) $this->getConfiguration('missed_call_delay', 45);
+        if ($delai < 10) {
+            $delai = 10;
+        }
+        if ((time() - (int) $sonnerie['ts']) < $delai) {
+            return false;
+        }
+        $this->cancelMissedCallReport();
+
+        $quand = ($sonnerie['date'] !== '') ? $sonnerie['date'] : date('Y-m-d H:i:s', (int) $sonnerie['ts']);
+        $action = '';
+        if ($sonnerie['url'] !== '') {
+            /* Le centre de messages n accepte que <i> et <a> : la capture est donc
+             * offerte en lien, pas en vignette. */
+            $action = '<a href="' . $sonnerie['url'] . '" target="_blank">'
+                . '<i class="fas fa-camera"></i> ' . __('Voir la capture', __FILE__) . '</a>';
+        }
+        message::add('gds3710', $this->getHumanName() . ' : '
+            . __('appel non decroche depuis Jeedom', __FILE__) . ' - ' . $quand,
+            $action, 'missed_call::' . $this->getId());
+        log::add('gds3710', 'info', 'Appel non decroche signale pour ' . $this->getHumanName() . ' (' . $quand . ').');
+        return true;
+    }
+
+    /* Une minute est la granularite la plus fine offerte par Jeedom : le signalement
+     * peut donc arriver avec ce retard, ce qui est sans consequence pour un appel
+     * deja manque. */
+    public static function cron() {
+        foreach (eqLogic::byType('gds3710', true) as $eqLogic) {
+            try {
+                $eqLogic->checkMissedCall();
+            } catch (Exception $e) {
+                log::add('gds3710', 'error', 'Verification d appel non decroche : ' . $e->getMessage());
+            }
+        }
+    }
+
     public function dispatchEventDetails($_evt, $_type) {
         $catalogue = gds3710::get_GDS3710_event_list();
         $message = isset($catalogue[(string) $_type]) ? $catalogue[(string) $_type]['message'] : (string) $_type;
@@ -441,6 +530,10 @@ class gds3710 extends eqLogic {
             log::add('gds3710', 'warning', 'Alerte securite sur ' . $this->getHumanName() . ' : ' . $message);
             message::add('gds3710', $this->getHumanName() . ' : ' . $message
                 . ' (' . $values['last_event_date'] . ')');
+        }
+
+        if (in_array((int) $_type, gds3710::get_ring_event_types(), true) && $this->isMissedCallReportEnabled()) {
+            $this->armMissedCallReport($values['last_event_date']);
         }
 
         foreach ($values as $lid => $value) {
@@ -568,6 +661,8 @@ class gds3710 extends eqLogic {
              * dernier repond 404 sur ce firmware, et son certificat auto-signe ferait
              * echouer le chargement sans le moindre message. */
             'preview_url'          => '/plugins/gds3710/core/php/camera.php?id=' . $this->getId(),
+            'equipment_id'         => (int) $this->getId(),
+            'equipment_name'       => (string) $this->getName(),
         );
         foreach ($flags as $key => $default) {
             $value = $this->getConfiguration($key, $default);

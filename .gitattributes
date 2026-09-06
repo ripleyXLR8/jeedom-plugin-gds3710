@@ -1,0 +1,3 @@
+# Le script de controle est execute par bash : il doit garder des fins de ligne Unix,
+# faute de quoi un changement de branche sous Windows le rend inexecutable.
+*.sh text eol=lf

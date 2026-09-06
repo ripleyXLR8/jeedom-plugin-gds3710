@@ -248,6 +248,16 @@
             </div>
         </div>
         <div class="form-group">
+            <label class="col-sm-3 control-label">{{Signaler les appels non décrochés :}}
+                <sup><i class="fas fa-question-circle tooltips" title="{{Publie un message dans le centre de messages de Jeedom, avec l'heure et un lien vers la capture, lorsque le portier a sonné sans que personne ne décroche depuis Jeedom. Le portier n'émettant aucun évènement de fin d'appel, un décrochage sur un autre poste ne peut pas être détecté.}}"></i></sup>
+            </label>
+            <div class="col-sm-6">
+                <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="missed_call_message"/>{{Activer}}</label>
+                <input type="number" min="10" max="300" class="eqLogicAttr form-control" style="width:8em; display:inline-block; margin-left:12px" data-l1key="configuration" data-l2key="missed_call_delay" placeholder="45"/>
+                <span>{{secondes avant de conclure}}</span>
+            </div>
+        </div>
+        <div class="form-group">
             <label class="col-sm-3 control-label">{{Débogage SIP :}}
                 <sup><i class="fas fa-question-circle tooltips" title="{{JsSIP journalise l'intégralité de sa configuration, mot de passe du compte SIP compris, dans la console du navigateur. À n'activer que le temps d'un diagnostic.}}"></i></sup>
             </label>

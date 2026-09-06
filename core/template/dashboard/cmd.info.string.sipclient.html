@@ -207,6 +207,7 @@
 
         if(this.internalSipRinging){
           SIPbuttonModalChange(greenColor, "Répondre");
+          majTitre("Appel entrant");
           ringtone.play();
           $(".calleridentitydisplay[data-eqLogic_id=#id#]").show();
           $(".sipactionbutton[data-eqLogic_id=#id#]").unbind('click');
@@ -217,6 +218,7 @@
         } else if(this.internalSipOnCall){
           ringtone.pause();
           SIPbuttonModalChange(redColor, "Raccrocher");
+          majTitre("En communication");
           /* Un cadre sans flux reste un rectangle vide : on n affiche que ce qui
            * porte quelque chose. attacherMedia() se charge de reveler chaque
            * lecteur a l arrivee de sa piste. */
@@ -231,6 +233,7 @@
           $(".sipactionbisbutton[data-eqLogic_id=#id#]").hide();
         } else {
           SIPbuttonModalChange(greenColor, "Appeler");
+          majTitre("");
           $(".remoteview[data-eqLogic_id=#id#]").hide();
           $(".selfview[data-eqLogic_id=#id#]").hide();
           libererLecteurs();
@@ -426,6 +429,17 @@
 
       sipClientState.sipRinging = false;
 
+      /* On previent le serveur immediatement : l appel est pris, il ne devra pas etre
+       * signale comme non decroche. */
+      if (settings.equipment_id) {
+        $.ajax({
+          type: 'POST',
+          url: 'plugins/gds3710/core/ajax/gds3710.ajax.php',
+          data: { action: 'callAnswered', id: settings.equipment_id },
+          dataType: 'json'
+        });
+      }
+
       contraintesMedia(!!settings.is_remote_call_audio_enabled,
                        !!settings.is_remote_call_video_enabled,
                        function (mediaConstraints) {
@@ -568,6 +582,17 @@
       return domaine === '' ? composition : 'sip:' + composition + '@' + domaine;
     }
 
+    /* Titre de la fenetre. Il annonce l etat plutot que de rester muet : c est la
+     * premiere chose lue quand la fenetre s ouvre sur un appel entrant. */
+    function majTitre(etat) {
+      var nom = settings.equipment_name || 'Portier';
+      var fenetre = $(".sipDisplay[data-eqLogic_id=#id#]");
+      if (!fenetre.length || !fenetre.hasClass('ui-dialog-content')) {
+        return;
+      }
+      fenetre.dialog('option', 'title', etat ? etat + ' - ' + nom : nom);
+    }
+
     function majComposition() {
       $(".sipdialed[data-eqLogic_id=#id#]").text(composition);
       if (!sipClientState.sipOnCall) {
@@ -651,6 +676,7 @@
 
     $('.cmd[data-cmd_id=#id#]').on('click', function () {
       console.log('JsSIP : User Action - Opening Modal Window.');
+      majTitre('');
       $(".sipDisplay[data-eqLogic_uid=#uid#]").dialog("open");
     });
 
