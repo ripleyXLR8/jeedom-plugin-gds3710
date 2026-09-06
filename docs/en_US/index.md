@@ -137,7 +137,9 @@ Chaque bouton d'action désigne la commande info qu'il modifie. Jeedom affiche a
 
 `LDC - ON` et `LDC - OFF` pointent sur l'état du LDC, les trois modes CMOS sur le mode courant, le planning du rétroéclairage sur son état, et chaque curseur de réglage sur la valeur lue. La liaison est posée automatiquement lors de l'enregistrement de l'équipement.
 
-Quand l'état lié est **binaire**, le bouton reçoit en plus le widget **bouton binaire** : il montre alors la position courante au lieu d'être un simple déclencheur. C'est le cas des paires `LDC - ON` / `LDC - OFF` et `Rétroéclairage - activer` / `désactiver`. Un widget déjà personnalisé n'est pas touché.
+Quand l'état lié est **binaire**, le bouton reçoit en plus un widget adapté, sur le dashboard comme sur mobile : `LDC - ON` / `LDC - OFF` s'affichent en **interrupteur** (`binarySwitch`), la paire du rétroéclairage en **bouton binaire** (`binaryDefault`), qui montre sa position. Les modes CMOS en sont exclus à juste titre : leur état est une chaîne à trois valeurs, pas un binaire.
+
+Un widget que vous avez choisi vous-même n'est jamais remplacé. Seuls le widget par défaut et les deux widgets binaires posés par le plugin sont susceptibles d'évoluer, puisqu'ils ne peuvent venir que de lui.
 
 Deux garde-fous. Une liaison déjà présente n'est jamais remplacée : si vous en avez établi une autre, elle est conservée. Et un état que l'appareil ne renseigne pas n'est pas relié — le portier répond `(null)` pour le relais de porte lorsque l'ouverture passe par un webrelais et non par son relais local, et afficher cette valeur sur un bouton n'apprendrait rien. La liaison se posera d'elle-même le jour où la valeur apparaît.
 

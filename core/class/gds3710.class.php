@@ -1368,24 +1368,27 @@ class gds3710 extends eqLogic {
      * On ne pose la liaison que si elle est absente : un utilisateur qui aurait relie
      * une commande autrement garde son choix. */
     private function lierCommandesAuxEtats() {
+        /* Chaque bouton designe l etat qu il modifie, et le widget souhaite lorsque cet
+         * etat est binaire. « binarySwitch » presente un interrupteur, « binaryDefault »
+         * un bouton qui montre sa position. */
         $liaisons = array(
-            'ldc_ON'             => 'ldc_state',
-            'ldc_off'            => 'ldc_state',
-            'cmos_normal'        => 'cmos_mode',
-            'cmos_lowlight'      => 'cmos_mode',
-            'cmos_wdr'           => 'cmos_mode',
-            'open'               => 'doorctrl0',
-            'close'              => 'doorctrl0',
-            'open2'              => 'doorctrl1',
-            'close2'             => 'doorctrl1',
-            'backlight_on'       => 'backlight_schedule',
-            'backlight_off'      => 'backlight_schedule',
-            'backlight_hours_set'=> 'backlight_hours',
+            'ldc_ON'             => array('etat' => 'ldc_state',          'widget' => 'binarySwitch'),
+            'ldc_off'            => array('etat' => 'ldc_state',          'widget' => 'binarySwitch'),
+            'cmos_normal'        => array('etat' => 'cmos_mode'),
+            'cmos_lowlight'      => array('etat' => 'cmos_mode'),
+            'cmos_wdr'           => array('etat' => 'cmos_mode'),
+            'open'               => array('etat' => 'doorctrl0'),
+            'close'              => array('etat' => 'doorctrl0'),
+            'open2'              => array('etat' => 'doorctrl1'),
+            'close2'             => array('etat' => 'doorctrl1'),
+            'backlight_on'       => array('etat' => 'backlight_schedule', 'widget' => 'binaryDefault'),
+            'backlight_off'      => array('etat' => 'backlight_schedule', 'widget' => 'binaryDefault'),
+            'backlight_hours_set'=> array('etat' => 'backlight_hours'),
         );
         $posees = 0;
-        foreach ($liaisons as $action => $etat) {
+        foreach ($liaisons as $action => $def) {
             $cmd = $this->getCmd('action', $action);
-            $info = $this->getCmd('info', $etat);
+            $info = $this->getCmd('info', $def['etat']);
             if (!is_object($cmd) || !is_object($info)) {
                 continue;
             }
@@ -1402,19 +1405,19 @@ class gds3710 extends eqLogic {
                 continue;
             }
             $cmd->setValue($info->getId());
-            $this->poserWidgetBinaire($cmd, $info);
+            $this->poserWidgetBinaire($cmd, $info, $def);
             $cmd->save();
             $posees++;
         }
 
-        /* Les liaisons deja en place mais posees avant l arrivee de ce widget doivent
-         * en beneficier aussi : on repasse dessus sans toucher a la liaison. */
-        foreach ($liaisons as $action => $etat) {
+        /* Les liaisons deja en place doivent beneficier du widget elles aussi : on
+         * repasse dessus sans toucher a la liaison. */
+        foreach ($liaisons as $action => $def) {
             $cmd = $this->getCmd('action', $action);
-            $info = $this->getCmd('info', $etat);
+            $info = $this->getCmd('info', $def['etat']);
             if (is_object($cmd) && is_object($info)
                 && trim((string) $cmd->getValue()) === (string) $info->getId()) {
-                if ($this->poserWidgetBinaire($cmd, $info)) {
+                if ($this->poserWidgetBinaire($cmd, $info, $def)) {
                     $cmd->save();
                 }
             }
@@ -1429,17 +1432,23 @@ class gds3710 extends eqLogic {
      * alors la position courante au lieu d etre un simple declencheur. Le reglage
      * n est pose que sur un widget encore par defaut, pour ne pas defaire un choix
      * de l utilisateur. */
-    private function poserWidgetBinaire($_cmd, $_info) {
-        if ($_info->getSubType() !== 'binary') {
+    private function poserWidgetBinaire($_cmd, $_info, $_def) {
+        if ($_info->getSubType() !== 'binary' || !isset($_def['widget'])) {
             return false;
         }
+        $vise = 'core::' . $_def['widget'];
         /* setTemplate() prefixe par « core:: » : la valeur stockee pour un widget non
-         * personnalise est donc « core::default », pas « default ». */
-        $parDefaut = array('', 'default', 'core::default');
+         * personnalise est « core::default », pas « default ».
+         *
+         * Les deux widgets binaires figurent parmi les valeurs remplacables : ils ne
+         * peuvent venir que d une version anterieure de ce meme code, et un choix
+         * personnel se reconnait a ce qu il en sort. */
+        $remplacables = array('', 'default', 'core::default', 'core::binaryDefault', 'core::binarySwitch');
         $pose = false;
         foreach (array('dashboard', 'mobile') as $support) {
-            if (in_array(trim((string) $_cmd->getTemplate($support, '')), $parDefaut, true)) {
-                $_cmd->setTemplate($support, 'binaryDefault');
+            $actuel = trim((string) $_cmd->getTemplate($support, ''));
+            if ($actuel !== $vise && in_array($actuel, $remplacables, true)) {
+                $_cmd->setTemplate($support, $_def['widget']);
                 $pose = true;
             }
         }
