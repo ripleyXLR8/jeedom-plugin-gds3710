@@ -1092,13 +1092,21 @@ class gds3710 extends eqLogic {
                 $info = new gds3710Cmd();
                 $info->setIsVisible(0);
             }
-            $info->setName(__($def['name'], __FILE__));
+            if (trim((string) $info->getName()) === '') {
+                $info->setName(__($def['name'], __FILE__));
+            }
             $info->setType('info');
             $info->setSubType('numeric');
             $info->setLogicalId($lid);
             $info->setEqLogic_id($this->getId());
-            $info->setConfiguration('minValue', $def['min']);
-            $info->setConfiguration('maxValue', $def['max']);
+            /* Plage d affichage seulement : le bornage reel des ecritures vers le
+             * portier s appuie sur get_setting_list(), pas sur ces valeurs. */
+            if ((string) $info->getConfiguration('minValue', '') === '') {
+                $info->setConfiguration('minValue', $def['min']);
+            }
+            if ((string) $info->getConfiguration('maxValue', '') === '') {
+                $info->setConfiguration('maxValue', $def['max']);
+            }
             $info->save();
 
             $slider = $this->getCmd('action', $lid . '_set');
@@ -1106,13 +1114,19 @@ class gds3710 extends eqLogic {
                 $slider = new gds3710Cmd();
                 $slider->setIsVisible(0);
             }
-            $slider->setName(__($def['name'], __FILE__) . ' ' . __('(réglage)', __FILE__));
+            if (trim((string) $slider->getName()) === '') {
+                $slider->setName(__($def['name'], __FILE__) . ' ' . __('(réglage)', __FILE__));
+            }
             $slider->setType('action');
             $slider->setSubType('slider');
             $slider->setLogicalId($lid . '_set');
             $slider->setEqLogic_id($this->getId());
-            $slider->setConfiguration('minValue', $def['min']);
-            $slider->setConfiguration('maxValue', $def['max']);
+            if ((string) $slider->getConfiguration('minValue', '') === '') {
+                $slider->setConfiguration('minValue', $def['min']);
+            }
+            if ((string) $slider->getConfiguration('maxValue', '') === '') {
+                $slider->setConfiguration('maxValue', $def['max']);
+            }
             $slider->setValue($info->getId());   // le curseur affiche l'état réel
             $slider->save();
         }
@@ -1210,15 +1224,21 @@ class gds3710 extends eqLogic {
                 $cmd = new gds3710Cmd();
                 $cmd->setIsVisible(0);
             }
-            $cmd->setName(__($def['name'], __FILE__));
+            /* Nom, unite et historisation sont des valeurs par defaut, pas des
+             * verites imposees : les reecrire a chaque enregistrement effacerait le
+             * choix fait dans le tableau des commandes. On ne remplit que ce qui est
+             * vide, ce qui rattrape aussi les installations anterieures aux unites. */
+            if (trim((string) $cmd->getName()) === '') {
+                $cmd->setName(__($def['name'], __FILE__));
+            }
             $cmd->setType('info');
             $cmd->setSubType($def['subType']);
             $cmd->setLogicalId($lid);
             $cmd->setEqLogic_id($this->getId());
-            if (isset($def['unite'])) {
+            if (isset($def['unite']) && trim((string) $cmd->getUnite()) === '') {
                 $cmd->setUnite($def['unite']);
             }
-            if (isset($def['historized'])) {
+            if (isset($def['historized']) && $cmd->getId() == '') {
                 $cmd->setIsHistorized($def['historized']);
             }
             $cmd->save();

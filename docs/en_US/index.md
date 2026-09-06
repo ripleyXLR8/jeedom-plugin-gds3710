@@ -137,6 +137,14 @@ Toute écriture est bornée à la plage du réglage, puis relue sur l'appareil a
 
 ⚠️ Le planning du rétroéclairage exige le **firmware 1.0.13.9 ou supérieur**, et les réglages de luminosité de la LED le **1.0.13.5**. Sur un firmware antérieur, ces commandes resteront sans effet.
 
+# Le tableau des commandes
+
+L'onglet **Commandes** de l'équipement présente, pour chaque commande, sa **valeur actuelle** — avec la date de collecte en infobulle — ainsi que les réglages habituels de Jeedom : affichage, historisation, **minimum**, **maximum** et **unité**.
+
+Ces champs vous appartiennent. Le plugin ne renseigne un nom, une unité ou une plage que lorsqu'ils sont vides : vos modifications ne sont jamais écrasées par un enregistrement de l'équipement, ni par une mise à jour.
+
+⚠️ Le minimum et le maximum d'une commande servent **à l'affichage**, notamment à la course des curseurs. Ils ne relâchent pas le contrôle des écritures vers le portier : celui-ci s'appuie sur la plage réelle du réglage, indépendamment de ce que porte la commande. Une valeur hors plage est refusée et signalée dans le log.
+
 # Client SIP
 
 Le plugin embarque un client SIP qui permet de recevoir l'appel du portier et de lui répondre directement depuis le dashboard, image et son compris.
