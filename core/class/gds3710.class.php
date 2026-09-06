@@ -441,6 +441,85 @@ class gds3710 extends eqLogic {
         }
     }
 
+    /* ------------------------------------------------------------------ *
+     *  Reglages de confort du portier                                     *
+     * ------------------------------------------------------------------ */
+
+    /* Chaque entree donne une commande info (letat reel, relu par le cron) et un curseur
+     * qui lecrit. Toutes ces P-values ont ete verifiees presentes sur un GDS3710 en
+     * firmware 1.0.13.15 ; les plus recentes napparaissent quà partir de 1.0.13.5. */
+    public static function get_setting_list() {
+        return array(
+            'blue_led_idle'    => array('name' => 'LED clavier - veille',            'p' => 'P15591', 'section' => 'door', 'min' => 1, 'max' => 255),
+            'blue_led_pressed' => array('name' => 'LED clavier - appui',             'p' => 'P15592', 'section' => 'door', 'min' => 1, 'max' => 255),
+            'img_brightness'   => array('name' => 'Image - luminosité',              'p' => 'P15520', 'section' => 'play', 'min' => 0, 'max' => 128),
+            'img_contrast'     => array('name' => 'Image - contraste',               'p' => 'P15521', 'section' => 'play', 'min' => 0, 'max' => 128),
+            'img_saturation'   => array('name' => 'Image - saturation',              'p' => 'P15522', 'section' => 'play', 'min' => 0, 'max' => 128),
+            'snapshot_delay'   => array('name' => 'Délai avant capture (s)',         'p' => 'P15584', 'section' => 'door', 'min' => 0, 'max' => 10),
+            'onhook_timer'     => array('name' => 'Raccrochage après ouverture (s)', 'p' => 'P15582', 'section' => 'door', 'min' => 3, 'max' => 1800),
+        );
+    }
+
+    /* Ecrit des P-values sur le portier et renvoie true si la relecture confirme. */
+    public function writeConfig($_params, $_section) {
+        $ip = trim((string) $this->getConfiguration('ip'));
+        $cookie = $this->openSession();
+        if ($ip === '' || $cookie === null) {
+            return false;
+        }
+        self::httpPostConfig($ip, $cookie, $_params);
+        $current = $this->readConfigSection($_section);
+        if ($current === null) {
+            return false;
+        }
+        foreach ($_params as $key => $value) {
+            if (!isset($current[$key]) || (string) $current[$key] !== (string) $value) {
+                log::add('gds3710', 'error', 'Ecriture non confirmee pour ' . $key . ' : lu "'
+                    . (isset($current[$key]) ? $current[$key] : '(absent)') . '", attendu "' . $value . '".');
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /* Relit les reglages sur le portier et met a jour les commandes info associees.
+     * Une seule lecture par section, pas une par reglage. */
+    public function refreshSettings() {
+        $sections = array();
+        foreach (gds3710::get_setting_list() as $lid => $def) {
+            $sections[$def['section']] = true;
+        }
+        $data = array();
+        foreach (array_keys($sections) as $section) {
+            $read = $this->readConfigSection($section);
+            if (is_array($read)) {
+                $data = array_merge($data, $read);
+            }
+        }
+        if (count($data) === 0) {
+            return false;
+        }
+        foreach (gds3710::get_setting_list() as $lid => $def) {
+            if (!isset($data[$def['p']])) {
+                continue;
+            }
+            $cmd = $this->getCmd('info', $lid);
+            if (is_object($cmd) && is_numeric($data[$def['p']])) {
+                $this->checkAndUpdateCmd($cmd, (float) $data[$def['p']]);
+            }
+        }
+        /* Planning du retroeclairage : un interrupteur et deux horaires en HHMMSS. */
+        $cmd = $this->getCmd('info', 'backlight_schedule');
+        if (is_object($cmd) && isset($data['P15594'])) {
+            $this->checkAndUpdateCmd($cmd, $data['P15594'] == '1' ? 1 : 0);
+        }
+        $cmd = $this->getCmd('info', 'backlight_hours');
+        if (is_object($cmd) && isset($data['P15595']) && isset($data['P15596'])) {
+            $this->checkAndUpdateCmd($cmd, $data['P15595'] . ' - ' . $data['P15596']);
+        }
+        return true;
+    }
+
     public static function get_GDS3710_event_list()
     {
         $return = array (
@@ -804,6 +883,93 @@ class gds3710 extends eqLogic {
             $info->save(); 
         }
 
+        // Réglages de confort : une commande info + un curseur qui l'écrit
+        foreach (gds3710::get_setting_list() as $lid => $def) {
+            $info = $this->getCmd('info', $lid);
+            if (!is_object($info)) {
+                $info = new gds3710Cmd();
+                $info->setIsVisible(0);
+            }
+            $info->setName(__($def['name'], __FILE__));
+            $info->setType('info');
+            $info->setSubType('numeric');
+            $info->setLogicalId($lid);
+            $info->setEqLogic_id($this->getId());
+            $info->setConfiguration('minValue', $def['min']);
+            $info->setConfiguration('maxValue', $def['max']);
+            $info->save();
+
+            $slider = $this->getCmd('action', $lid . '_set');
+            if (!is_object($slider)) {
+                $slider = new gds3710Cmd();
+                $slider->setIsVisible(0);
+            }
+            $slider->setName(__($def['name'], __FILE__) . ' ' . __('(réglage)', __FILE__));
+            $slider->setType('action');
+            $slider->setSubType('slider');
+            $slider->setLogicalId($lid . '_set');
+            $slider->setEqLogic_id($this->getId());
+            $slider->setConfiguration('minValue', $def['min']);
+            $slider->setConfiguration('maxValue', $def['max']);
+            $slider->setValue($info->getId());   // le curseur affiche l'état réel
+            $slider->save();
+        }
+
+        // Planning du rétroéclairage blanc
+        $backlight = $this->getCmd('info', 'backlight_schedule');
+        if (!is_object($backlight)) {
+            $backlight = new gds3710Cmd();
+            $backlight->setIsVisible(0);
+        }
+        $backlight->setName(__('Rétroéclairage - planning actif', __FILE__));
+        $backlight->setType('info');
+        $backlight->setSubType('binary');
+        $backlight->setLogicalId('backlight_schedule');
+        $backlight->setEqLogic_id($this->getId());
+        $backlight->save();
+
+        $hours = $this->getCmd('info', 'backlight_hours');
+        if (!is_object($hours)) {
+            $hours = new gds3710Cmd();
+            $hours->setIsVisible(0);
+        }
+        $hours->setName(__('Rétroéclairage - horaires', __FILE__));
+        $hours->setType('info');
+        $hours->setSubType('string');
+        $hours->setLogicalId('backlight_hours');
+        $hours->setEqLogic_id($this->getId());
+        $hours->save();
+
+        foreach (array('backlight_on' => 'Rétroéclairage - activer le planning',
+                       'backlight_off' => 'Rétroéclairage - désactiver le planning') as $blid => $label) {
+            $cmd = $this->getCmd('action', $blid);
+            if (!is_object($cmd)) {
+                $cmd = new gds3710Cmd();
+                $cmd->setIsVisible(0);
+            }
+            $cmd->setName(__($label, __FILE__));
+            $cmd->setType('action');
+            $cmd->setSubType('other');
+            $cmd->setLogicalId($blid);
+            $cmd->setEqLogic_id($this->getId());
+            $cmd->setValue($backlight->getId());
+            $cmd->save();
+        }
+
+        $setHours = $this->getCmd('action', 'backlight_hours_set');
+        if (!is_object($setHours)) {
+            $setHours = new gds3710Cmd();
+            $setHours->setIsVisible(0);
+        }
+        $setHours->setName(__('Rétroéclairage - définir les horaires', __FILE__));
+        $setHours->setType('action');
+        $setHours->setSubType('message');
+        $setHours->setLogicalId('backlight_hours_set');
+        $setHours->setEqLogic_id($this->getId());
+        $setHours->setDisplay('title_placeholder', __('Début, format HHMMSS', __FILE__));
+        $setHours->setDisplay('message_placeholder', __('Fin, format HHMMSS', __FILE__));
+        $setHours->save();
+
         // Commandes issues de la décomposition des évènements
         foreach (gds3710::get_event_detail_list() as $lid => $def) {
             $cmd = $this->getCmd('info', $lid);
@@ -879,6 +1045,8 @@ class gds3710 extends eqLogic {
             if (config::byKey('poll_sensors', 'gds3710', 1) != 1) {
                 continue;
             }
+
+            $eq->refreshSettings();
 
             $info = $eq->readConfigSection('sysinfo');
             if ($info === null) {
@@ -1432,8 +1600,25 @@ class gds3710Cmd extends cmd {
     public function execute($_options = array()) {
 
         $eqLogic = $this->getEqLogic();
+        $lid = $this->getLogicalId();
 
-        switch ($this->getLogicalId()) {
+        /* Curseurs de reglage : un seul traitement pour tous, plutot quun cas par valeur. */
+        $settings = gds3710::get_setting_list();
+        if (substr($lid, -4) === '_set' && isset($settings[substr($lid, 0, -4)])) {
+            $def = $settings[substr($lid, 0, -4)];
+            $value = isset($_options['slider']) ? (int) $_options['slider'] : null;
+            if ($value === null || $value < $def['min'] || $value > $def['max']) {
+                log::add('gds3710', 'error', 'Valeur hors bornes pour ' . $def['name']
+                    . ' : ' . var_export($value, true) . ' (attendu ' . $def['min'] . ' a ' . $def['max'] . ').');
+                return;
+            }
+            if ($eqLogic->writeConfig(array($def['p'] => $value), $def['section'])) {
+                $eqLogic->refreshSettings();
+            }
+            return;
+        }
+
+        switch ($lid) {
             case 'open':
                 $this->open_door('1');
                 break;
@@ -1469,6 +1654,24 @@ class gds3710Cmd extends cmd {
                 break;
             case 'configureDoorbell':
                 $eqLogic->pushEventNotificationConfig();
+                break;
+            case 'backlight_on':
+            case 'backlight_off':
+                $on = ($this->getLogicalId() === 'backlight_on') ? '1' : '0';
+                if ($eqLogic->writeConfig(array('P15594' => $on), 'door')) {
+                    $eqLogic->refreshSettings();
+                }
+                break;
+            case 'backlight_hours_set':
+                $start = isset($_options['title']) ? preg_replace('/[^0-9]/', '', $_options['title']) : '';
+                $end = isset($_options['message']) ? preg_replace('/[^0-9]/', '', $_options['message']) : '';
+                if (strlen($start) !== 6 || strlen($end) !== 6) {
+                    log::add('gds3710', 'error', 'Horaires attendus au format HHMMSS. Recu : ' . $start . ' et ' . $end . '.');
+                    break;
+                }
+                if ($eqLogic->writeConfig(array('P15595' => $start, 'P15596' => $end), 'door')) {
+                    $eqLogic->refreshSettings();
+                }
                 break;
             case 'sendSnapshot':
                 if (!isset($_options['title'])) {
