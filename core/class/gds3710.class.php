@@ -1356,7 +1356,57 @@ class gds3710 extends eqLogic {
             $cmd->save();
         }
 
+        $this->lierCommandesAuxEtats();
+
         return;
+    }
+
+    /* Chaque bouton designe l etat qu il modifie. Jeedom affiche alors la valeur
+     * courante sur la commande, et presente une paire marche/arret comme un
+     * interrupteur plutot que comme deux boutons sans memoire.
+     *
+     * On ne pose la liaison que si elle est absente : un utilisateur qui aurait relie
+     * une commande autrement garde son choix. */
+    private function lierCommandesAuxEtats() {
+        $liaisons = array(
+            'ldc_ON'             => 'ldc_state',
+            'ldc_off'            => 'ldc_state',
+            'cmos_normal'        => 'cmos_mode',
+            'cmos_lowlight'      => 'cmos_mode',
+            'cmos_wdr'           => 'cmos_mode',
+            'open'               => 'doorctrl0',
+            'close'              => 'doorctrl0',
+            'open2'              => 'doorctrl1',
+            'close2'             => 'doorctrl1',
+            'backlight_hours_set'=> 'backlight_hours',
+        );
+        $posees = 0;
+        foreach ($liaisons as $action => $etat) {
+            $cmd = $this->getCmd('action', $action);
+            $info = $this->getCmd('info', $etat);
+            if (!is_object($cmd) || !is_object($info)) {
+                continue;
+            }
+            if (trim((string) $cmd->getValue()) !== '') {
+                continue;
+            }
+            /* Un etat que l appareil ne renseigne pas ne vaut pas d etre affiche sur
+             * un bouton : le portier repond « (null) » pour le relais de porte quand
+             * l ouverture passe par un webrelais et non par son relais local. La
+             * liaison se posera d elle-meme au prochain enregistrement si la valeur
+             * apparait un jour. */
+            $etatCourant = trim((string) $info->execCmd());
+            if ($etatCourant === '' || $etatCourant === '(null)') {
+                continue;
+            }
+            $cmd->setValue($info->getId());
+            $cmd->save();
+            $posees++;
+        }
+        if ($posees > 0) {
+            log::add('gds3710', 'info', $posees . ' commande(s) reliee(s) a leur etat.');
+        }
+        return $posees;
     }
 
     /* Releve periodique des capteurs et reparation de lURL du flux.
