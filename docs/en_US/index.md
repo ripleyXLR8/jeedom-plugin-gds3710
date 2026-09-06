@@ -131,6 +131,14 @@ Le **planning du rétroéclairage blanc** dispose de son propre jeu : un état, 
 
 ⚠️ **Les réglages vidéo ne s'appliquent qu'au redémarrage du portier.** Écrire un mode CMOS ou la correction de distorsion ne modifie pas l'image sur le moment : l'appareil enregistre la valeur et ne l'applique qu'au démarrage suivant. Un bouton qui semble « ne rien faire » n'est donc pas forcément cassé — utilisez la commande **Reboot** pour constater le résultat.
 
+## Les commandes sont reliées à leur état
+
+Chaque bouton d'action désigne la commande info qu'il modifie. Jeedom affiche alors la valeur courante sur le bouton, et présente une paire marche/arrêt comme un **interrupteur** plutôt que comme deux boutons sans mémoire.
+
+`LDC - ON` et `LDC - OFF` pointent sur l'état du LDC, les trois modes CMOS sur le mode courant, le planning du rétroéclairage sur son état, et chaque curseur de réglage sur la valeur lue. La liaison est posée automatiquement lors de l'enregistrement de l'équipement.
+
+Deux garde-fous. Une liaison déjà présente n'est jamais remplacée : si vous en avez établi une autre, elle est conservée. Et un état que l'appareil ne renseigne pas n'est pas relié — le portier répond `(null)` pour le relais de porte lorsque l'ouverture passe par un webrelais et non par son relais local, et afficher cette valeur sur un bouton n'apprendrait rien. La liaison se posera d'elle-même le jour où la valeur apparaît.
+
 ## États lus sur l'appareil
 
 Douze états sont remontés, depuis quatre sections de configuration du portier :
