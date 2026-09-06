@@ -159,6 +159,21 @@ Utilisez des **adresses joignables depuis le navigateur**, pas un nom de domaine
 
 Le mot de passe du compte SIP n'est **jamais** placé dans la valeur d'une commande. Il est transmis au widget par un appel authentifié, soumis à la session Jeedom et aux droits sur l'équipement. La valeur de la commande ne contient que l'identifiant de l'équipement.
 
+## Politique de sécurité du navigateur (CSP)
+
+L'image Docker de Jeedom envoie un en-tête `Content-Security-Policy` sans directive `connect-src`. Le navigateur retombe donc sur `default-src 'self'` et **refuse toute connexion websocket vers un autre domaine** — y compris votre serveur SIP. Le widget détecte ce cas et l'affiche sur son bouton.
+
+Aucun plugin ne peut lever cette restriction : elle s'applique à la page du dashboard, servie par le cœur de Jeedom, et les modules Apache nécessaires à un relais (`mod_proxy_wstunnel`, `mod_rewrite`) ne sont pas chargés dans l'image officielle.
+
+La solution la plus durable, si vous êtes derrière un reverse proxy, est d'y remplacer l'en-tête. Exemple pour nginx, dans le bloc `server` de Jeedom :
+
+```nginx
+proxy_hide_header Content-Security-Policy;
+add_header Content-Security-Policy "default-src 'self' file: data: blob: filesystem:; connect-src 'self' wss://VOTRE-SERVEUR-SIP; script-src 'self' 'unsafe-inline' 'unsafe-eval'; img-src 'self' * data:; style-src 'self' 'unsafe-inline'; worker-src blob:; frame-src 'self' *.jeedom.com data:;" always;
+```
+
+Une seule modification, qui survit aux mises à jour de Jeedom comme aux recréations du conteneur. Une surcharge dans le `.htaccess` de Jeedom fonctionne également, mais ce fichier appartient au cœur et sera écrasé à sa prochaine mise à jour.
+
 ## Les deux réglages « HACK »
 
 Le client produit un message d'invitation très long, que certains serveurs refusent au-delà d'une taille limite. Les deux champs en bas de section permettent de l'alléger :

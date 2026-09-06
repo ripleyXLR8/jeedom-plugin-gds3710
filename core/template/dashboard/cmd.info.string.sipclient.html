@@ -549,6 +549,21 @@
         return;
       }
 
+      /* La politique de securite du serveur web peut interdire la connexion au serveur
+       * SIP : l'image Docker de Jeedom envoie une CSP sans directive connect-src, donc
+       * le navigateur retombe sur default-src 'self' et refuse tout websocket externe.
+       * L'echec est alors muet cote JsSIP. On ecoute l'evenement que le navigateur emet
+       * dans ce cas, pour nommer la cause au lieu de laisser chercher. */
+      document.addEventListener('securitypolicyviolation', function (e) {
+        var uri = e.blockedURI || '';
+        if (uri.indexOf('ws://') === 0 || uri.indexOf('wss://') === 0) {
+          gds3710SipProblem('la politique de securite (CSP) de ce Jeedom interdit la '
+            + 'connexion au serveur SIP. Voir la documentation, section Client SIP.');
+          console.log('GDS3710 SIP : CSP a bloque ' + uri
+            + ' (directive ' + (e.violatedDirective || 'default-src') + ')');
+        }
+      });
+
       $.ajax({
         type: 'POST',
         url: 'plugins/gds3710/core/ajax/gds3710.ajax.php',

@@ -211,6 +211,8 @@ Le plugin embarque un client SIP permettant de répondre au portier depuis le da
 
 Il requiert un **serveur SIP acceptant le WebSocket**, un **Jeedom servi en HTTPS** — les navigateurs refusent micro et caméra hors contexte sécurisé — et un **certificat valide sur le serveur SIP**. Ces pré-requis sont vérifiés au chargement et signalés sur le bouton du widget plutôt que d'échouer en silence.
 
+⚠️ **Politique de sécurité du navigateur** : l'image Docker de Jeedom envoie une CSP sans `connect-src`, ce qui interdit au navigateur toute connexion websocket vers un autre domaine — donc vers votre serveur SIP. Le widget le détecte et l'affiche. Aucun plugin ne peut lever cette restriction ; la solution durable est de remplacer l'en-tête au niveau de votre reverse proxy, voir la documentation.
+
 Le mot de passe du compte SIP n'est jamais placé dans la valeur d'une commande : il est servi par un appel authentifié soumis aux droits sur l'équipement.
 
 Si l'appel échoue côté serveur avec une erreur inexpliquée, essayez le champ « Codec(s) à supprimer » : le message d'invitation produit par le client est long et certains serveurs le refusent au-delà d'une taille limite.

@@ -10,6 +10,26 @@ docker run --rm -v "$(pwd -W 2>/dev/null || pwd)":/app -w //app php:8.2-cli \
              out=$(php -l "$x" 2>&1); [ $? -ne 0 ] && { echo "$out"; f=1; };
            done; [ $f -eq 0 ] && echo "  OK sur tous les fichiers"; exit $f' || fail=1
 
+# Le JavaScript du widget SIP est long et vit dans un fichier .html : rien ne le
+# verifie autrement. Un vrai analyseur, pas un comptage d accolades — celui-ci se
+# faisait piéger par une simple apostrophe dans un commentaire.
+echo "== syntaxe du widget SIP =="
+TPL=core/template/dashboard/cmd.info.string.sipclient.html
+if [ -f "$TPL" ]; then
+  python -c "
+import io, sys
+s = io.open(sys.argv[1], encoding='utf-8').read()
+i = s.index('<script>', s.index('jssip'))
+io.open(sys.argv[2], 'w', encoding='utf-8', newline='\n').write(s[i+len('<script>'):s.rindex('</script>')])
+" "$TPL" .widget.tmp.js
+  if docker run --rm -v "$(pwd -W 2>/dev/null || pwd)":/w -w //w node:22-alpine node --check .widget.tmp.js 2>/tmp/gdsjs.err; then
+    echo "  OK"
+  else
+    echo "  ERREUR DE SYNTAXE :"; sed -n "1,6p" /tmp/gdsjs.err | sed "s/^/    /"; fail=1
+  fi
+  rm -f .widget.tmp.js /tmp/gdsjs.err
+fi
+
 # Le README et docs/ ont deja diverge deux fois : une fois le README seul mis a jour,
 # une fois docs/ seul. Ces deux oublis ont laisse aux utilisateurs une documentation
 # fausse la ou elle comptait. Ce controle rend l oubli impossible a manquer.
@@ -23,6 +43,7 @@ MARQUEURS=(
   "Dernière personne entrée"
   "Réglages du portier"
   "Client SIP"
+  "connect-src|Politique de sécurité"
   "DOOR_NUM"
 )
 for m in "${MARQUEURS[@]}"; do
