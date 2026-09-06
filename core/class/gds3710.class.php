@@ -80,6 +80,66 @@ class gds3710 extends eqLogic {
         return $xml;
     }
 
+    /* Purge quotidienne des captures. Le repertoire nen avait aucune : il grossissait
+     * indefiniment (670 fichiers et 51 Mo sur linstallation de reference). Une retention
+     * a 0 desactive la purge, ce qui reste le comportement historique. */
+    public static function cronDaily() {
+        $days = (int) config::byKey('snapshot_retention_days', 'gds3710', 0);
+        if ($days <= 0) {
+            return;
+        }
+        $root = realpath(calculPath(config::byKey('recdir', 'gds3710')));
+        if ($root === false) {
+            log::add('gds3710', 'error', 'Purge annulee : repertoire des captures introuvable.');
+            return;
+        }
+        $limit = time() - ($days * 86400);
+        $prefix = $root . DIRECTORY_SEPARATOR;
+        $removed = 0;
+        $freed = 0;
+
+        foreach (eqLogic::byType('gds3710') as $eq) {
+            $dir = realpath($root . '/' . $eq->getId());
+            if ($dir === false || strpos($dir . DIRECTORY_SEPARATOR, $prefix) !== 0) {
+                continue;
+            }
+            foreach ((array) glob($dir . '/*') as $file) {
+                $real = realpath($file);
+                if ($real === false || !is_file($real) || strpos($real, $prefix) !== 0) {
+                    continue;
+                }
+                if (filemtime($real) >= $limit) {
+                    continue;
+                }
+                $size = filesize($real);
+                if (@unlink($real)) {
+                    $removed++;
+                    $freed += $size;
+                }
+            }
+            /* Si la derniere capture connue vient detre purgee, les deux commandes qui la
+             * referencent pointent dans le vide : on les remet a jour. */
+            $path = $eq->getCmd('info', 'Lastest_Snapshot_Path');
+            if (is_object($path) && $path->execCmd() != '' && !file_exists((string) $path->execCmd())) {
+                $files = glob($dir . '/*.jpg');
+                $url = $eq->getCmd('info', 'Lastest_Snapshot_URL');
+                if (is_array($files) && count($files) > 0) {
+                    usort($files, function ($a, $b) { return filemtime($b) - filemtime($a); });
+                    $path->event($files[0]);
+                    if (is_object($url)) { $url->event(substr($files[0], strpos($files[0], '/plugins'))); }
+                } else {
+                    $path->event('');
+                    if (is_object($url)) { $url->event(''); }
+                }
+            }
+        }
+
+        if ($removed > 0) {
+            log::add('gds3710', 'info', 'Purge des captures : ' . $removed . ' fichier(s) supprime(s), '
+                . round($freed / 1048576, 1) . ' Mo liberes (retention ' . $days . ' jours).');
+        }
+    }
+
     public static function get_GDS3710_event_list()
     {
         $return = array (
@@ -821,13 +881,30 @@ class gds3710Cmd extends cmd {
 
         $dir = calculPath(config::byKey('recdir', 'gds3710')) . '/' . $gds3710->getId();
 
+        /* Les echecs decriture etaient silencieux : mkdir() et fopen() netaient pas
+         * verifies, la capture ne se creait pas et rien ne lexpliquait. Le mode 0777
+         * est aussi remplace par 0775, suffisant pour lutilisateur du serveur web. */
         if (!file_exists($dir)) {
             log::add('gds3710', 'debug', "Directory doesn't exist, creating : ".$dir);
-            mkdir($dir, 0777, true);
+            if (!@mkdir($dir, 0775, true) && !is_dir($dir)) {
+                log::add('gds3710', 'error', 'Impossible de creer le repertoire des captures : ' . $dir
+                    . '. Verifiez le chemin configure et les droits du parent.');
+                return null;
+            }
         }
 
-        $fp = fopen($dir.'/'.$filename.'.jpg','x');
+        if (!is_writable($dir)) {
+            log::add('gds3710', 'error', 'Repertoire des captures non accessible en ecriture : ' . $dir
+                . '. Il doit appartenir a lutilisateur du serveur web.');
+            return null;
+        }
+
         $output_file = $dir.'/'.$filename.'.jpg';
+        $fp = @fopen($output_file, 'x');
+        if ($fp === false) {
+            log::add('gds3710', 'error', 'Impossible de creer le fichier de capture : ' . $output_file);
+            return null;
+        }
         log::add('gds3710', 'debug', 'Trying to create the capture under : '.$output_file);
 
         $optArray = array(

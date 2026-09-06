@@ -79,6 +79,13 @@ if (!isConnect()) {
             </div>
         </div>
 
+        <div class="form-group">
+            <label class="col-lg-4 control-label">{{Conserver les captures pendant (jours) : }}<sup><i class="fa fa-question-circle tooltips" title="{{Les captures plus anciennes sont supprimées chaque nuit. Laissez à 0 pour ne jamais purger, ce qui est le comportement historique du plugin : le répertoire grossit alors indéfiniment.}}" style="font-size : 1em;color:grey;"></i></sup></label>
+            <div class="col-lg-2">
+                <input type="number" min="0" step="1" class="configKey form-control" data-l1key="snapshot_retention_days" placeholder="0" />
+            </div>
+        </div>
+
         <div id="reddir-form-group" class="form-group">
             <label class="col-lg-4 control-label">{{Autoriser les utilisateurs à effacer les captures : }}</label>
             <div class="col-lg-2">
