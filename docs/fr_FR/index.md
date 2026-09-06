@@ -209,6 +209,19 @@ Le `proxy_hide_header` est indispensable : lorsque plusieurs en-têtes CSP sont 
 
 Une surcharge dans le `.htaccess` de Jeedom fonctionne également, mais ce fichier appartient au cœur et sera écrasé à sa prochaine mise à jour.
 
+## Caméra interdite par l'en-tête `Permissions-Policy`
+
+La même image Docker envoie un second en-tête, `Permissions-Policy`, qui contient `camera=()`. Celui-ci **interdit la caméra à la page elle-même**, indépendamment de toute autorisation : le navigateur refuse sans rien demander. JsSIP rapporte alors `User Denied Media Access`, un message trompeur puisqu'aucun refus de votre part n'a eu lieu. Le micro, lui, n'est pas restreint.
+
+Le widget détecte ce cas et **poursuit l'appel en audio seul**, tout en continuant de réclamer le flux vidéo du portier : vous voyez et entendez le visiteur, il vous entend. Envoyer sa propre caméra vers un portier dépourvu d'écran n'apporte rien. Le même repli s'applique si la machine n'a tout simplement pas de webcam.
+
+Si vous tenez à émettre votre image, remplacez l'en-tête sur votre reverse proxy. Attention à un piège de nginx : un `add_header` placé dans le bloc `server` est **ignoré** dès qu'une `location` en définit un autre — et celle qui sert Jeedom en définit un pour le HSTS. Il faut donc le poser dans cette `location` :
+
+```nginx
+proxy_hide_header Permissions-Policy;
+add_header Permissions-Policy "accelerometer=(),battery=(),fullscreen=(self),geolocation=(),camera=(self),ambient-light-sensor=(self),autoplay=(self)" always;
+```
+
 ## Les deux réglages « HACK »
 
 Le client produit un message d'invitation très long, que certains serveurs refusent au-delà d'une taille limite. Les deux champs en bas de section permettent de l'alléger :

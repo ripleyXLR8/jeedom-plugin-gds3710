@@ -224,29 +224,72 @@
       return internalFunc(orgsdp);
     }
 
+    /* Le navigateur peut interdire la camera a la page elle-meme, independamment de
+     * toute autorisation utilisateur : l'image Docker de Jeedom envoie un en-tete
+     * Permissions-Policy contenant camera=(). Chrome refuse alors sans rien demander,
+     * et JsSIP rapporte "User Denied Media Access" — ce qui fait chercher du cote
+     * d'un refus qui n'a jamais eu lieu. Le micro, lui, n'est pas restreint. */
+    function cameraAutorisee() {
+      var politique = document.featurePolicy || document.permissionsPolicy;
+      if (!politique || typeof politique.allowsFeature !== 'function') {
+        return true;
+      }
+      try {
+        return politique.allowsFeature('camera');
+      } catch (e) {
+        return true;
+      }
+    }
+
+    /* Ramene les contraintes media reellement tenables sur cette machine, puis appelle
+     * suite(). Envoyer notre propre camera vers un portier sans ecran n'apporte rien :
+     * en cas d'obstacle on retombe sur l'audio seul plutot que d'echouer. */
+    function contraintesMedia(veutAudio, veutVideo, suite) {
+      navigator.mediaDevices.enumerateDevices().then(function (devices) {
+        var aCamera = devices.some(function (d) { return d.kind === 'videoinput'; });
+        var aMicro = devices.some(function (d) { return d.kind === 'audioinput'; });
+
+        if (veutAudio && !aMicro) {
+          SIPbuttonModalChange(redColor, 'Aucun micro sur cette machine');
+          console.log('JsSIP : aucun peripherique audioinput, appel abandonne.');
+          return;
+        }
+        if (veutVideo && !aCamera) {
+          console.log('JsSIP : aucun peripherique videoinput, repli sur laudio seul.');
+          veutVideo = false;
+        }
+        if (veutVideo && !cameraAutorisee()) {
+          console.log('JsSIP : la camera est interdite a cette page par lentete '
+            + 'Permissions-Policy, repli sur laudio seul. Voir la documentation, '
+            + 'section Client SIP.');
+          veutVideo = false;
+        }
+
+        suite({ 'audio': veutAudio, 'video': veutVideo });
+      }).catch(function (e) {
+        SIPbuttonModalChange(redColor, 'Peripheriques inaccessibles');
+        console.log('JsSIP : enumerateDevices a echoue : ' + e.message);
+      });
+    }
+
     function pickUpCall(){
       console.log("JsSip : User Action - Picking-Up Call.");
 
       sipClientState.sipRinging = false;
-      sipClientState.sipOnCall = true;
 
-      var incomingCalloptions = {
-        // 'RTCConstraints': { 
-        //   optional: [],
-        //   mandatory: { 
-        //     'OfferToReceiveAudio': settings.is_remote_call_offer_audio_enabled,
-        //     'OfferToReceiveVideo': settings.is_remote_call_offer_video_enabled 
-        //   } 
-        // },
-        'mediaConstraints' : {
-          'audio': settings.is_remote_call_audio_enabled,
-          'video': settings.is_remote_call_video_enabled
-        } 
-      };
+      contraintesMedia(!!settings.is_remote_call_audio_enabled,
+                       !!settings.is_remote_call_video_enabled,
+                       function (mediaConstraints) {
+        /* Etat pose ici seulement : si les peripheriques manquent, l'appel n'est
+         * pas decroche et le widget ne doit pas se croire en communication. */
+        sipClientState.sipOnCall = true;
 
-      console.log("JsSip : Incoming Call Options : " + JSON.stringify(incomingCalloptions));
+        var incomingCalloptions = { 'mediaConstraints' : mediaConstraints };
 
-      session.answer(incomingCalloptions);
+        console.log("JsSip : Incoming Call Options : " + JSON.stringify(incomingCalloptions));
+
+        session.answer(incomingCalloptions);
+      });
     }
 
     function terminateCall(){
@@ -260,16 +303,21 @@
     function startCall(){
       console.log("JsSip : User Action - Start Call.");
 
-      var localCalloptions = {
-        'mediaConstraints' : {
-          'audio': settings.is_local_call_audio_enabled,
-          'video': settings.is_local_call_video_enabled
-        } 
-      };
+      contraintesMedia(!!settings.is_local_call_audio_enabled,
+                       !!settings.is_local_call_video_enabled,
+                       function (mediaConstraints) {
+        var localCalloptions = {
+          'mediaConstraints' : mediaConstraints,
+          /* On continue de reclamer le flux du portier meme quand on n'envoie pas
+           * le notre : sans cela, JsSIP ne poserait pas de ligne video dans l'offre
+           * et l'image du portier disparaitrait avec la notre. */
+          'rtcOfferConstraints' : { 'offerToReceiveAudio': 1, 'offerToReceiveVideo': 1 }
+        };
 
-      console.log("JsSip : Starting Call with Options : " + JSON.stringify(localCalloptions));
+        console.log("JsSip : Starting Call with Options : " + JSON.stringify(localCalloptions));
 
-      session = sipClient.call(settings.portier_sip_uri, localCalloptions);
+        session = sipClient.call(settings.portier_sip_uri, localCalloptions);
+      });
     }
 
     $(".sipDisplay[data-eqLogic_id=#id#]").dialog({
@@ -472,6 +520,10 @@
 
           data.session.on('failed', function(e) {
             sipClientState.sipOnCall = false;
+            /* Sans cette remise a zero, la tonalite dappel continue apres lechec. */
+            sipClientState.sipWaitingAnswer = false;
+            /* Affiche apres les deux affectations, qui repeignent le bouton. */
+            SIPbuttonModalChange(redColor, 'Echec : ' + e.cause);
             console.log('JsSIP : Local Call - Failed with cause : '+e.cause);
           });
       }

@@ -213,6 +213,8 @@ Il requiert un **serveur SIP acceptant le WebSocket**, un **Jeedom servi en HTTP
 
 ⚠️ **Politique de sécurité du navigateur** : l'image Docker de Jeedom envoie une CSP sans `connect-src`, ce qui interdit au navigateur toute connexion websocket vers un autre domaine — donc vers votre serveur SIP. Le widget le détecte et l'affiche. Aucun plugin ne peut lever cette restriction. La solution recommandée est de relayer le websocket SIP derrière le domaine de Jeedom (`wss://mon-jeedom/sipws`) : l'URL devient *same-origin* et la CSP n'a pas à être modifiée. La documentation donne le bloc nginx exact, ainsi que la variante par remplacement de l'en-tête.
 
+⚠️ **Caméra** : la même image envoie un en-tête `Permissions-Policy` contenant `camera=()`, qui interdit la caméra à la page. Le widget le détecte et bascule l'appel en audio seul, sans cesser de réclamer le flux vidéo du portier. JsSIP rapporte sinon `User Denied Media Access`, alors qu'aucun refus utilisateur n'a eu lieu.
+
 Le mot de passe du compte SIP n'est jamais placé dans la valeur d'une commande : il est servi par un appel authentifié soumis aux droits sur l'équipement.
 
 Si l'appel échoue côté serveur avec une erreur inexpliquée, essayez le champ « Codec(s) à supprimer » : le message d'invitation produit par le client est long et certains serveurs le refusent au-delà d'une taille limite.
