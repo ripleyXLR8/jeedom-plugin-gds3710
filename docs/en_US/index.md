@@ -167,6 +167,8 @@ Le mot de passe du compte SIP n'est **jamais** placé dans la valeur d'une comma
 
 Quand le portier appelle, le widget affiche son image **dès la sonnerie**, avant tout décrochage. L'aperçu disparaît lorsque l'appel est pris, la vidéo temps réel prenant le relais.
 
+Chaque cadre vidéo n'apparaît que s'il porte réellement un flux : quand votre caméra n'est pas envoyée — le cas courant, l'en-tête `Permissions-Policy` l'interdisant — le cadre « votre image » ne s'affiche pas du tout, au lieu de rester un rectangle vide. Les lecteurs sont libérés à la fin de l'appel, pour qu'aucune image figée ne subsiste.
+
 L'image affichée est le flux MJPEG que le plugin sert déjà, relayé et authentifié par Jeedom. Le portier annonce pourtant sa propre adresse dans un en-tête `Call-Info` de l'INVITE, mécanisme qu'exploitent les téléphones Grandstream :
 
 ```

@@ -159,8 +159,15 @@
         } else if(this.internalSipOnCall){
           ringtone.pause();
           SIPbuttonModalChange(redColor, "Raccrocher");
-          $(".remoteview[data-eqLogic_id=#id#]").show();
-          $(".selfview[data-eqLogic_id=#id#]").show();
+          /* Un cadre sans flux reste un rectangle vide : on n affiche que ce qui
+           * porte quelque chose. attacherMedia() se charge de reveler chaque
+           * lecteur a l arrivee de sa piste. */
+          if (remoteView.srcObject) {
+            $(".remoteview[data-eqLogic_id=#id#]").show();
+          }
+          if (selfView.srcObject) {
+            $(".selfview[data-eqLogic_id=#id#]").show();
+          }
           $(".sipactionbutton[data-eqLogic_id=#id#]").unbind('click');
           $(".sipactionbutton[data-eqLogic_id=#id#]").click(terminateCall);
           $(".sipactionbisbutton[data-eqLogic_id=#id#]").hide();
@@ -168,6 +175,7 @@
           SIPbuttonModalChange(greenColor, "Appeler");
           $(".remoteview[data-eqLogic_id=#id#]").hide();
           $(".selfview[data-eqLogic_id=#id#]").hide();
+          libererLecteurs();
           $(".calleridentitydisplay[data-eqLogic_id=#id#]").hide();
           ringtone.pause();
           $(".sipactionbutton[data-eqLogic_id=#id#]").unbind('click');
@@ -387,6 +395,17 @@
       sipClientState.sipWaitingAnswer = false;
       sipClientState.sipOnCall = false;
       sipClientState.sipRinging = false;
+    }
+
+    /* Detache les flux des lecteurs. Sans cela le cadre conserve la derniere image
+     * du precedent appel, et la piste distante reste referencee apres sa fin. */
+    function libererLecteurs() {
+      if (remoteView.srcObject) {
+        remoteView.srcObject = null;
+      }
+      if (selfView.srcObject) {
+        selfView.srcObject = null;
+      }
     }
 
     /* Rattache le media distant aux lecteurs.
