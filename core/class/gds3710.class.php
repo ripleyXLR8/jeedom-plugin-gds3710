@@ -237,6 +237,52 @@ class gds3710 extends eqLogic {
      *  Capteurs remontes par cmd=get&type=sysinfo                         *
      * ------------------------------------------------------------------ */
 
+    /* Etats lisibles dans la section « cmos ». Ils ne changent qu a la demande, mais
+     * leur effet sur l image n apparait qu au redemarrage suivant du portier : voir
+     * la documentation. */
+    public static function get_cmos_state_list() {
+        return array(
+            'cmos_mode' => array(
+                'name' => 'Mode CMOS', 'p' => 'P10572', 'subType' => 'string',
+                'labels' => array('1' => 'Normal', '2' => 'Low Light', '3' => 'WDR'),
+            ),
+            'ldc_state' => array(
+                'name' => 'LDC (correction de distorsion)', 'p' => 'P10573', 'subType' => 'binary',
+            ),
+            'power_frequency' => array(
+                'name' => 'Fréquence secteur', 'p' => 'P12314', 'subType' => 'string',
+                'labels' => array('0' => '50 Hz', '1' => '60 Hz'),
+            ),
+        );
+    }
+
+    /* Relit la section cmos et met a jour les etats correspondants. */
+    public function refreshCmosStates() {
+        $lu = $this->readConfigSection('cmos');
+        if (!is_array($lu)) {
+            return false;
+        }
+        foreach (gds3710::get_cmos_state_list() as $lid => $def) {
+            if (!array_key_exists($def['p'], $lu)) {
+                continue;
+            }
+            $cmd = $this->getCmd('info', $lid);
+            if (!is_object($cmd)) {
+                continue;
+            }
+            $brut = trim((string) $lu[$def['p']]);
+            if ($def['subType'] === 'binary') {
+                $valeur = ($brut === '1') ? 1 : 0;
+            } elseif (isset($def['labels']) && isset($def['labels'][$brut])) {
+                $valeur = $def['labels'][$brut];
+            } else {
+                $valeur = $brut;
+            }
+            $this->checkAndUpdateCmd($cmd, $valeur);
+        }
+        return true;
+    }
+
     public static function get_sensor_list() {
         return array(
             'di0'                   => array('name' => 'Entrée digitale 1',   'subType' => 'binary'),
@@ -1218,6 +1264,22 @@ class gds3710 extends eqLogic {
         /* Capteurs releves par cmd=get&type=sysinfo. Le plugin nappelait jamais cette
          * requete alors quelle expose gratuitement les entrees/sorties digitales, letat
          * des relais, deux temperatures, luptime et la version de firmware. */
+        foreach (gds3710::get_cmos_state_list() as $lid => $def) {
+            $cmd = $this->getCmd('info', $lid);
+            if (!is_object($cmd)) {
+                $cmd = new gds3710Cmd();
+                $cmd->setIsVisible(0);
+            }
+            if (trim((string) $cmd->getName()) === '') {
+                $cmd->setName(__($def['name'], __FILE__));
+            }
+            $cmd->setType('info');
+            $cmd->setSubType($def['subType']);
+            $cmd->setLogicalId($lid);
+            $cmd->setEqLogic_id($this->getId());
+            $cmd->save();
+        }
+
         foreach (gds3710::get_sensor_list() as $lid => $def) {
             $cmd = $this->getCmd('info', $lid);
             if (!is_object($cmd)) {
@@ -1269,6 +1331,7 @@ class gds3710 extends eqLogic {
             }
 
             $eq->refreshSettings();
+            $eq->refreshCmosStates();
 
             $info = $eq->readConfigSection('sysinfo');
             if ($info === null) {
@@ -1471,17 +1534,9 @@ class gds3710Cmd extends cmd {
      * n'importe quel parametre avec un ResCode 0, y compris un parametre qu'il ne
      * connait pas : c'est ainsi que les commandes LDC ont fait semblant de fonctionner
      * pendant des annees apres le retrait du reglage par Grandstream. */
-    private static $configSections = array('video', 'door', 'play', 'log', 'access', 'net', 'sip');
+    private static $configSections = array('video', 'cmos', 'door', 'play', 'log', 'access',
+                                           'net', 'sip', 'sysinfo');
 
-    /* Parametres que le portier accepte et applique, mais qu'il ne renvoie dans aucune
-     * section de configuration. La relecture ne peut donc rien confirmer : sans cette
-     * liste, elle les declarait « inconnus de ce portier » et le reglage LDC a ete
-     * retire du plugin a tort. Verifie sur un GDS3710 en 1.0.13.15 : P10573 n'apparait
-     * dans aucune des sept sections ni dans le script video de l'appareil, et l'effet
-     * est pourtant bien visible sur l'image apres un redemarrage. */
-    private static $paramsSansRelecture = array(
-        'P10573' => 'LDC (correction de distorsion) : effet visible apres redemarrage du portier',
-    );
 
     private function setConfig($id, $parameter_value, $_section = ''){
 
@@ -1539,14 +1594,9 @@ class gds3710Cmd extends cmd {
             break;
         }
         if (!$trouve) {
-            if (array_key_exists($id, self::$paramsSansRelecture)) {
-                log::add('gds3710', 'info', 'Le parametre ' . $id . ' n est pas relisible sur ce '
-                    . 'portier, l ecriture ne peut donc pas etre confirmee. ' . self::$paramsSansRelecture[$id]);
-            } else {
-                log::add('gds3710', 'error', 'Le parametre ' . $id . ' est inconnu de ce portier : '
-                    . 'ecriture acceptee mais sans effet. Il a peut-etre ete retire par une mise a '
-                    . 'jour du firmware.');
-            }
+            log::add('gds3710', 'error', 'Le parametre ' . $id . ' est inconnu de ce portier : '
+                . 'ecriture acceptee mais sans effet. Il a peut-etre ete retire par une mise a '
+                . 'jour du firmware.');
         }
     }
    
@@ -1555,11 +1605,13 @@ class gds3710Cmd extends cmd {
     private function ldc_ON(){
         log::add('gds3710', 'info', 'Activation du LDC. Le changement sera visible apres un redemarrage du portier.');
         $this->setConfig('P10573', '1');
+        $this->getEqLogic()->refreshCmosStates();
     }
 
     private function ldc_OFF(){
         log::add('gds3710', 'info', 'Desactivation du LDC. Le changement sera visible apres un redemarrage du portier.');
         $this->setConfig('P10573', '0');
+        $this->getEqLogic()->refreshCmosStates();
     }
 
     private function reboot(){
