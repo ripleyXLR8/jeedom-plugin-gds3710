@@ -25,11 +25,19 @@ Ce plugin permet l'intégration du portier GrandStream GDS3710 dans Jeedom. Il p
 - D'envoyer des images enregistrées via une autre commmande (testé avec le plugin Telegram).
 - D'activer ou de désactiver le LDC (Lens Deformation Correction).
 - De changer le réglage du capteur vidéo du portier (normal, low-light et WDR)
+- De configurer le portier lui-même en une commande, sans saisie manuelle.
+- De remonter les capteurs du portier : entrées et sorties digitales, état des relais, anti-arrachement, températures, uptime, version de firmware et disponibilité d'une mise à jour.
+- De purger automatiquement les captures au-delà d'une durée de conservation.
 - (Beta) D'enregistrer un client SIP directement depuis Jeedom et de répondre aux appels directement sur le dashboard.
 
 Ce plugin est basé sur la document fourni par GrandStream : http://www.grandstream.com/sites/default/files/Resources/gds37xx_http_api.pdf
 
 # Configuration du portier GrandStream GDS3710
+
+> **Le plus simple : la commande « Configurer le portier ».** Une fois l'équipement créé avec son adresse IP et son mot de passe, cette commande écrit elle-même sur l'appareil l'activation de la notification, l'adresse de ce Jeedom, le gabarit d'URL complet, la méthode et les identifiants — puis relit tout pour confirmer. La saisie manuelle décrite ci-dessous reste documentée, mais c'est la première cause de panne du plugin.
+>
+> Le plugin vérifie ensuite toutes les 15 minutes que le portier pointe toujours vers ce Jeedom, et prévient au centre de messages si ce n'est plus le cas.
+
 ## Pré-requis
 Afin de récupérer les évènements générés par le portier nous allons utiliser la foncitonnalité "Event Notification" qui est disponible à partir de la version 10.0.3.32 du firmware du GrandStream GDS3710. Si vous disposez d'une version antérieure la fonctionnalité "Event notification" ne sera peut-être pas disponible et il vous faudra mettre à jour le firmware de votre GDS3710 vers la dernière version.
 
@@ -170,3 +178,18 @@ Le plugin vous permet de transmettre des captures du flux MJPEG par l'intermédi
 - Dans le champs "Commande message d'envoi des captures" sélectionner la commande pour envoyer la ou les captures (il s'agit de la commande de votre bot Telegram).
 
 ![Envoyer un snapshot dans un scénario](docs/assets/images/EnvoyerCaptureGDS3710.png)
+
+# Options de configuration du plugin
+
+| Option | Effet |
+|---|---|
+| Protection par mot de passe | Exige une authentification Digest sur la remontée d'évènements. Activée par défaut sur les nouvelles installations. |
+| Désactiver le contrôle d'adresse d'origine | À cocher uniquement si Jeedom est derrière un NAT ou un proxy qui masque l'adresse réelle du portier. |
+| Remonter les capteurs du portier | Relève toutes les 15 minutes. ⚠️ Le portier n'accepte qu'une session administrateur : chaque relève déconnecte une session ouverte sur son interface web. À décocher le temps d'une configuration sur l'appareil. |
+| Conserver les captures pendant (jours) | Purge nocturne au-delà de cette durée. `0` désactive la purge, comportement historique. |
+| Autoriser les utilisateurs / utilisateurs limités à effacer les captures | Les administrateurs peuvent toujours effacer. |
+| Répertoire d'enregistrement des captures | Doit être accessible en écriture à l'utilisateur du serveur web. |
+
+---
+
+📖 **La documentation complète et à jour se trouve dans [`docs/fr_FR/index.md`](docs/fr_FR/index.md)**, également publiée sur le [site de documentation](https://ripleyxlr8.github.io/jeedom-plugin-gds3710/fr_FR/). En cas de divergence avec ce README, c'est la documentation qui fait foi.
