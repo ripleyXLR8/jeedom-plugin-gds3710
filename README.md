@@ -23,7 +23,6 @@ Ce plugin permet l'intégration du portier GrandStream GDS3710 dans Jeedom. Il p
 - D'enregistrer des images extraites du flux MJPEG.
 - De consulter les images enregistrées via une bibliothèque intégrée.
 - D'envoyer des images enregistrées via une autre commmande (testé avec le plugin Telegram).
-- D'activer ou de désactiver le LDC (Lens Deformation Correction).
 - De changer le réglage du capteur vidéo du portier (normal, low-light et WDR)
 - De configurer le portier lui-même en une commande, sans saisie manuelle.
 - De remonter les capteurs du portier : entrées et sorties digitales, état des relais, anti-arrachement, températures, uptime, version de firmware et disponibilité d'une mise à jour.

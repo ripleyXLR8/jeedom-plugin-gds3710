@@ -1,5 +1,9 @@
 # Change Log - Plugin GDS 3710
 
+### 06/09/2026 (fiabilité des écritures)
+- Les commandes **LDC ON / OFF sont supprimées** : le réglage `P10573` n'existe plus dans les firmwares récents du portier. Celui-ci répondait `OK` à l'écriture sans rien faire, les boutons semblaient donc fonctionner alors que l'image ne changeait jamais. Les commandes sont retirées automatiquement des équipements existants.
+- **Toute écriture de configuration est désormais relue** sur le portier. Un paramètre inconnu de l'appareil est signalé dans le log au lieu de passer pour un succès.
+
 ### 06/09/2026 (catalogue d'évènements)
 - Six types d'évènements ajoutés, relevés dans le firmware 1.0.13.15 du portier : `102` tentative d'ouverture non autorisée, `401` ouverture par SI, `1002` anomalie porte/serrure, `1110` accès hors planning, `1500` connexion administrateur, `1503` déconnexion administrateur.
 - Les types 102, 1002 et 1110 sont traités comme des évènements de sécurité : entrée au centre de messages et mise à jour de « Dernière alerte sécurité ».

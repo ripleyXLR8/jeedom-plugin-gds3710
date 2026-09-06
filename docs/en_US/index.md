@@ -127,6 +127,8 @@ Sept réglages sont pilotables depuis Jeedom. Chacun se présente en deux comman
 
 Le **planning du rétroéclairage blanc** dispose de son propre jeu : un état, les horaires configurés, deux actions pour activer ou désactiver le planning, et une commande message pour définir l'intervalle au format `HHMMSS`. Couplé au coucher du soleil, c'est le cas « éclairer l'entrée la nuit ».
 
+⚠️ **Un réglage retiré par une mise à jour du firmware ne provoque aucune erreur côté portier** : celui-ci répond `ResCode 0 / OK` à l'écriture d'un paramètre qu'il ne connaît pas. Le plugin relit donc systématiquement ce qu'il vient d'écrire et signale dans son log tout paramètre absent de l'appareil. C'est ce mécanisme qui a permis d'identifier la disparition du réglage LDC.
+
 Toute écriture est bornée à la plage du réglage, puis relue sur l'appareil avant que la commande info ne soit mise à jour : une valeur refusée par le portier n'apparaîtra jamais comme appliquée.
 
 ⚠️ Le planning du rétroéclairage exige le **firmware 1.0.13.9 ou supérieur**, et les réglages de luminosité de la LED le **1.0.13.5**. Sur un firmware antérieur, ces commandes resteront sans effet.
