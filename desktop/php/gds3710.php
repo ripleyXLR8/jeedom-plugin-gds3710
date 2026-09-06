@@ -95,7 +95,7 @@
   <div class="tab-content" style="height:calc(100% - 50px);overflow:auto;overflow-x: hidden;">
     <div role="tabpanel" class="tab-pane active" id="eqlogictab">
     <br/>
-  		<form class="form-horizontal">
+  		<form class="form-horizontal" autocomplete="off">
         	<fieldset>
             	<div class="form-group">
                 	<label class="col-sm-3 control-label">{{Nom du GDS3710}}</label>
@@ -147,35 +147,35 @@
 				<div class="form-group">
 					<label class="col-sm-3 control-label">{{Adresse MAC}}</label>
 				    <div class="col-sm-3">
-				        <input type="text" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="macaddress" placeholder="Adresse MAC"/>
+				        <input type="text" autocomplete="off" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="macaddress" placeholder="Adresse MAC"/>
 				    </div>
 				</div>
 
 				<div class="form-group">
 					<label class="col-sm-3 control-label">{{Adresse IP}}</label>
 				    <div class="col-sm-3">
-				        <input type="text" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="ip" placeholder="Adresse IP"/>
+				        <input type="text" autocomplete="off" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="ip" placeholder="Adresse IP"/>
 				    </div>
 				</div>
 
 				<div class="form-group">
 					<label class="col-sm-3 control-label">{{Mot de passe}}</label>
 				    <div class="col-sm-3">
-				        <input type="password" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="password" placeholder="Mot-de-passe"/>
+				        <input type="password" autocomplete="new-password" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="password" placeholder="Mot-de-passe"/>
 				    </div>
 				</div>
 
 				<div class="form-group">
 					<label class="col-sm-3 control-label">{{Remote PIN}}</label>
 				    <div class="col-sm-3">
-				        <input type="password" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="remote_pin" placeholder="Remote PIN"/>
+				        <input type="password" autocomplete="new-password" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="remote_pin" placeholder="Remote PIN"/>
 				    </div>
 				</div>
 
 				<div class="form-group">
 				    <label class="col-sm-3 control-label">{{Remote PIN 2}}</label>
 				    <div class="col-sm-3">
-				        <input type="password" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="remote_pin_2" placeholder="Remote PIN 2"/>
+				        <input type="password" autocomplete="new-password" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="remote_pin_2" placeholder="Remote PIN 2"/>
 				    </div>
 				</div>
 
@@ -196,28 +196,28 @@
 				<div class="form-group">
 				    <label class="col-sm-3 control-label">{{Adresse du serveur SIP :}}</label>
 				    <div class="col-sm-3">
-				        <input type="text" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="client_sip_websocket" placeholder="Adresse du serveur SIP"/>
+				        <input type="text" autocomplete="off" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="client_sip_websocket" placeholder="Adresse du serveur SIP"/>
 				    </div>
 				</div>
 
 				<div class="form-group">
 				    <label class="col-sm-3 control-label">{{URI du client SIP :}}</label>
 				    <div class="col-sm-3">
-				        <input type="text" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="client_sip_uri" placeholder="URI du client SIP"/>
+				        <input type="text" autocomplete="off" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="client_sip_uri" placeholder="URI du client SIP"/>
 				    </div>
 				</div>
 
 				<div class="form-group">
 				    <label class="col-sm-3 control-label">{{Mot-de-passe du client SIP :}}</label>
 				    <div class="col-sm-3">
-				        <input type="password" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="client_sip_password" placeholder="Mot-de-passe du client SIP"/>
+				        <input type="password" autocomplete="new-password" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="client_sip_password" placeholder="Mot-de-passe du client SIP"/>
 				    </div>
 				</div>
 
         <div class="form-group">
             <label class="col-sm-3 control-label">{{URI du portier SIP :}}</label>
             <div class="col-sm-3">
-                <input type="text" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="portier_sip_uri" placeholder="URI du portier SIP"/>
+                <input type="text" autocomplete="off" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="portier_sip_uri" placeholder="URI du portier SIP"/>
             </div>
         </div>
 
