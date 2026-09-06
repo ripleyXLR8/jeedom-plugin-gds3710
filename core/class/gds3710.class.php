@@ -90,6 +90,32 @@ class gds3710 extends eqLogic {
         return $xml;
     }
 
+    /* Traduit un chemin disque en URL servie par Jeedom, ou renvoie '' si aucune URL ne
+     * le sert.
+     *
+     * Le calcul historique, recopie en quatre endroits, etait
+     * substr($chemin, strpos($chemin, '/plugins')). Or la configuration autorise
+     * explicitement un repertoire de captures absolu, hors de l arborescence de Jeedom :
+     * strpos renvoie alors false, substr($chemin, false) equivaut a substr($chemin, 0), et
+     * la commande recevait le chemin disque entier en guise d URL. Le widget affichait une
+     * image cassee sans que rien ne l explique. */
+    public static function urlPublique($_chemin) {
+        $reel = realpath($_chemin);
+        $racine = realpath(__DIR__ . '/../../../..');
+        if ($reel === false || $racine === false) {
+            return '';
+        }
+        $reel = str_replace('\\', '/', $reel);
+        $racine = rtrim(str_replace('\\', '/', $racine), '/');
+        if (strpos($reel, $racine . '/') !== 0) {
+            log::add('gds3710', 'warning', 'La capture ' . $_chemin . ' est hors de la racine web de '
+                . 'Jeedom : aucune URL ne peut la servir, la tuile « Dernier snapshot » restera vide. '
+                . 'Choisissez un repertoire de captures situe sous ' . $racine . '.');
+            return '';
+        }
+        return substr($reel, strlen($racine));
+    }
+
     /* Purge quotidienne des captures. Le repertoire nen avait aucune : il grossissait
      * indefiniment (670 fichiers et 51 Mo sur linstallation de reference). Une retention
      * a 0 desactive la purge, ce qui reste le comportement historique. */
@@ -136,7 +162,7 @@ class gds3710 extends eqLogic {
                 if (is_array($files) && count($files) > 0) {
                     usort($files, function ($a, $b) { return filemtime($b) - filemtime($a); });
                     $path->event($files[0]);
-                    if (is_object($url)) { $url->event(substr($files[0], strpos($files[0], '/plugins'))); }
+                    if (is_object($url)) { $url->event(gds3710::urlPublique($files[0])); }
                 } else {
                     $path->event('');
                     if (is_object($url)) { $url->event(''); }
@@ -1993,7 +2019,7 @@ class gds3710Cmd extends cmd {
         log::add('gds3710', 'debug', "Registering URL to the lastest snapshot");
         $eqLogic = $this->getEqLogic();
         $lastest_snapshot_URL = $eqLogic->getCmd('info', 'Lastest_Snapshot_URL');
-        $lastest_snapshot_URL->event(substr($output_file, strpos($output_file, '/plugins')));
+        $lastest_snapshot_URL->event(gds3710::urlPublique($output_file));
         $lastest_snapshot_URL->save();
 
         return $output_file;

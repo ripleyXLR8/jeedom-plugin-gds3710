@@ -5,6 +5,16 @@
   $plugin = plugin::byId('gds3710');
   sendVarToJS('eqType', $plugin->getId());
   $eqLogics = eqLogic::byType($plugin->getId());
+  /* Le JavaScript portait sa propre copie du catalogue d'évènements, écrite à la main,
+     et elle avait divergé : neuf types y étaient associés au mauvais conteneur et les
+     types ajoutés depuis n'y figuraient pas du tout. On lui sert désormais la seule
+     source de vérité, celle qui produit aussi les onglets ci-dessous. */
+  $gds3710Types = array();
+  foreach (gds3710::get_GDS3710_event_list() as $row) {
+    $gds3710Types[(string) $row['type']] = $row['short_name'];
+  }
+  sendVarToJS('gds3710EventTypes', $gds3710Types);
+
 ?>
 
 <div class="row row-overflow">
@@ -85,7 +95,7 @@
   <div class="tab-content" style="height:calc(100% - 50px);overflow:auto;overflow-x: hidden;">
     <div role="tabpanel" class="tab-pane active" id="eqlogictab">
     <br/>
-  		<form class="form-horizontal">
+  		<form class="form-horizontal" autocomplete="off">
         	<fieldset>
             	<div class="form-group">
                 	<label class="col-sm-3 control-label">{{Nom du GDS3710}}</label>
@@ -137,35 +147,35 @@
 				<div class="form-group">
 					<label class="col-sm-3 control-label">{{Adresse MAC}}</label>
 				    <div class="col-sm-3">
-				        <input type="text" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="macaddress" placeholder="Adresse MAC"/>
+				        <input type="text" autocomplete="off" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="macaddress" placeholder="Adresse MAC"/>
 				    </div>
 				</div>
 
 				<div class="form-group">
 					<label class="col-sm-3 control-label">{{Adresse IP}}</label>
 				    <div class="col-sm-3">
-				        <input type="text" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="ip" placeholder="Adresse IP"/>
+				        <input type="text" autocomplete="off" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="ip" placeholder="Adresse IP"/>
 				    </div>
 				</div>
 
 				<div class="form-group">
 					<label class="col-sm-3 control-label">{{Mot de passe}}</label>
 				    <div class="col-sm-3">
-				        <input type="password" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="password" placeholder="Mot-de-passe"/>
+				        <input type="password" autocomplete="new-password" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="password" placeholder="Mot-de-passe"/>
 				    </div>
 				</div>
 
 				<div class="form-group">
 					<label class="col-sm-3 control-label">{{Remote PIN}}</label>
 				    <div class="col-sm-3">
-				        <input type="password" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="remote_pin" placeholder="Remote PIN"/>
+				        <input type="password" autocomplete="new-password" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="remote_pin" placeholder="Remote PIN"/>
 				    </div>
 				</div>
 
 				<div class="form-group">
 				    <label class="col-sm-3 control-label">{{Remote PIN 2}}</label>
 				    <div class="col-sm-3">
-				        <input type="password" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="remote_pin_2" placeholder="Remote PIN 2"/>
+				        <input type="password" autocomplete="new-password" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="remote_pin_2" placeholder="Remote PIN 2"/>
 				    </div>
 				</div>
 
@@ -181,33 +191,33 @@
 			</fieldset>
 
 			<fieldset>
-				<legend>{{Configuration client SIP (beta)}}</legend>
+				<legend>{{Configuration client SIP}}</legend>
 
 				<div class="form-group">
 				    <label class="col-sm-3 control-label">{{Adresse du serveur SIP :}}</label>
 				    <div class="col-sm-3">
-				        <input type="text" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="client_sip_websocket" placeholder="Adresse du serveur SIP"/>
+				        <input type="text" autocomplete="off" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="client_sip_websocket" placeholder="Adresse du serveur SIP"/>
 				    </div>
 				</div>
 
 				<div class="form-group">
 				    <label class="col-sm-3 control-label">{{URI du client SIP :}}</label>
 				    <div class="col-sm-3">
-				        <input type="text" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="client_sip_uri" placeholder="URI du client SIP"/>
+				        <input type="text" autocomplete="off" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="client_sip_uri" placeholder="URI du client SIP"/>
 				    </div>
 				</div>
 
 				<div class="form-group">
 				    <label class="col-sm-3 control-label">{{Mot-de-passe du client SIP :}}</label>
 				    <div class="col-sm-3">
-				        <input type="password" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="client_sip_password" placeholder="Mot-de-passe du client SIP"/>
+				        <input type="password" autocomplete="new-password" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="client_sip_password" placeholder="Mot-de-passe du client SIP"/>
 				    </div>
 				</div>
 
         <div class="form-group">
             <label class="col-sm-3 control-label">{{URI du portier SIP :}}</label>
             <div class="col-sm-3">
-                <input type="text" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="portier_sip_uri" placeholder="URI du portier SIP"/>
+                <input type="text" autocomplete="off" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="portier_sip_uri" placeholder="URI du portier SIP"/>
             </div>
         </div>
 
@@ -252,25 +262,11 @@
             </div>
         </div>
 
-        <div class="form-group">
-            <label class="col-sm-3 control-label">{{Media des appels entrants :}}</label>
-            <div class="col-sm-4">
-                <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_remote_call_audio_enabled" checked/>{{Audio}}</label>
-                <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_remote_call_video_enabled" checked/>{{Video}}</label>
-<!--                 <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_remote_call_offer_audio_enabled" checked/>{{Recevoir Audio}}</label>
-                <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_remote_call_offer_video_enabled" checked/>{{Recevoir Video}}</label> -->
-            </div>
-        </div>
-
-        <div class="form-group">
-            <label class="col-sm-3 control-label">{{Media des appels sortants :}}</label>
-            <div class="col-sm-4">
-                <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_local_call_audio_enabled" checked/>{{Audio}}</label>
-                <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_local_call_video_enabled" checked/>{{Video}}</label>
-<!--                 <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_local_call_offer_audio_enabled" checked/>{{Recevoir Audio}}</label>
-                <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="is_local_call_offer_video_enabled" checked/>{{Recevoir Video}}</label> -->
-            </div>
-        </div>
+        <!-- Les deux blocs « Media des appels entrants / sortants » qui figuraient ici
+             portaient les mêmes data-l2key que « Média acceptés sur appel entrant » et
+             « Média sur appel sortant » ci-dessus. getValues() ne garde qu'une valeur par
+             clef : ce sont ces cases-ci, les dernières du formulaire, qui l'emportaient,
+             et cocher celles du haut restait donc sans effet. -->
 
         <div class="form-group">
           <label class="col-sm-3 control-label">{{HACK - Codec(s) à supprimer }}<sup><i class="fa fa-question-circle tooltips" title="{{Permet de supprimer des codecs de l'INVITE envoyé par le client SIP du plugin. Le nombre de codecs disponible étant très important l'INVITE peut devenir très long et dépasser la taille maximale admissible par le serveur SIP. Supprimer des codecs peut permettre de réduire la taille de l'INVITE. Entrez les codecs en les séparant par une virgule (sans rajouter d'espaces).}}" style="font-size : 1em;color:grey;"></i></sup>{{ :}}</label>

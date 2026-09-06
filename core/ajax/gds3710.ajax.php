@@ -142,10 +142,11 @@ function get_last_snapshot_url_gds($file_name){
         $files = scandir($record_dir . '/' .$gds_id.'/', SCANDIR_SORT_DESCENDING);
         if(count($files) > 2 ){
             $output_file = $record_dir . '/' .$gds_id.'/'.$files[0];
+            $url = gds3710::urlPublique($output_file);
             $lastest_snapshot->event(realpath($output_file));
-            $lastest_snapshot_URL->event(substr($output_file, strpos($output_file, '/plugins')));
+            $lastest_snapshot_URL->event($url);
             log::add('gds3710', 'debug','New value of lastest_snapshot is :'.realpath($output_file));
-            log::add('gds3710', 'debug','New value of lastest_snapshot_URL is :'.substr($output_file, strpos($output_file, '/plugins')));
+            log::add('gds3710', 'debug','New value of lastest_snapshot_URL is :'.$url);
         } else {
             log::add('gds3710', 'debug','No more files in the directory.');
             $lastest_snapshot_URL->event('');

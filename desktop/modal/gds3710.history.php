@@ -87,11 +87,17 @@ echo '<a class="btn btn-success  pull-right" target="_blank" href="plugins/gds37
 <?php
 $i = 0;
 foreach ($files as $date => &$file) {
-	$gdsName = str_replace(' ', '-', $gds3710->getName());
+	/* Le motif d'une journée s'ancre sur la date, pas sur le nom de l'équipement. Il était
+	   construit avec les espaces du nom remplacées par des tirets, alors que la capture est
+	   écrite avec le nom brut : pour un équipement « Portier Entrée », le motif ne
+	   correspondait à aucun fichier et les deux boutons de la journée ne faisaient rien,
+	   sans le moindre message. La date suffit à identifier les captures du jour, et ne
+	   dépend plus de la façon dont l'équipement est nommé ni renommé. */
+	$motifJour = '*_' . $date . '_*';
 	echo '<div class="div_dayContainer">';
 	echo '<legend>';
-	echo '<a class="btn btn-xs btn-danger bt_removeSnapshotGDS3710File" data-day="1" data-filename="' . $gds3710->getId() . '/' . $gdsName . '_' . $date . '*"><i class="fas fa-trash"></i> {{Supprimer}}</a> ';
-	echo '<a class="btn btn-xs btn-success" target="_blank"  href="plugins/gds3710/core/php/downloadFile.php?pathfile=' . urlencode($dir . '/' . $gdsName . '_' . $date. '*') . '" ><i class="fas fa-download"></i> {{Télécharger}}</a> ';
+	echo '<a class="btn btn-xs btn-danger bt_removeSnapshotGDS3710File" data-day="1" data-filename="' . $gds3710->getId() . '/' . $motifJour . '"><i class="fas fa-trash"></i> {{Supprimer}}</a> ';
+	echo '<a class="btn btn-xs btn-success" target="_blank"  href="plugins/gds3710/core/php/downloadFile.php?pathfile=' . urlencode($dir . '/' . $motifJour) . '" ><i class="fas fa-download"></i> {{Télécharger}}</a> ';
 	echo '<span class="cameraHistoryDate">'.$date.'</span>';
 	echo ' <a class="btn btn-xs btn-default toggleList"><i class="fa fa-chevron-down"></i></a> ';
 	echo '</legend>';

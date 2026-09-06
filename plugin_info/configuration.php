@@ -25,7 +25,7 @@ if (!isConnect()) {
 }
 ?>
 
-<form class="form-horizontal">
+<form class="form-horizontal" autocomplete="off">
     <fieldset>
         <legend>{{Configuration du serveur}}</legend>
         <div class="form-group">
@@ -54,14 +54,14 @@ if (!isConnect()) {
         <div id="login-form-group" class="form-group">
             <label class="col-lg-4 control-label">{{Idenfiant : }}<sup><i class="fa fa-question-circle tooltips" title="{{Il s'agit de l'identifiant que votre portier devra fournir pour publier ses évènements dans Jeedom.}}" style="font-size : 1em;color:grey;"></i></sup></label>
             <div class="col-lg-2">
-                <input  type="text" class="configKey" data-l1key="login" />
+                <input type="text" autocomplete="off" class="configKey" data-l1key="login" />
             </div>
         </div>
 
         <div id="password-form-group" class="form-group">
            <label class="col-lg-4 control-label">{{Mot de passe : }}<sup><i class="fa fa-question-circle tooltips" title="{{Il s'agit du mot de passe que votre portier devra fournir pour publier ses évènements dans Jeedom.}}" style="font-size : 1em;color:grey;"></i></sup></label>
             <div class="col-lg-2">
-                <input type="password" class="configKey" data-l1key="password" />
+                <input type="password" autocomplete="new-password" class="configKey" data-l1key="password" />
             </div>
         </div>
 
