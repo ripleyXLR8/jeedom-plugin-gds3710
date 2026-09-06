@@ -1,5 +1,8 @@
 # Change Log - Plugin GDS 3710
 
+### 07/09/2026 (traductions et intégration continue)
+- **L'interface du plugin est traduite** en anglais, en allemand et en espagnol. Le plugin n'avait aucun fichier de langue : tout s'affichait en français, y compris pour une installation configurée autrement. Le catalogue couvre **152 chaînes** ; `tools/extract_i18n.py` l'extrait du code et signale toute chaîne ajoutée sans traduction. La documentation, elle, reste en français.
+- **Le dépôt a une intégration continue.** Les contrôles ne tournaient qu'à la main, depuis le poste du mainteneur. Ils s'exécutent désormais à chaque publication, sur **PHP 8.1, 8.2 et 8.3** : syntaxe PHP, syntaxe du JavaScript de la page d'équipement et du widget SIP, complétude des traductions, et cohérence entre le README et la documentation. La CI appelle le même script que le mainteneur, sans recopier la liste des contrôles.
 ### 06/09/2026 (fiabilité des écritures)
 - Les commandes **LDC ON / OFF sont conservées**, après une fausse alerte. Le portier ne renvoie `P10573` dans aucune de ses sections de configuration, ce qui avait fait conclure à tort que le réglage n'existait plus. Il est en réalité bien accepté et appliqué, mais **seulement au redémarrage suivant** — d'où un bouton qui paraissait sans effet. Les commandes sont recréées sur les installations où la version précédente les avait supprimées, et la relecture ne signale plus ce paramètre comme une erreur.
 - **Toute écriture de configuration est désormais relue** sur le portier. Un paramètre inconnu de l'appareil est signalé dans le log au lieu de passer pour un succès.
