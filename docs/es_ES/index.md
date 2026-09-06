@@ -129,6 +129,41 @@ Toute écriture est bornée à la plage du réglage, puis relue sur l'appareil a
 
 ⚠️ Le planning du rétroéclairage exige le **firmware 1.0.13.9 ou supérieur**, et les réglages de luminosité de la LED le **1.0.13.5**. Sur un firmware antérieur, ces commandes resteront sans effet.
 
+# Client SIP
+
+Le plugin embarque un client SIP qui permet de recevoir l'appel du portier et de lui répondre directement depuis le dashboard, image et son compris.
+
+## Pré-requis
+
+- **Un serveur SIP acceptant le WebSocket** (Asterisk, FreePBX, XiVO, UCM Grandstream…). Le portier et Jeedom s'y enregistrent comme deux clients ordinaires. Sur un UCM Grandstream, il faut activer le module WebRTC et donner le droit correspondant à l'extension utilisée.
+- **Jeedom servi en HTTPS.** Les navigateurs refusent l'accès au micro et à la caméra hors contexte sécurisé. Sans cela le widget affiche le problème sur son bouton et n'essaie même pas de s'enregistrer.
+- Un **certificat valide sur le serveur SIP** : une connexion `wss://` vers un certificat non approuvé est refusée par le navigateur, sans possibilité d'exception manuelle.
+
+## Configuration
+
+Dans l'onglet configuration de l'équipement, section « Configuration client SIP » :
+
+| Champ | Contenu |
+|---|---|
+| Adresse du serveur SIP | l'URL du websocket, par exemple `wss://mon-ipbx.local:8089/ws` |
+| URI du client SIP | l'extension utilisée par Jeedom, `sip:1003@mon-ipbx.local` |
+| Mot de passe du client SIP | le mot de passe de cette extension |
+| URI du portier SIP | l'extension du portier, appelable depuis le dashboard |
+| Média acceptés / proposés / sortants | ce que le client accepte et propose, par direction |
+
+Utilisez des **adresses joignables depuis le navigateur**, pas un nom de domaine qui ne résout plus.
+
+Le mot de passe du compte SIP n'est **jamais** placé dans la valeur d'une commande. Il est transmis au widget par un appel authentifié, soumis à la session Jeedom et aux droits sur l'équipement. La valeur de la commande ne contient que l'identifiant de l'équipement.
+
+## Les deux réglages « HACK »
+
+Le client produit un message d'invitation très long, que certains serveurs refusent au-delà d'une taille limite. Les deux champs en bas de section permettent de l'alléger :
+
+- **Codec(s) à supprimer** : par exemple `VP8,VP9,rtx,red,ulpfec` ne laisse que le H.264.
+- **Suppression de ligne de l'INVITE** : une expression régulière pour retirer des lignes supplémentaires.
+
+Si l'appel échoue avec une erreur de type « Unknown error » côté serveur, c'est la première piste à essayer.
+
 # Sécurité
 
 Deux protections encadrent la remontée d'évènements.

@@ -1,5 +1,12 @@
 # Change Log - Plugin GDS 3710
 
+### 06/09/2026 (client SIP)
+- Le **client SIP** est disponible sur la version stable. Il permet de répondre au portier depuis le dashboard.
+- Le mot de passe du compte SIP ne transite plus par la valeur d'une commande — où il était persisté, historisé et exposé par l'API — mais par un appel authentifié soumis aux droits sur l'équipement.
+- Les six réglages de média audio et vidéo, que le widget lisait mais que l'interface n'a jamais proposés, sont désormais configurables. Ils étaient auparavant tous inactifs, ce qui empêchait toute négociation.
+- Les pré-requis (contexte sécurisé, bibliothèque chargée) sont vérifiés et signalés en clair sur le widget, au lieu d'un échec silencieux.
+- Nettoyage des valeurs de commande corrompues par un défaut d'affichage corrigé en mars 2023 mais jamais purgé.
+
 ### 06/09/2026 (bloc C)
 - Les évènements sont **décomposés** en neuf commandes exploitables : code, libellé, date, badge, utilisateur, porte, numéro SIP, dernière personne entrée et dernière alerte sécurité. Le JSON brut reste disponible.
 - Les évènements de sécurité (arrachement, contrainte, alarme d'entrée, PIN erronés) écrivent au centre de messages.

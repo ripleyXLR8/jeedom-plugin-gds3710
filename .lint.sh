@@ -22,6 +22,7 @@ MARQUEURS=(
   "1.0.11.18"
   "Dernière personne entrée"
   "Réglages du portier"
+  "Client SIP"
   "DOOR_NUM"
 )
 for m in "${MARQUEURS[@]}"; do

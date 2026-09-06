@@ -30,7 +30,7 @@ Ce plugin permet l'intégration du portier GrandStream GDS3710 dans Jeedom. Il p
 - De purger automatiquement les captures au-delà d'une durée de conservation.
 - D'exploiter les évènements décomposés en commandes : code, libellé, date, badge, utilisateur, porte, numéro SIP, dernière personne entrée et dernière alerte sécurité.
 - De piloter les réglages du portier : luminosité de la LED du clavier, luminosité, contraste et saturation de l'image, délai avant capture, raccrochage après ouverture, et le planning du rétroéclairage blanc.
-- (Beta) D'enregistrer un client SIP directement depuis Jeedom et de répondre aux appels directement sur le dashboard.
+- D'enregistrer un **client SIP** depuis Jeedom et de répondre aux appels du portier sur le dashboard, image et son compris.
 
 Ce plugin est basé sur la document fourni par GrandStream : http://www.grandstream.com/sites/default/files/Resources/gds37xx_http_api.pdf
 
@@ -203,6 +203,16 @@ Chaque évènement reste disponible sous sa forme brute, mais neuf commandes por
 Sept réglages pilotables, chacun sous forme d'une commande info affichant la valeur lue sur l'appareil et d'un curseur qui l'écrit : LED du clavier au repos et à l'appui, luminosité, contraste et saturation de l'image, délai avant capture, raccrochage après ouverture distante. Le planning du rétroéclairage blanc dispose de ses propres commandes.
 
 Toute écriture est bornée puis relue avant mise à jour. ⚠️ Le planning du rétroéclairage exige le firmware **1.0.13.9**, les réglages de LED le **1.0.13.5**.
+
+# Client SIP
+
+Le plugin embarque un client SIP permettant de répondre au portier depuis le dashboard.
+
+Il requiert un **serveur SIP acceptant le WebSocket**, un **Jeedom servi en HTTPS** — les navigateurs refusent micro et caméra hors contexte sécurisé — et un **certificat valide sur le serveur SIP**. Ces pré-requis sont vérifiés au chargement et signalés sur le bouton du widget plutôt que d'échouer en silence.
+
+Le mot de passe du compte SIP n'est jamais placé dans la valeur d'une commande : il est servi par un appel authentifié soumis aux droits sur l'équipement.
+
+Si l'appel échoue côté serveur avec une erreur inexpliquée, essayez le champ « Codec(s) à supprimer » : le message d'invitation produit par le client est long et certains serveurs le refusent au-delà d'une taille limite.
 
 ---
 
