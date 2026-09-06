@@ -55,6 +55,44 @@ $("#div_1405").sortable({axis: "y", cursor: "move", items: ".1405", placeholder:
 /*
  * Fonction pour l'ajout de commande, appellé automatiquement par plugin.template
  */
+
+/* Remplit la colonne des valeurs a partir de l etat reel des commandes. Un seul appel
+   pour tout l equipement, plutot qu un par ligne. */
+function chargerValeursCommandes(_id) {
+    if (!isset(_id) || _id === '') {
+        return;
+    }
+    $.ajax({
+        type: 'POST',
+        url: 'plugins/gds3710/core/ajax/gds3710.ajax.php',
+        data: { action: 'getCmdValues', id: _id },
+        dataType: 'json',
+        error: function (request, status, error) {
+            handleAjaxError(request, status, error);
+        },
+        success: function (data) {
+            if (data.state != 'ok') {
+                return;
+            }
+            if ($('#table_cmd tbody tr.cmd').length === 0) {
+                setTimeout(function () { chargerValeursCommandes(_id); }, 400);
+                return;
+            }
+            $('#table_cmd tbody tr.cmd').each(function () {
+                var ligne = $(this);
+                var info = data.result[ligne.attr('data-cmd_id')];
+                if (!isset(info)) {
+                    return;
+                }
+                ligne.find('.cmdValeur').val(info.value);
+                if (info.date != '') {
+                    ligne.find('.cmdValeur').attr('title', '{{Collecté le}} ' + info.date);
+                }
+            });
+        }
+    });
+}
+
 function addCmdToTable(_cmd) {
     if (!isset(_cmd)) {
         var _cmd = {configuration: {}};
@@ -72,7 +110,10 @@ function addCmdToTable(_cmd) {
     tr += '<span class="subType" subType="' + init(_cmd.subType) + '"></span>';
     tr += '</td>';
     tr += '<td>';
-    tr += '<textarea class="cmdAttr form-control input-sm" data-l1key="configuration" data-l2key="value" style="height:65px;" readonly=true></textarea>';
+    /* Plus aucune liaison vers configuration[value] : ce champ herite n est plus
+       alimente, et le tableau y reecrivait son propre balisage. La valeur reelle
+       est remplie par chargerValeursCommandes(). */
+    tr += '<textarea class="cmdValeur form-control input-sm" style="height:65px;" readonly="readonly" placeholder="{{aucune valeur}}"></textarea>';
     tr += '</td>';
     tr += '<td>';
     tr += '<span><label class="checkbox-inline"><input type="checkbox" class="cmdAttr checkbox-inline" data-l1key="isVisible" checked/>{{Afficher}}</label></span> ';
@@ -211,6 +252,13 @@ function saveEqLogic(_eqLogic) {
 
 
 function printEqLogic(_eqLogic) {
+    /* Differe : le coeur appelle printEqLogic AVANT de construire les lignes du
+       tableau. Sans ce report, la reponse pourrait arriver avant qu il y ait des
+       lignes a remplir. */
+    setTimeout(function () {
+        chargerValeursCommandes(_eqLogic.id);
+    }, 0);
+
     $('#div_100').empty();
     $('#div_101').empty();
     $('#div_300').empty();
