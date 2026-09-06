@@ -187,6 +187,22 @@ Ces boutons exécutent les commandes du plugin, qui passent par l'API HTTP du po
 
 Le clavier reste utilisable pour la méthode DTMF, si vous la préférez ou si le portier est joint depuis un autre client SIP : composez le code d'ouverture pendant l'appel, **terminé par `#`** — le portier n'accepte pas le code sans ce terminateur. Cette voie exige que *Enable DTMF Open Door* soit actif sur l'appareil.
 
+## Signaler les appels non décrochés
+
+Une option de la configuration de l'équipement publie un message dans le **centre de messages de Jeedom** lorsque le portier a sonné sans que personne ne décroche : l'heure de la sonnerie, et un lien vers la capture prise à cet instant. Elle est **désactivée par défaut**, et le délai avant conclusion est réglable (45 secondes par défaut, minimum 10).
+
+⚠️ **Une limite qu'il faut comprendre avant d'activer l'option.** Le portier n'émet aucun évènement de fin d'appel : ni durée, ni statut. Ses trois évènements d'appel — `CallOutLog`, `CallInLog`, `CallLogDoorBellCall` — annoncent seulement qu'un appel a commencé. Le plugin ne peut donc constater qu'une chose : que **personne n'a décroché depuis Jeedom**. Si vous répondez sur un autre poste — un moniteur d'intérieur, un téléphone — le plugin l'ignore et signalera quand même un appel non décroché. Le message est formulé en conséquence et ne prétend pas davantage.
+
+La capture est prise **dès la sonnerie**, sans attendre le délai : quelques secondes plus tard, le visiteur peut avoir quitté le champ.
+
+Elle apparaît sous forme de **lien**, pas de vignette. Le centre de messages de Jeedom fait passer son contenu par `htmlspecialchars` puis ne conserve que les balises `<i>` et `<a>` : une image ne peut pas y être intégrée.
+
+Le signalement est évalué par le cron du plugin, qui s'exécute chaque minute. Le message peut donc arriver avec ce retard — sans conséquence pour un appel déjà manqué.
+
+## Le titre de la fenêtre d'appel
+
+La fenêtre annonce son état plutôt que de rester muette : le nom de l'équipement au repos, « Appel entrant » pendant la sonnerie, « En communication » une fois l'appel pris.
+
 ## Le clavier
 
 La fenêtre d'appel comporte un clavier à douze touches, dont le rôle change selon l'état :

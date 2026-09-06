@@ -217,6 +217,8 @@ Il requiert un **serveur SIP acceptant le WebSocket**, un **Jeedom servi en HTTP
 
 Quand le portier appelle, le widget affiche son image **dès la sonnerie**, avant tout décrochage — l'aperçu laisse place à la vidéo temps réel une fois l'appel pris. L'extension utilisée par Jeedom doit évidemment figurer parmi celles que le portier appelle.
 
+Une option publie les **appels non décrochés dans le centre de messages** de Jeedom, avec l'heure et un lien vers la capture prise à la sonnerie. Elle est désactivée par défaut : le portier n'émettant aucun évènement de fin d'appel, le plugin ne peut constater qu'une chose — que personne n'a décroché *depuis Jeedom*.
+
 La fenêtre d'appel présente un **bouton par commande d'ouverture visible** de l'équipement, qui exécute la commande du plugin — donc sans confier de code supplémentaire au navigateur, et même hors appel.
 
 Elle comporte aussi un **clavier** : au repos il compose un numéro à joindre, en communication il envoie des tonalités DTMF — c'est ainsi que l'on transmet au portier son code d'ouverture de porte sans quitter le dashboard.
