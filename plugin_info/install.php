@@ -47,6 +47,39 @@ function gds3710_update() {
             $cmd->event('/plugins/gds3710/core/php/camera.php?id=' . $eq->getId());
         }
     }
+
+    gds3710_clean_html_values();
+}
+
+/* Jusquen mars 2023, le tableau des commandes ouvrait sa zone de saisie avec une balise
+ * mal formee (« readonly=true/></textarea> »). Le HTML de la ligne se retrouvait alors
+ * enregistre dans configuration.value, et y restait : le correctif de lepoque a stoppe la
+ * creation de nouvelles corruptions mais na jamais nettoye celles deja en base. Elles
+ * survivent donc sur toutes les installations anterieures. */
+function gds3710_clean_html_values() {
+    $cleaned = 0;
+    foreach (eqLogic::byType('gds3710') as $eq) {
+        foreach ($eq->getCmd() as $cmd) {
+            $value = (string) $cmd->getConfiguration('value');
+            if ($value === '' || strpos($value, '<') === false) {
+                continue;
+            }
+            /* On ne vise que le balisage de linterface, jamais une valeur legitime :
+             * les evenements du portier sont du JSON et ne contiennent pas ces balises. */
+            if (!preg_match('/<\/?(td|tr|tbody|table|span|label|input|textarea)\b/i', $value)) {
+                continue;
+            }
+            $cmd->setConfiguration('value', '');
+            $cmd->save();
+            $cleaned++;
+            log::add('gds3710', 'info', 'Valeur corrompue nettoyee sur la commande '
+                . $cmd->getHumanName() . ' (' . strlen($value) . ' octets de balisage).');
+        }
+    }
+    if ($cleaned > 0) {
+        log::add('gds3710', 'info', $cleaned . ' commande(s) nettoyee(s) dune valeur heritee corrompue.');
+    }
+    return $cleaned;
 }
 
 function gds3710_remove() {
