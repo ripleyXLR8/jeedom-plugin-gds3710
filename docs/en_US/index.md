@@ -115,7 +115,7 @@ Les commandes d'évènement, autrefois nommées par leur simple code (`100`, `30
 
 # Réglages du portier
 
-Sept réglages sont pilotables depuis Jeedom. Chacun se présente en deux commandes : une **info** qui affiche la valeur réellement lue sur l'appareil, et un **curseur** qui l'écrit.
+Neuf réglages sont pilotables depuis Jeedom. Chacun se présente en deux commandes : une **info** qui affiche la valeur réellement lue sur l'appareil, et un **curseur** qui l'écrit.
 
 | Réglage | Plage |
 |---|---|
@@ -124,6 +124,8 @@ Sept réglages sont pilotables depuis Jeedom. Chacun se présente en deux comman
 | Image - luminosité, contraste, saturation | 0 à 128 |
 | Délai avant capture après appui sonnette | 0 à 10 s |
 | Raccrochage après ouverture distante | 3 à 1800 s |
+| Volume système | 0 à 6 |
+| Volume sonnerie | 0 à 6 |
 
 Le **planning du rétroéclairage blanc** dispose de son propre jeu : un état, les horaires configurés, deux actions pour activer ou désactiver le planning, et une commande message pour définir l'intervalle au format `HHMMSS`. Couplé au coucher du soleil, c'est le cas « éclairer l'entrée la nuit ».
 
@@ -131,17 +133,30 @@ Le **planning du rétroéclairage blanc** dispose de son propre jeu : un état, 
 
 ## États lus sur l'appareil
 
-Trois états sont remontés depuis la section `cmos` du portier :
+Douze états sont remontés, depuis quatre sections de configuration du portier :
 
 | Commande | Paramètre | Valeurs |
 |---|---|---|
 | Mode CMOS | `P10572` | Normal, Low Light, WDR |
 | LDC (correction de distorsion) | `P10573` | actif ou inactif |
 | Fréquence secteur | `P12314` | 50 Hz ou 60 Hz |
+| Vitesse d'obturation | `P10503` | Auto, 1/30 s … 1/10000 s |
+| Codec audio | `P14000` | PCMU, PCMA, G722 |
+| Horodatage incrusté | `P10044` | actif ou inactif |
+| Texte incrusté, et son contenu | `P10045`, `P10040` | |
+| NTP actif, serveur NTP | `P5006`, `P30` | |
+| Heure d'été | `P10004` | active ou inactive |
+| Fuseau horaire | `P14046` | |
 
-Ils sont relus à chaque cycle de quinze minutes, et immédiatement après une commande `LDC - ON` ou `LDC - OFF` : la valeur stockée change tout de suite, même si son effet sur l'image attend le redémarrage.
+Ils sont relus à chaque cycle de quinze minutes — une seule requête par section, quel qu'en soit le nombre d'états — et immédiatement après une commande `LDC - ON` ou `LDC - OFF` : la valeur stockée change tout de suite, même si son effet sur l'image attend le redémarrage.
 
-💡 La **fréquence secteur** mérite un coup d'œil : réglée sur 60 Hz en Europe, elle provoque un scintillement de l'image sous éclairage artificiel. Elle se change dans l'interface du portier.
+💡 Trois de ces états méritent un coup d'œil sur une installation européenne :
+
+- la **fréquence secteur** réglée sur 60 Hz fait scintiller l'image sous éclairage artificiel ;
+- l'**heure d'été** désactivée décale d'une heure, en été, l'horodatage de tous les évènements remontés par le portier — y compris l'heure des appels non décrochés ;
+- le **codec audio** en PCMU alors que le serveur SIP propose mieux.
+
+Ces réglages se changent dans l'interface du portier ; le plugin les affiche pour que l'écart se voie.
 
 ⚠️ **Un réglage retiré par une mise à jour du firmware ne provoque aucune erreur côté portier** : celui-ci répond `ResCode 0 / OK` à l'écriture d'un paramètre qu'il ne connaît pas. Le plugin relit donc systématiquement ce qu'il vient d'écrire et signale dans son log tout paramètre absent de l'appareil, à l'exception des quelques paramètres non relisibles listés ci-dessus.
 

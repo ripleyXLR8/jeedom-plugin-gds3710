@@ -60,6 +60,11 @@ class gds3710 extends eqLogic {
          * les cookies dauthentification sont justement journalises sous cette forme. */
         $text = preg_replace('/(\[(?:mjpeg_)?sess(?:ion)?\]\s*=>\s*)\S+/i', '$1***', $text);
         $text = preg_replace('/(\[(?:password|passwd|pass|secret|authcode|idcode|token)\]\s*=>\s*)\S+/i', '$1***', $text);
+        /* Les sections event, play et privacy du portier renvoient le mot de passe
+         * administrateur en clair dans P2. Aucun chemin de code ne les journalise
+         * aujourd hui ; ce masquage garantit que cela reste sans consequence. */
+        $text = preg_replace('/(<P2>)[^<]*(<\/P2>)/', '$1***$2', $text);
+        $text = preg_replace('/(\[P2\]\s*=>\s*)\S+/', '$1***', $text);
         return $text;
     }
 
@@ -237,32 +242,75 @@ class gds3710 extends eqLogic {
      *  Capteurs remontes par cmd=get&type=sysinfo                         *
      * ------------------------------------------------------------------ */
 
-    /* Etats lisibles dans la section « cmos ». Ils ne changent qu a la demande, mais
-     * leur effet sur l image n apparait qu au redemarrage suivant du portier : voir
-     * la documentation. */
-    public static function get_cmos_state_list() {
+    /* Etats lus sur l appareil, sans equivalent pilotable. Les reglages d image ne
+     * prennent effet qu au redemarrage suivant du portier, mais la valeur stockee,
+     * elle, change immediatement : c est cette valeur qui est rapportee ici. */
+    public static function get_state_list() {
         return array(
             'cmos_mode' => array(
-                'name' => 'Mode CMOS', 'p' => 'P10572', 'subType' => 'string',
+                'name' => 'Mode CMOS', 'p' => 'P10572', 'section' => 'cmos', 'subType' => 'string',
                 'labels' => array('1' => 'Normal', '2' => 'Low Light', '3' => 'WDR'),
             ),
             'ldc_state' => array(
-                'name' => 'LDC (correction de distorsion)', 'p' => 'P10573', 'subType' => 'binary',
+                'name' => 'LDC (correction de distorsion)', 'p' => 'P10573', 'section' => 'cmos', 'subType' => 'binary',
             ),
             'power_frequency' => array(
-                'name' => 'Fréquence secteur', 'p' => 'P12314', 'subType' => 'string',
+                'name' => 'Fréquence secteur', 'p' => 'P12314', 'section' => 'cmos', 'subType' => 'string',
                 'labels' => array('0' => '50 Hz', '1' => '60 Hz'),
+            ),
+            'shutter_speed' => array(
+                'name' => 'Vitesse d\'obturation', 'p' => 'P10503', 'section' => 'cmos', 'subType' => 'string',
+                'labels' => array('0' => 'Auto', '30' => '1/30 s', '60' => '1/60 s', '125' => '1/125 s',
+                                  '250' => '1/250 s', '500' => '1/500 s', '1000' => '1/1000 s',
+                                  '2000' => '1/2000 s', '5000' => '1/5000 s', '10000' => '1/10000 s'),
+            ),
+            'audio_codec' => array(
+                'name' => 'Codec audio', 'p' => 'P14000', 'section' => 'audio', 'subType' => 'string',
+                'labels' => array('1' => 'PCMU', '2' => 'PCMA', '4' => 'G722'),
+            ),
+            'osd_time' => array(
+                'name' => 'Horodatage incrusté', 'p' => 'P10044', 'section' => 'osd', 'subType' => 'binary',
+            ),
+            'osd_text_shown' => array(
+                'name' => 'Texte incrusté', 'p' => 'P10045', 'section' => 'osd', 'subType' => 'binary',
+            ),
+            'osd_text' => array(
+                'name' => 'Texte incrusté - contenu', 'p' => 'P10040', 'section' => 'osd', 'subType' => 'string',
+            ),
+            'ntp_enabled' => array(
+                'name' => 'NTP actif', 'p' => 'P5006', 'section' => 'date', 'subType' => 'binary',
+            ),
+            'ntp_server' => array(
+                'name' => 'Serveur NTP', 'p' => 'P30', 'section' => 'date', 'subType' => 'string',
+            ),
+            'dst_enabled' => array(
+                'name' => 'Heure d\'été', 'p' => 'P10004', 'section' => 'date', 'subType' => 'binary',
+            ),
+            'timezone' => array(
+                'name' => 'Fuseau horaire', 'p' => 'P14046', 'section' => 'date', 'subType' => 'string',
             ),
         );
     }
 
-    /* Relit la section cmos et met a jour les etats correspondants. */
-    public function refreshCmosStates() {
-        $lu = $this->readConfigSection('cmos');
-        if (!is_array($lu)) {
+    /* Relit les sections concernees et met a jour les etats. Une seule lecture par
+     * section, quel que soit le nombre d etats qu elle porte : chaque requete pese
+     * sur un appareil qui ne tolere qu une session administrateur. */
+    public function refreshStates() {
+        $sections = array();
+        foreach (gds3710::get_state_list() as $def) {
+            $sections[$def['section']] = true;
+        }
+        $lu = array();
+        foreach (array_keys($sections) as $section) {
+            $contenu = $this->readConfigSection($section);
+            if (is_array($contenu)) {
+                $lu = array_merge($lu, $contenu);
+            }
+        }
+        if (count($lu) === 0) {
             return false;
         }
-        foreach (gds3710::get_cmos_state_list() as $lid => $def) {
+        foreach (gds3710::get_state_list() as $lid => $def) {
             if (!array_key_exists($def['p'], $lu)) {
                 continue;
             }
@@ -606,6 +654,8 @@ class gds3710 extends eqLogic {
             'img_saturation'   => array('name' => 'Image - saturation',              'p' => 'P15522', 'section' => 'play', 'min' => 0, 'max' => 128),
             'snapshot_delay'   => array('name' => 'Délai avant capture (s)',         'p' => 'P15584', 'section' => 'door', 'min' => 0, 'max' => 10),
             'onhook_timer'     => array('name' => 'Raccrochage après ouverture (s)', 'p' => 'P15582', 'section' => 'door', 'min' => 3, 'max' => 1800),
+            'volume_system'    => array('name' => 'Volume système',                 'p' => 'P14003', 'section' => 'audio', 'min' => 0, 'max' => 6),
+            'volume_doorbell'  => array('name' => 'Volume sonnerie',                'p' => 'P14835', 'section' => 'audio', 'min' => 0, 'max' => 6),
         );
     }
 
@@ -1264,7 +1314,7 @@ class gds3710 extends eqLogic {
         /* Capteurs releves par cmd=get&type=sysinfo. Le plugin nappelait jamais cette
          * requete alors quelle expose gratuitement les entrees/sorties digitales, letat
          * des relais, deux temperatures, luptime et la version de firmware. */
-        foreach (gds3710::get_cmos_state_list() as $lid => $def) {
+        foreach (gds3710::get_state_list() as $lid => $def) {
             $cmd = $this->getCmd('info', $lid);
             if (!is_object($cmd)) {
                 $cmd = new gds3710Cmd();
@@ -1331,7 +1381,7 @@ class gds3710 extends eqLogic {
             }
 
             $eq->refreshSettings();
-            $eq->refreshCmosStates();
+            $eq->refreshStates();
 
             $info = $eq->readConfigSection('sysinfo');
             if ($info === null) {
@@ -1534,8 +1584,8 @@ class gds3710Cmd extends cmd {
      * n'importe quel parametre avec un ResCode 0, y compris un parametre qu'il ne
      * connait pas : c'est ainsi que les commandes LDC ont fait semblant de fonctionner
      * pendant des annees apres le retrait du reglage par Grandstream. */
-    private static $configSections = array('video', 'cmos', 'door', 'play', 'log', 'access',
-                                           'net', 'sip', 'sysinfo');
+    private static $configSections = array('video', 'cmos', 'audio', 'osd', 'date', 'door',
+                                           'play', 'log', 'access', 'net', 'sip', 'sysinfo');
 
 
     private function setConfig($id, $parameter_value, $_section = ''){
@@ -1605,13 +1655,13 @@ class gds3710Cmd extends cmd {
     private function ldc_ON(){
         log::add('gds3710', 'info', 'Activation du LDC. Le changement sera visible apres un redemarrage du portier.');
         $this->setConfig('P10573', '1');
-        $this->getEqLogic()->refreshCmosStates();
+        $this->getEqLogic()->refreshStates();
     }
 
     private function ldc_OFF(){
         log::add('gds3710', 'info', 'Desactivation du LDC. Le changement sera visible apres un redemarrage du portier.');
         $this->setConfig('P10573', '0');
-        $this->getEqLogic()->refreshCmosStates();
+        $this->getEqLogic()->refreshStates();
     }
 
     private function reboot(){
