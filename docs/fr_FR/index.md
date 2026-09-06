@@ -149,7 +149,7 @@ Dans l'onglet configuration de l'équipement, section « Configuration client SI
 
 | Champ | Contenu |
 |---|---|
-| Adresse du serveur SIP | l'URL du websocket, par exemple `wss://mon-ipbx.local:8089/ws` |
+| Adresse du serveur SIP | l'URL du websocket, par exemple `wss://mon-jeedom/sipws` (voir la section CSP ci-dessous) ou `wss://mon-ipbx.local:8089/ws` |
 | URI du client SIP | l'extension utilisée par Jeedom, `sip:1003@mon-ipbx.local` |
 | Mot de passe du client SIP | le mot de passe de cette extension |
 | URI du portier SIP | l'extension du portier, appelable depuis le dashboard |
@@ -165,14 +165,49 @@ L'image Docker de Jeedom envoie un en-tête `Content-Security-Policy` sans direc
 
 Aucun plugin ne peut lever cette restriction : elle s'applique à la page du dashboard, servie par le cœur de Jeedom, et les modules Apache nécessaires à un relais (`mod_proxy_wstunnel`, `mod_rewrite`) ne sont pas chargés dans l'image officielle.
 
-La solution la plus durable, si vous êtes derrière un reverse proxy, est d'y remplacer l'en-tête. Exemple pour nginx, dans le bloc `server` de Jeedom :
+### Solution recommandée : publier le websocket sur le domaine de Jeedom
+
+Plutôt que d'affaiblir la politique de sécurité, relayez le websocket SIP depuis le domaine de Jeedom lui-même. L'URL devient alors *same-origin*, ce que `'self'` autorise déjà : **la CSP reste inchangée**.
+
+Exemple pour nginx, dans le bloc `server` de Jeedom :
+
+```nginx
+location /sipws {
+    rewrite ^/sipws(/.*)?$ /ws break;
+    proxy_pass http://ADRESSE-DU-SERVEUR-SIP:PORT;
+
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_http_version 1.1;
+    proxy_read_timeout 3600s;
+}
+```
+
+Le `rewrite` traduit `/sipws` vers le chemin réel du websocket sur votre serveur SIP — `/ws` sur un UCM Grandstream. Renseignez ensuite `wss://VOTRE-JEEDOM/sipws` comme adresse du serveur SIP dans la configuration de l'équipement.
+
+Le `proxy_read_timeout` évite que nginx coupe la connexion après soixante secondes sans trafic, ce qui déconnecterait le client SIP en pleine veille.
+
+Sous **Nginx Proxy Manager**, la même chose se fait sans toucher aux fichiers : onglet *Custom locations* de l'hôte Jeedom, location `/sipws`, schéma `http`, l'adresse et le port du serveur SIP, puis la ligne `rewrite` dans le champ avancé de cette location — la roue dentée à droite. Les en-têtes websocket et votre liste d'accès y sont ajoutés automatiquement. Attention à ne pas confondre avec l'onglet *Advanced* de l'hôte : une location écrite là n'hérite **pas** de la liste d'accès, il faut y reposer les règles à la main.
+
+**Conséquence à connaître** : le dashboard doit être ouvert par ce même domaine. Si vous accédez à Jeedom par son adresse IP, `wss://VOTRE-JEEDOM/sipws` n'est plus *same-origin* et la CSP bloque de nouveau.
+
+### Autre solution : remplacer l'en-tête
+
+Si vous ne pouvez pas relayer le websocket, remplacez l'en-tête au niveau du reverse proxy :
 
 ```nginx
 proxy_hide_header Content-Security-Policy;
 add_header Content-Security-Policy "default-src 'self' file: data: blob: filesystem:; connect-src 'self' wss://VOTRE-SERVEUR-SIP; script-src 'self' 'unsafe-inline' 'unsafe-eval'; img-src 'self' * data:; style-src 'self' 'unsafe-inline'; worker-src blob:; frame-src 'self' *.jeedom.com data:;" always;
 ```
 
-Une seule modification, qui survit aux mises à jour de Jeedom comme aux recréations du conteneur. Une surcharge dans le `.htaccess` de Jeedom fonctionne également, mais ce fichier appartient au cœur et sera écrasé à sa prochaine mise à jour.
+Le `proxy_hide_header` est indispensable : lorsque plusieurs en-têtes CSP sont présents, le navigateur applique leur **intersection**. Ajouter un second en-tête plus permissif ne relâche donc rien, il faut retirer celui de Jeedom.
+
+Une surcharge dans le `.htaccess` de Jeedom fonctionne également, mais ce fichier appartient au cœur et sera écrasé à sa prochaine mise à jour.
 
 ## Les deux réglages « HACK »
 

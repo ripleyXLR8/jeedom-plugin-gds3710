@@ -316,7 +316,10 @@
     {
       sipClient = new JsSIP.UA(configuration);
     } catch(e) {
-      console.log(error.message);
+      /* La variable du catch est e : lire error.message levait une ReferenceError
+       * qui masquait la vraie cause, puis sipClient restait indefini. */
+      gds3710SipProblem('la configuration SIP est invalide (' + e.message + ').');
+      return;
     } 
 
     var status;
@@ -339,7 +342,9 @@
     }
 
     sipClient.on('connecting', () =>{
-      console.log('JsSIP : Connecting to : ' + settings.client_sip_websocket + ' as ' + settings.client_sip_uri + ' with password ' + settings.client_sip_password);
+      /* Le mot de passe SIP ne doit jamais apparaitre dans la console : il y reste
+       * lisible par toute extension installee et par qui regarde lecran. */
+      console.log('JsSIP : Connecting to : ' + settings.client_sip_websocket + ' as ' + settings.client_sip_uri);
       sipClientState.sipConnectionState = false;
       sipClientState.sipStateText = 'connecting';
     });
