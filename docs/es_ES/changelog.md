@@ -1,5 +1,9 @@
 # Change Log - Plugin GDS 3710
 
+### 07/09/2026 (maintien de porte et détection de mouvement)
+- **Maintien de porte ouverte** : mode, durée et « forcée ouverte depuis » rapportés pour chaque porte, avec deux commandes pour l'activer et le désactiver et un curseur pour la durée. ⚠️ Ces commandes sont **créées masquées** : les activer déverrouille la porte et l'y laisse.
+- **Détection de mouvement** : état, sensibilité et planning rapportés, deux commandes pour l'armer et la désarmer depuis un scénario. ⚠️ Les **régions** sont rapportées mais jamais écrites — sans région définie, armer la détection risque de ne rien déclencher, et la commande dédiée rend cet état visible.
+- Le contrôle des droits du **répertoire des captures** est désormais accessible par un bouton dans la configuration du plugin, et la tuile « Dernier snapshot » se masque si l'image ne se charge pas.
 ### 07/09/2026 (traductions et intégration continue)
 - **L'interface du plugin est traduite** en anglais, en allemand et en espagnol. Le plugin n'avait aucun fichier de langue : tout s'affichait en français, y compris pour une installation configurée autrement. Le catalogue couvre **152 chaînes** ; `tools/extract_i18n.py` l'extrait du code et signale toute chaîne ajoutée sans traduction. La documentation, elle, reste en français.
 - **Le dépôt a une intégration continue.** Les contrôles ne tournaient qu'à la main, depuis le poste du mainteneur. Ils s'exécutent désormais à chaque publication, sur **PHP 8.1, 8.2 et 8.3** : syntaxe PHP, syntaxe du JavaScript de la page d'équipement et du widget SIP, complétude des traductions, et cohérence entre le README et la documentation. La CI appelle le même script que le mainteneur, sans recopier la liste des contrôles.

@@ -423,6 +423,26 @@ Le plugin vous permet de transmettre des captures du flux MJPEG par l'intermédi
 
 ![Envoyer un snapshot dans un scénario](../assets/images/EnvoyerCaptureGDS3710.png)
 
+# Maintien de porte ouverte et détection de mouvement
+
+Deux groupes de l'API du portier que le plugin ignorait jusqu'ici.
+
+## Maintien de porte ouverte
+
+Chaque porte rapporte son **mode** — désactivé, immédiat ou planifié —, la **durée** du maintien en minutes, et, lorsqu'elle est maintenue, **depuis quand**. Deux commandes l'activent et le désactivent, un curseur règle la durée entre 5 et 480 minutes.
+
+⚠️ **Ces commandes sont créées masquées.** Activer le maintien **déverrouille la porte et l'y laisse** pendant toute la durée configurée : ce n'est pas quelque chose qui doit atterrir sur un dashboard par inadvertance. Rendez-les visibles délibérément, une fois que vous savez que vous en voulez.
+
+La commande « Porte 1 forcée ouverte depuis » vaut `(null)` tant que la porte n'est pas maintenue : un scénario peut donc vérifier qu'aucune porte n'est restée ouverte.
+
+## Détection de mouvement
+
+Son état, sa **sensibilité** (0 à 100) et son **planning d'alarme** sont rapportés ; deux commandes l'arment et la désarment. C'est ce qui la rend utile depuis un scénario : armer en partant, désarmer en rentrant. Le portier émet déjà l'évènement de type 900 lorsqu'elle se déclenche.
+
+⚠️ **Les régions de détection sont rapportées mais jamais écrites.** Les huit régions doivent être définies ensemble et se dessinent dans l'interface du portier. Sur un appareil où aucune n'est définie — l'état d'usine, toutes les coordonnées à zéro — armer la détection risque fort de ne rien déclencher. La commande « Détection - régions » existe précisément pour que cela se voie, au lieu de rester une énigme.
+
+Les réglages de détection vivent dans la section `event` du portier, qui renvoie le mot de passe administrateur en clair dans `P2`. Le plugin ne journalise jamais une section brute, et `redact()` masque `P2` de toute façon.
+
 # Langues
 
 **L'interface du plugin est traduite** en anglais, en allemand et en espagnol. Le catalogue vit dans `core/i18n/` et couvre 152 chaînes ; `tools/extract_i18n.py` le tient en phase avec le code, et un contrôle refuse toute chaîne ajoutée sans traduction. Le français est la langue source : il n'a pas de catalogue.

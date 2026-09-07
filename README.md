@@ -233,6 +233,20 @@ Twelve states are reported, read from four of the door station's configuration s
 
 💡 Three of them are worth a look on a European installation: a **mains frequency** set to 60 Hz makes the picture flicker under artificial light; **daylight saving** left disabled shifts the timestamp of every event the door station reports by an hour in summer; and the **audio codec** may sit on PCMU while the SIP server offers better.
 
+# Keeping a door open, and motion detection
+
+Two groups of the door station's API the plugin used to ignore.
+
+**Keep door open.** Each door reports its mode — disabled, immediate, or scheduled — along with the hold duration in minutes and, when the door is being held, since when. Two commands switch it on and off, and a slider sets the duration (5 to 480 minutes).
+
+⚠️ **These commands are created hidden.** Switching this on *unlocks the door and leaves it unlocked* for the configured duration; that is not something to place on a dashboard by accident. Make them visible deliberately, once you know you want them.
+
+**Motion detection.** Its state, its sensitivity (0-100) and its alarm schedule are reported, and two commands arm and disarm it — which is what makes it useful from a scenario: arm on leaving, disarm on coming home. The door station already emits event type 900 when it triggers.
+
+⚠️ **Detection regions are reported but never written.** The eight regions must all be set at once and are drawn in the door station's own interface. On a device where none is defined — the factory state, all coordinates at zero — arming detection may well trigger nothing. The `Détection - régions` command exists so that this is visible instead of silently puzzling.
+
+The motion settings live in the door station's `event` section, which returns the admin password in clear in `P2`. The plugin never logs a raw section, and `redact()` masks `P2` in any case.
+
 # Commands are linked to their state
 
 Every action button points at the info command it changes, so Jeedom shows the current state on the button and renders an on/off pair as a switch rather than two buttons with no memory. When the linked state is binary the button also gets a suitable widget: the LDC pair as a **switch**, the backlight pair as a **binary button**.
