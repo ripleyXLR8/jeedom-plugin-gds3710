@@ -36,6 +36,64 @@ try {
         }
     }
 
+    if (init('action') == 'checkRecordDir') {
+        /* Contrôle des droits du répertoire des captures, depuis la page de configuration.
+         * Jusqu'ici le problème n'était signalé qu'au moment d'une capture, c'est-à-dire
+         * précisément quand personne ne regarde.
+         *
+         * Réservé aux administrateurs : ce point d'entrée renseigne sur le système de
+         * fichiers du serveur, et le garde en tête de ce fichier laisse passer d'autres
+         * profils quand la suppression de captures leur est ouverte. */
+        if (!isConnect('admin')) {
+            throw new Exception(__('401 - Contrôle réservé aux administrateurs.', __FILE__));
+        }
+
+        $saisi = trim((string) init('recdir'));
+        if ($saisi === '') {
+            $saisi = (string) config::byKey('recdir', 'gds3710');
+        }
+        if ($saisi === '') {
+            throw new Exception(__('Aucun répertoire n\'est renseigné.', __FILE__));
+        }
+
+        /* On contrôle ce qui est saisi à l'écran, pas seulement ce qui est enregistré :
+         * l'intérêt est de valider un chemin avant de le sauvegarder. */
+        $chemin = calculPath($saisi);
+        $reel = realpath($chemin);
+        $etat = array('chemin' => $reel !== false ? $reel : $chemin, 'ok' => false);
+
+        if ($reel === false) {
+            /* Le répertoire n'existe pas encore : le plugin le créera à la première
+             * capture, à condition de pouvoir écrire dans le parent. */
+            $parent = realpath(dirname($chemin));
+            $etat['existe'] = false;
+            $etat['parent'] = $parent !== false ? $parent : dirname($chemin);
+            $etat['ok'] = $parent !== false && is_dir($parent) && is_writable($parent);
+            $etat['message'] = $etat['ok']
+                ? __('Le répertoire n\'existe pas encore, mais il pourra être créé : son parent est accessible en écriture.', __FILE__)
+                : __('Le répertoire n\'existe pas et son parent n\'est pas accessible en écriture : aucune capture ne pourra être enregistrée.', __FILE__);
+        } elseif (!is_dir($reel)) {
+            $etat['existe'] = true;
+            $etat['message'] = __('Ce chemin existe mais n\'est pas un répertoire.', __FILE__);
+        } else {
+            $etat['existe'] = true;
+            $etat['inscriptible'] = is_writable($reel);
+            $etat['droits'] = substr(sprintf('%o', fileperms($reel)), -4);
+            if (function_exists('posix_getpwuid')) {
+                $u = @posix_getpwuid(fileowner($reel));
+                $g = @posix_getgrgid(filegroup($reel));
+                $etat['proprietaire'] = (is_array($u) ? $u['name'] : fileowner($reel))
+                    . ':' . (is_array($g) ? $g['name'] : filegroup($reel));
+            }
+            $etat['captures'] = count((array) glob($reel . '/*/*.jpg'));
+            $etat['ok'] = $etat['inscriptible'];
+            $etat['message'] = $etat['inscriptible']
+                ? __('Le répertoire existe et le serveur web peut y écrire.', __FILE__)
+                : __('Le répertoire existe mais le serveur web ne peut pas y écrire. Il doit appartenir à l\'utilisateur du serveur web.', __FILE__);
+        }
+        ajax::success($etat);
+    }
+
     if (init('action') == 'getSipConfig') {
         /* Sert la configuration SIP au widget. Elle contient le mot de passe du compte,
          * elle ne transite donc pas par la valeur de la commande mais par cet appel,

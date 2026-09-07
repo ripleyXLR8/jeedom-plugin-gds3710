@@ -75,9 +75,53 @@ if (!isConnect()) {
         <div id="reddir-form-group" class="form-group">
             <label class="col-lg-4 control-label">{{Répertoire d'enregistrement des captures : }}<sup><i class="fa fa-question-circle tooltips" title="{{Il s'agit du répertoire dans lequel seront enregistré les captures.}}" style="font-size : 1em;color:grey;"></i></sup></label>
             <div class="col-lg-4">
-                <input type="text" class="configKey" data-l1key="recdir" />
+                <input type="text" autocomplete="off" class="configKey" data-l1key="recdir" />
+                <!-- Sans ce bouton, un répertoire mal configuré ne se signalait qu'au
+                     moment d'une capture, c'est-à-dire quand personne ne regarde. -->
+                <a id="bt_verifierRecdir" class="btn btn-default btn-sm" style="margin-top:6px">
+                    <i class="fas fa-user-shield"></i> {{Vérifier les droits}}
+                </a>
+                <div id="resultatRecdir" style="margin-top:6px"></div>
             </div>
         </div>
+
+        <script>
+        $('#bt_verifierRecdir').on('click', function () {
+            var zone = $('#resultatRecdir');
+            zone.html('<span style="opacity:.7">{{Contrôle en cours...}}</span>');
+            $.ajax({
+                type: 'POST',
+                url: 'plugins/gds3710/core/ajax/gds3710.ajax.php',
+                /* On envoie la valeur affichée, pas celle enregistrée : l'intérêt est de
+                   valider un chemin avant de le sauvegarder. */
+                data: { action: 'checkRecordDir', recdir: $('.configKey[data-l1key=recdir]').value() },
+                dataType: 'json',
+                error: function (request, status, error) {
+                    zone.html('');
+                    handleAjaxError(request, status, error);
+                },
+                success: function (data) {
+                    if (data.state != 'ok') {
+                        zone.html('<span class="text-danger">' + data.result + '</span>');
+                        return;
+                    }
+                    var r = data.result;
+                    var html = '<span class="' + (r.ok ? 'text-success' : 'text-danger') + '">'
+                             + '<i class="fas fa-' + (r.ok ? 'check' : 'times') + '-circle"></i> '
+                             + r.message + '</span>';
+                    var details = [];
+                    if (r.chemin) { details.push('{{Chemin}} : ' + r.chemin); }
+                    if (r.proprietaire) { details.push('{{Propriétaire}} : ' + r.proprietaire); }
+                    if (r.droits) { details.push('{{Droits}} : ' + r.droits); }
+                    if (typeof r.captures !== 'undefined') { details.push('{{Captures présentes}} : ' + r.captures); }
+                    if (details.length) {
+                        html += '<br><span style="font-size:.9em;opacity:.75">' + details.join(' — ') + '</span>';
+                    }
+                    zone.html(html);
+                }
+            });
+        });
+        </script>
 
         <div class="form-group">
             <label class="col-lg-4 control-label">{{Remonter les capteurs du portier : }}<sup><i class="fa fa-question-circle tooltips" title="{{Relève toutes les 15 minutes les entrées et sorties digitales, l'état des relais, les deux températures, l'uptime et la version de firmware. ATTENTION : le portier n'accepte qu'une seule session administrateur, chaque relève déconnecte donc une éventuelle session ouverte sur son interface web. Décochez pendant une session de configuration du portier.}}" style="font-size : 1em;color:grey;"></i></sup></label>

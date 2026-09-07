@@ -2,10 +2,17 @@
     "plugins/gds3710/core/ajax/gds3710.ajax.php": {
         "401 - Acces non autorise a cet equipement.": "401 - Unauthorized access to this equipment.",
         "401 - Chemin de capture non autorisé.": "401 - Snapshot path not allowed.",
+        "401 - Contrôle réservé aux administrateurs.": "401 - This check is reserved for administrators.",
         "401 - Suppression des captures non autorisée pour ce profil.": "401 - This profile is not allowed to delete snapshots.",
+        "Aucun répertoire n'est renseigné.": "No directory has been set.",
         "Aucune méthode correspondante à : ": "No matching method for: ",
+        "Ce chemin existe mais n'est pas un répertoire.": "This path exists but is not a directory.",
         "Client SIP non configure : renseignez au moins l adresse du serveur et l URI du client dans la configuration de l equipement.": "SIP client not configured: set at least the server address and the client URI in the equipment configuration.",
         "Equipement GDS3710 introuvable.": "GDS3710 equipment not found.",
+        "Le répertoire existe et le serveur web peut y écrire.": "The directory exists and the web server can write to it.",
+        "Le répertoire existe mais le serveur web ne peut pas y écrire. Il doit appartenir à l'utilisateur du serveur web.": "The directory exists but the web server cannot write to it. It must belong to the web server user.",
+        "Le répertoire n'existe pas encore, mais il pourra être créé : son parent est accessible en écriture.": "The directory does not exist yet, but it can be created: its parent is writable.",
+        "Le répertoire n'existe pas et son parent n'est pas accessible en écriture : aucune capture ne pourra être enregistrée.": "The directory does not exist and its parent is not writable: no snapshot will be able to be saved.",
         "Répertoire des captures introuvable.": "Snapshot directory not found."
     },
     "plugins/gds3710/core/class/gds3710.class.php": {
@@ -156,8 +163,12 @@
         "Activer la protection par mot de passe : ": "Enable password protection: ",
         "Autoriser les utilisateurs limités à effacer les captures : ": "Allow restricted users to delete snapshots: ",
         "Autoriser les utilisateurs à effacer les captures : ": "Allow users to delete snapshots: ",
+        "Captures présentes": "Snapshots present",
+        "Chemin": "Path",
         "Configuration du serveur": "Server configuration",
         "Conserver les captures pendant (jours) : ": "Keep snapshots for (days): ",
+        "Contrôle en cours...": "Checking...",
+        "Droits": "Permissions",
         "Désactiver le contrôle d'adresse d'origine : ": "Disable the source address check: ",
         "Il s'agit de l'identifiant que votre portier devra fournir pour publier ses évènements dans Jeedom.": "This is the username your door station must present in order to publish its events to Jeedom.",
         "Il s'agit du mot de passe que votre portier devra fournir pour publier ses évènements dans Jeedom.": "This is the password your door station must present in order to publish its events to Jeedom.",
@@ -165,8 +176,10 @@
         "Les captures plus anciennes sont supprimées chaque nuit. Laissez à 0 pour ne jamais purger, ce qui est le comportement historique du plugin : le répertoire grossit alors indéfiniment.": "Older snapshots are deleted every night. Leave at 0 to never purge, which is the plugin's historical behaviour: the directory then grows indefinitely.",
         "Mot de passe : ": "Password: ",
         "Par défaut, un évènement n'est accepté que s'il provient de l'adresse IP configurée pour le portier. Décochez uniquement si votre Jeedom est derrière un NAT ou un proxy qui masque l'adresse réelle du portier.": "By default an event is accepted only if it comes from the IP address configured for the door station. Untick only if your Jeedom sits behind a NAT or a proxy that hides the door station's real address.",
+        "Propriétaire": "Owner",
         "Relève toutes les 15 minutes les entrées et sorties digitales, l'état des relais, les deux températures, l'uptime et la version de firmware. ATTENTION : le portier n'accepte qu'une seule session administrateur, chaque relève déconnecte donc une éventuelle session ouverte sur son interface web. Décochez pendant une session de configuration du portier.": "Reads the digital inputs and outputs, the relay states, both temperatures, the uptime and the firmware version every 15 minutes. WARNING: the door station allows a single administrator session, so every read disconnects any session open on its web interface. Untick while configuring the device.",
         "Remonter les capteurs du portier : ": "Poll the door station sensors: ",
-        "Répertoire d'enregistrement des captures : ": "Snapshot storage directory: "
+        "Répertoire d'enregistrement des captures : ": "Snapshot storage directory: ",
+        "Vérifier les droits": "Check the permissions"
     }
 }

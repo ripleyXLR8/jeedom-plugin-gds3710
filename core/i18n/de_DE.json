@@ -2,10 +2,17 @@
     "plugins/gds3710/core/ajax/gds3710.ajax.php": {
         "401 - Acces non autorise a cet equipement.": "401 - Kein Zugriff auf dieses Gerät.",
         "401 - Chemin de capture non autorisé.": "401 - Unzulässiger Aufnahmepfad.",
+        "401 - Contrôle réservé aux administrateurs.": "401 - Diese Prüfung ist Administratoren vorbehalten.",
         "401 - Suppression des captures non autorisée pour ce profil.": "401 - Dieses Profil darf keine Aufnahmen löschen.",
+        "Aucun répertoire n'est renseigné.": "Es ist kein Verzeichnis angegeben.",
         "Aucune méthode correspondante à : ": "Keine passende Methode für: ",
+        "Ce chemin existe mais n'est pas un répertoire.": "Dieser Pfad existiert, ist aber kein Verzeichnis.",
         "Client SIP non configure : renseignez au moins l adresse du serveur et l URI du client dans la configuration de l equipement.": "SIP-Client nicht konfiguriert: Geben Sie mindestens die Serveradresse und die Client-URI in der Gerätekonfiguration an.",
         "Equipement GDS3710 introuvable.": "GDS3710-Gerät nicht gefunden.",
+        "Le répertoire existe et le serveur web peut y écrire.": "Das Verzeichnis existiert und der Webserver kann darin schreiben.",
+        "Le répertoire existe mais le serveur web ne peut pas y écrire. Il doit appartenir à l'utilisateur du serveur web.": "Das Verzeichnis existiert, aber der Webserver kann nicht darin schreiben. Es muss dem Benutzer des Webservers gehören.",
+        "Le répertoire n'existe pas encore, mais il pourra être créé : son parent est accessible en écriture.": "Das Verzeichnis existiert noch nicht, kann aber angelegt werden: Das übergeordnete Verzeichnis ist beschreibbar.",
+        "Le répertoire n'existe pas et son parent n'est pas accessible en écriture : aucune capture ne pourra être enregistrée.": "Das Verzeichnis existiert nicht und das übergeordnete Verzeichnis ist nicht beschreibbar: Es kann keine Aufnahme gespeichert werden.",
         "Répertoire des captures introuvable.": "Aufnahmeverzeichnis nicht gefunden."
     },
     "plugins/gds3710/core/class/gds3710.class.php": {
@@ -156,8 +163,12 @@
         "Activer la protection par mot de passe : ": "Passwortschutz aktivieren: ",
         "Autoriser les utilisateurs limités à effacer les captures : ": "Eingeschränkten Benutzern das Löschen von Aufnahmen erlauben: ",
         "Autoriser les utilisateurs à effacer les captures : ": "Benutzern das Löschen von Aufnahmen erlauben: ",
+        "Captures présentes": "Vorhandene Aufnahmen",
+        "Chemin": "Pfad",
         "Configuration du serveur": "Serverkonfiguration",
         "Conserver les captures pendant (jours) : ": "Aufnahmen aufbewahren (Tage): ",
+        "Contrôle en cours...": "Prüfung läuft...",
+        "Droits": "Rechte",
         "Désactiver le contrôle d'adresse d'origine : ": "Prüfung der Absenderadresse deaktivieren: ",
         "Il s'agit de l'identifiant que votre portier devra fournir pour publier ses évènements dans Jeedom.": "Dies ist der Benutzername, den Ihre Türstation angeben muss, um ihre Ereignisse an Jeedom zu senden.",
         "Il s'agit du mot de passe que votre portier devra fournir pour publier ses évènements dans Jeedom.": "Dies ist das Passwort, das Ihre Türstation angeben muss, um ihre Ereignisse an Jeedom zu senden.",
@@ -165,8 +176,10 @@
         "Les captures plus anciennes sont supprimées chaque nuit. Laissez à 0 pour ne jamais purger, ce qui est le comportement historique du plugin : le répertoire grossit alors indéfiniment.": "Ältere Aufnahmen werden jede Nacht gelöscht. Auf 0 belassen, um nie zu bereinigen — das bisherige Verhalten des Plugins: Das Verzeichnis wächst dann unbegrenzt.",
         "Mot de passe : ": "Passwort: ",
         "Par défaut, un évènement n'est accepté que s'il provient de l'adresse IP configurée pour le portier. Décochez uniquement si votre Jeedom est derrière un NAT ou un proxy qui masque l'adresse réelle du portier.": "Standardmäßig wird ein Ereignis nur angenommen, wenn es von der für die Türstation konfigurierten IP-Adresse stammt. Nur abwählen, wenn Ihr Jeedom hinter einem NAT oder Proxy steht, der die echte Adresse der Türstation verbirgt.",
+        "Propriétaire": "Eigentümer",
         "Relève toutes les 15 minutes les entrées et sorties digitales, l'état des relais, les deux températures, l'uptime et la version de firmware. ATTENTION : le portier n'accepte qu'une seule session administrateur, chaque relève déconnecte donc une éventuelle session ouverte sur son interface web. Décochez pendant une session de configuration du portier.": "Liest alle 15 Minuten die digitalen Ein- und Ausgänge, den Relaiszustand, beide Temperaturen, die Laufzeit und die Firmware-Version. ACHTUNG: Die Türstation erlaubt nur eine Administratorsitzung, jede Abfrage trennt daher eine offene Sitzung ihrer Weboberfläche. Während der Konfiguration des Geräts abwählen.",
         "Remonter les capteurs du portier : ": "Sensoren der Türstation abfragen: ",
-        "Répertoire d'enregistrement des captures : ": "Speicherverzeichnis für Aufnahmen: "
+        "Répertoire d'enregistrement des captures : ": "Speicherverzeichnis für Aufnahmen: ",
+        "Vérifier les droits": "Rechte prüfen"
     }
 }

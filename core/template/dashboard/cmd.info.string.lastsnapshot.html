@@ -60,13 +60,21 @@
   	findIdGDS('#id#','#state#');
   	// End Allow embeding in virtual
 
+  	/* Une valeur presente ne garantit pas que le fichier le soit encore : il a pu etre
+  	   purge ou supprime depuis, et downloadFile.php repond alors 404. La tuile se montre
+  	   donc sur le chargement reel de l'image et se masque sur son echec, plutot que sur
+  	   la seule presence d'une valeur — ce qui laissait une image cassee a l'ecran.
+  	   Poses une fois pour toutes : ils valent aussi pour les mises a jour. */
+  	$('.imgCmd#uid#')
+  		.on('load.gds3710', function () { $('.cmd[data-cmd_id=#id#]').show(); })
+  		.on('error.gds3710', function () { $('.cmd[data-cmd_id=#id#]').hide(); });
+
   	/* findIdGDS() recoit toujours le chemin brut : il en tire l'id de l'equipement en
   	   decoupant sur « / ». Seul le src passe par downloadFile.php. */
   	if('#state#' == ''){
   		$('.cmd[data-cmd_id=#id#]').hide();
   	} else {
   		$('.imgCmd#uid#').attr('src', gds3710UrlCapture('#state#'));
-  		$('.cmd[data-cmd_id=#id#]').show();
   	}
 
     jeedom.cmd.update['#id#'] = function(_options){
@@ -74,7 +82,8 @@
     	if(_options.display_value == ''){
 	  		$('.cmd[data-cmd_id=#id#]').hide();
 	  	} else{
-	  		$('.cmd[data-cmd_id=#id#]').show();
+	  		/* Pas de show() ici : ce sont les gestionnaires load/error poses plus haut
+	  		   qui tranchent, une fois qu'on sait si l'image arrive. */
 	  		$('.imgCmd#uid#').attr('src', gds3710UrlCapture(_options.display_value));
     		$('.cmd[data-cmd_id=#id#]').attr('title', 'Capture prise '+_options.valueDate);
 	  	}
