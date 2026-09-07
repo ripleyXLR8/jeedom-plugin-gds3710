@@ -239,6 +239,8 @@ Twelve states are reported, read from four of the door station's configuration s
 
 The equipment configuration can bind a **Jeedom command** to door 2. When set, "Open door 2" runs that command instead of asking the door station. That is how a gate whose door station only triggers the pedestrian leaf gets a second button for the full opening — and the button stays available in the SIP call window, which lists the equipment's visible opening commands.
 
+💡 Rename the command to match what it now does — "Full opening", say. **A command you renamed is never renamed back**: the plugin only ever fills a name that is empty.
+
 Leave the field empty to query the door station as before. "Close door 2" then has no meaning and does nothing, which is logged.
 
 # Keeping a door open, and motion detection

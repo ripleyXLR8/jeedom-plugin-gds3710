@@ -429,7 +429,7 @@ Le plugin vous permet de transmettre des captures du flux MJPEG par l'intermédi
 
 La configuration de l'équipement permet d'associer une **commande Jeedom** à la porte 2. Le bouton « Ouvrir la porte 2 » exécute alors cette commande au lieu d'interroger le portier. C'est ainsi qu'un portail dont le portier ne commande que le vantail piéton obtient un second bouton pour l'ouverture complète — et ce bouton reste disponible dans la fenêtre d'appel du client SIP, qui liste les commandes d'ouverture visibles de l'équipement.
 
-💡 Pensez à **renommer la commande** en conséquence — « Ouverture voiture », par exemple. Le plugin ne remplit qu'un nom vide : votre choix est conservé.
+💡 Pensez à **renommer la commande** en conséquence — « Ouverture complète », par exemple. **Un nom que vous avez changé n'est jamais remis** : le plugin ne remplit qu'un nom vide. Cela vaut pour toutes les commandes de l'équipement, y compris les plus anciennes.
 
 Laissez le champ vide pour interroger le portier comme avant. « Fermer la porte 2 » n'a alors plus de sens et n'exécute rien, ce qui est journalisé.
 
