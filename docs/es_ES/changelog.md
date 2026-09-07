@@ -1,5 +1,8 @@
 # Change Log - Plugin GDS 3710
 
+### 07/09/2026 (les noms de commandes deviennent traduisibles)
+- **61 noms de commandes échappaient à la traduction** et s'affichaient en français quelle que soit la langue : ils étaient passés à `__()` par une variable, donc invisibles à tout extracteur — y compris l'outillage de Jeedom. Ce sont pourtant les libellés les plus visibles du plugin : « Mode CMOS », « Entrée digitale 1 », « Dernière personne entrée », les réglages, les capteurs. Ils sont désormais marqués là où ils sont déclarés, et le catalogue passe de 152 à **226 chaînes**.
+- ⚠️ Les **commandes déjà créées ne sont pas renommées** : le plugin ne remplit qu'un nom vide, ce qui préserve aussi les commandes que vous avez renommées. Seule une installation neuve obtient les noms traduits.
 ### 07/09/2026 (maintien de porte et détection de mouvement)
 - **Maintien de porte ouverte** : mode, durée et « forcée ouverte depuis » rapportés pour chaque porte, avec deux commandes pour l'activer et le désactiver et un curseur pour la durée. ⚠️ Ces commandes sont **créées masquées** : les activer déverrouille la porte et l'y laisse.
 - **Détection de mouvement** : état, sensibilité et planning rapportés, deux commandes pour l'armer et la désarmer depuis un scénario. ⚠️ Les **régions** sont rapportées mais jamais écrites — sans région définie, armer la détection risque de ne rien déclencher, et la commande dédiée rend cet état visible.

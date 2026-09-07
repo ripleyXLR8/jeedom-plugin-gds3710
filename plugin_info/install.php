@@ -61,12 +61,12 @@ function gds3710_update() {
 function gds3710_restore_ldc_commands() {
     $recrees = 0;
     foreach (eqLogic::byType('gds3710') as $eq) {
-        foreach (array('ldc_ON' => 'LDC - ON', 'ldc_off' => 'LDC - OFF') as $lid => $nom) {
+        foreach (array('ldc_ON' => __('LDC - ON', __FILE__), 'ldc_off' => __('LDC - OFF', __FILE__)) as $lid => $nom) {
             if (is_object($eq->getCmd('action', $lid))) {
                 continue;
             }
             $cmd = new gds3710Cmd();
-            $cmd->setName(__($nom, __FILE__));
+            $cmd->setName($nom);
             $cmd->setEqLogic_id($eq->getId());
             $cmd->setLogicalId($lid);
             $cmd->setType('action');

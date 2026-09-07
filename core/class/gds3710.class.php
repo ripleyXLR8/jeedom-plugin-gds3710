@@ -280,46 +280,46 @@ class gds3710 extends eqLogic {
     public static function get_state_list() {
         return array(
             'cmos_mode' => array(
-                'name' => 'Mode CMOS', 'p' => 'P10572', 'section' => 'cmos', 'subType' => 'string',
+                'name' => __('Mode CMOS', __FILE__), 'p' => 'P10572', 'section' => 'cmos', 'subType' => 'string',
                 'labels' => array('1' => 'Normal', '2' => 'Low Light', '3' => 'WDR'),
             ),
             'ldc_state' => array(
-                'name' => 'LDC (correction de distorsion)', 'p' => 'P10573', 'section' => 'cmos', 'subType' => 'binary',
+                'name' => __('LDC (correction de distorsion)', __FILE__), 'p' => 'P10573', 'section' => 'cmos', 'subType' => 'binary',
             ),
             'power_frequency' => array(
-                'name' => 'Fréquence secteur', 'p' => 'P12314', 'section' => 'cmos', 'subType' => 'string',
+                'name' => __('Fréquence secteur', __FILE__), 'p' => 'P12314', 'section' => 'cmos', 'subType' => 'string',
                 'labels' => array('0' => '50 Hz', '1' => '60 Hz'),
             ),
             'shutter_speed' => array(
-                'name' => 'Vitesse d\'obturation', 'p' => 'P10503', 'section' => 'cmos', 'subType' => 'string',
+                'name' => __('Vitesse d\'obturation', __FILE__), 'p' => 'P10503', 'section' => 'cmos', 'subType' => 'string',
                 'labels' => array('0' => 'Auto', '30' => '1/30 s', '60' => '1/60 s', '125' => '1/125 s',
                                   '250' => '1/250 s', '500' => '1/500 s', '1000' => '1/1000 s',
                                   '2000' => '1/2000 s', '5000' => '1/5000 s', '10000' => '1/10000 s'),
             ),
             'audio_codec' => array(
-                'name' => 'Codec audio', 'p' => 'P14000', 'section' => 'audio', 'subType' => 'string',
+                'name' => __('Codec audio', __FILE__), 'p' => 'P14000', 'section' => 'audio', 'subType' => 'string',
                 'labels' => array('1' => 'PCMU', '2' => 'PCMA', '4' => 'G722'),
             ),
             'osd_time' => array(
-                'name' => 'Horodatage incrusté', 'p' => 'P10044', 'section' => 'osd', 'subType' => 'binary',
+                'name' => __('Horodatage incrusté', __FILE__), 'p' => 'P10044', 'section' => 'osd', 'subType' => 'binary',
             ),
             'osd_text_shown' => array(
-                'name' => 'Texte incrusté', 'p' => 'P10045', 'section' => 'osd', 'subType' => 'binary',
+                'name' => __('Texte incrusté', __FILE__), 'p' => 'P10045', 'section' => 'osd', 'subType' => 'binary',
             ),
             'osd_text' => array(
-                'name' => 'Texte incrusté - contenu', 'p' => 'P10040', 'section' => 'osd', 'subType' => 'string',
+                'name' => __('Texte incrusté - contenu', __FILE__), 'p' => 'P10040', 'section' => 'osd', 'subType' => 'string',
             ),
             'ntp_enabled' => array(
-                'name' => 'NTP actif', 'p' => 'P5006', 'section' => 'date', 'subType' => 'binary',
+                'name' => __('NTP actif', __FILE__), 'p' => 'P5006', 'section' => 'date', 'subType' => 'binary',
             ),
             'ntp_server' => array(
-                'name' => 'Serveur NTP', 'p' => 'P30', 'section' => 'date', 'subType' => 'string',
+                'name' => __('Serveur NTP', __FILE__), 'p' => 'P30', 'section' => 'date', 'subType' => 'string',
             ),
             'dst_enabled' => array(
-                'name' => 'Heure d\'été', 'p' => 'P10004', 'section' => 'date', 'subType' => 'binary',
+                'name' => __('Heure d\'été', __FILE__), 'p' => 'P10004', 'section' => 'date', 'subType' => 'binary',
             ),
             'timezone' => array(
-                'name' => 'Fuseau horaire', 'p' => 'P14046', 'section' => 'date', 'subType' => 'string',
+                'name' => __('Fuseau horaire', __FILE__), 'p' => 'P14046', 'section' => 'date', 'subType' => 'string',
             ),
 
             /* Maintien de porte ouverte. « Immediat » deverrouille la porte et l y laisse
@@ -327,20 +327,20 @@ class gds3710 extends eqLogic {
              * l appareil. L etat est expose pour qu un scenario puisse verifier qu une
              * porte n est pas restee ouverte. */
             'keep_open_1' => array(
-                'name' => 'Maintien porte 1', 'p' => 'P15429', 'section' => 'sch_open_door', 'subType' => 'string',
+                'name' => __('Maintien porte 1', __FILE__), 'p' => 'P15429', 'section' => 'sch_open_door', 'subType' => 'string',
                 'labels' => array('0' => 'Désactivé', '1' => 'Immédiat', '2' => 'Planifié'),
             ),
             'keep_open_2' => array(
-                'name' => 'Maintien porte 2', 'p' => 'P15455', 'section' => 'sch_open_door', 'subType' => 'string',
+                'name' => __('Maintien porte 2', __FILE__), 'p' => 'P15455', 'section' => 'sch_open_door', 'subType' => 'string',
                 'labels' => array('0' => 'Désactivé', '1' => 'Immédiat', '2' => 'Planifié'),
             ),
             /* L appareil renvoie « (null) » quand la porte n est pas forcee ouverte. */
             'forced_open_1' => array(
-                'name' => 'Porte 1 forcée ouverte depuis', 'p' => 'forced_door_open_time',
+                'name' => __('Porte 1 forcée ouverte depuis', __FILE__), 'p' => 'forced_door_open_time',
                 'section' => 'sch_open_door', 'subType' => 'string',
             ),
             'forced_open_2' => array(
-                'name' => 'Porte 2 forcée ouverte depuis', 'p' => 'forced_door2_open_time',
+                'name' => __('Porte 2 forcée ouverte depuis', __FILE__), 'p' => 'forced_door2_open_time',
                 'section' => 'sch_open_door', 'subType' => 'string',
             ),
 
@@ -349,10 +349,10 @@ class gds3710 extends eqLogic {
              * section brute. redact() masque P2, et readConfigSection() ne journalise pas
              * son contenu. */
             'motion_detection' => array(
-                'name' => 'Détection de mouvement', 'p' => 'P10250', 'section' => 'event', 'subType' => 'binary',
+                'name' => __('Détection de mouvement', __FILE__), 'p' => 'P10250', 'section' => 'event', 'subType' => 'binary',
             ),
             'motion_schedule' => array(
-                'name' => 'Détection - planning', 'p' => 'P14221', 'section' => 'event', 'subType' => 'string',
+                'name' => __('Détection - planning', __FILE__), 'p' => 'P14221', 'section' => 'event', 'subType' => 'string',
                 'labels' => array('0' => 'Toute la journée', '1' => 'Planning 1', '2' => 'Planning 2',
                                   '3' => 'Planning 3', '4' => 'Planning 4', '5' => 'Planning 5',
                                   '6' => 'Planning 6', '7' => 'Planning 7', '8' => 'Planning 8',
@@ -363,7 +363,7 @@ class gds3710 extends eqLogic {
              * activee sans aucune region ne se declenchera pas, et cela ne se voit
              * nulle part ailleurs. */
             'motion_region' => array(
-                'name' => 'Détection - régions', 'p' => 'P14224', 'section' => 'event', 'subType' => 'string',
+                'name' => __('Détection - régions', __FILE__), 'p' => 'P14224', 'section' => 'event', 'subType' => 'string',
             ),
         );
     }
@@ -409,17 +409,17 @@ class gds3710 extends eqLogic {
 
     public static function get_sensor_list() {
         return array(
-            'di0'                   => array('name' => 'Entrée digitale 1',   'subType' => 'binary'),
-            'di1'                   => array('name' => 'Entrée digitale 2',   'subType' => 'binary'),
-            'do'                    => array('name' => 'Sortie digitale',     'subType' => 'binary'),
-            'atp_in'                => array('name' => 'Anti-arrachement',    'subType' => 'binary'),
-            'doorctrl0'             => array('name' => 'Relais porte 1',      'subType' => 'string'),
-            'doorctrl1'             => array('name' => 'Relais porte 2',      'subType' => 'string'),
-            'systemp'               => array('name' => 'Température carte',   'subType' => 'numeric', 'unite' => '°C', 'historized' => 1),
-            'sensortemp'            => array('name' => 'Température capteur', 'subType' => 'numeric', 'unite' => '°C', 'historized' => 1),
-            'P15009'                => array('name' => 'Uptime',              'subType' => 'string'),
-            'P70'                   => array('name' => 'Version firmware',    'subType' => 'string'),
-            'Pfw_available_version' => array('name' => 'Mise à jour dispo',   'subType' => 'string'),
+            'di0'                   => array('name' => __('Entrée digitale 1', __FILE__),   'subType' => 'binary'),
+            'di1'                   => array('name' => __('Entrée digitale 2', __FILE__),   'subType' => 'binary'),
+            'do'                    => array('name' => __('Sortie digitale', __FILE__),     'subType' => 'binary'),
+            'atp_in'                => array('name' => __('Anti-arrachement', __FILE__),    'subType' => 'binary'),
+            'doorctrl0'             => array('name' => __('Relais porte 1', __FILE__),      'subType' => 'string'),
+            'doorctrl1'             => array('name' => __('Relais porte 2', __FILE__),      'subType' => 'string'),
+            'systemp'               => array('name' => __('Température carte', __FILE__),   'subType' => 'numeric', 'unite' => '°C', 'historized' => 1),
+            'sensortemp'            => array('name' => __('Température capteur', __FILE__), 'subType' => 'numeric', 'unite' => '°C', 'historized' => 1),
+            'P15009'                => array('name' => __('Uptime', __FILE__),              'subType' => 'string'),
+            'P70'                   => array('name' => __('Version firmware', __FILE__),    'subType' => 'string'),
+            'Pfw_available_version' => array('name' => __('Mise à jour dispo', __FILE__),   'subType' => 'string'),
         );
     }
 
@@ -561,15 +561,15 @@ class gds3710 extends eqLogic {
      * decomposees. Elles sappliquent a tout evenement, quel que soit son type. */
     public static function get_event_detail_list() {
         return array(
-            'last_event_type'     => array('name' => 'Dernier évènement - code'),
-            'last_event_message'  => array('name' => 'Dernier évènement - libellé'),
-            'last_event_date'     => array('name' => 'Dernier évènement - date'),
-            'last_card'           => array('name' => 'Dernier badge'),
-            'last_username'       => array('name' => 'Dernier utilisateur'),
-            'last_doornum'        => array('name' => 'Dernière porte utilisée'),
-            'last_sip'            => array('name' => 'Dernier numéro SIP'),
-            'last_person_in'      => array('name' => 'Dernière personne entrée'),
-            'last_security_alert' => array('name' => 'Dernière alerte sécurité'),
+            'last_event_type'     => array('name' => __('Dernier évènement - code', __FILE__)),
+            'last_event_message'  => array('name' => __('Dernier évènement - libellé', __FILE__)),
+            'last_event_date'     => array('name' => __('Dernier évènement - date', __FILE__)),
+            'last_card'           => array('name' => __('Dernier badge', __FILE__)),
+            'last_username'       => array('name' => __('Dernier utilisateur', __FILE__)),
+            'last_doornum'        => array('name' => __('Dernière porte utilisée', __FILE__)),
+            'last_sip'            => array('name' => __('Dernier numéro SIP', __FILE__)),
+            'last_person_in'      => array('name' => __('Dernière personne entrée', __FILE__)),
+            'last_security_alert' => array('name' => __('Dernière alerte sécurité', __FILE__)),
         );
     }
 
@@ -724,18 +724,18 @@ class gds3710 extends eqLogic {
      * firmware 1.0.13.15 ; les plus recentes napparaissent quà partir de 1.0.13.5. */
     public static function get_setting_list() {
         return array(
-            'blue_led_idle'    => array('name' => 'LED clavier - veille',            'p' => 'P15591', 'section' => 'door', 'min' => 1, 'max' => 255),
-            'blue_led_pressed' => array('name' => 'LED clavier - appui',             'p' => 'P15592', 'section' => 'door', 'min' => 1, 'max' => 255),
-            'img_brightness'   => array('name' => 'Image - luminosité',              'p' => 'P15520', 'section' => 'play', 'min' => 0, 'max' => 128),
-            'img_contrast'     => array('name' => 'Image - contraste',               'p' => 'P15521', 'section' => 'play', 'min' => 0, 'max' => 128),
-            'img_saturation'   => array('name' => 'Image - saturation',              'p' => 'P15522', 'section' => 'play', 'min' => 0, 'max' => 128),
-            'snapshot_delay'   => array('name' => 'Délai avant capture (s)',         'p' => 'P15584', 'section' => 'door', 'min' => 0, 'max' => 10),
-            'onhook_timer'     => array('name' => 'Raccrochage après ouverture (s)', 'p' => 'P15582', 'section' => 'door', 'min' => 3, 'max' => 1800),
-            'volume_system'    => array('name' => 'Volume système',                 'p' => 'P14003', 'section' => 'audio', 'min' => 0, 'max' => 6),
-            'volume_doorbell'  => array('name' => 'Volume sonnerie',                'p' => 'P14835', 'section' => 'audio', 'min' => 0, 'max' => 6),
-            'keep_open_time_1' => array('name' => 'Maintien porte 1 - durée (min)',  'p' => 'P15430', 'section' => 'sch_open_door', 'min' => 5, 'max' => 480),
-            'keep_open_time_2' => array('name' => 'Maintien porte 2 - durée (min)',  'p' => 'P15456', 'section' => 'sch_open_door', 'min' => 5, 'max' => 480),
-            'motion_sensitivity' => array('name' => 'Détection - sensibilité',       'p' => 'P14223', 'section' => 'event', 'min' => 0, 'max' => 100),
+            'blue_led_idle'    => array('name' => __('LED clavier - veille', __FILE__),            'p' => 'P15591', 'section' => 'door', 'min' => 1, 'max' => 255),
+            'blue_led_pressed' => array('name' => __('LED clavier - appui', __FILE__),             'p' => 'P15592', 'section' => 'door', 'min' => 1, 'max' => 255),
+            'img_brightness'   => array('name' => __('Image - luminosité', __FILE__),              'p' => 'P15520', 'section' => 'play', 'min' => 0, 'max' => 128),
+            'img_contrast'     => array('name' => __('Image - contraste', __FILE__),               'p' => 'P15521', 'section' => 'play', 'min' => 0, 'max' => 128),
+            'img_saturation'   => array('name' => __('Image - saturation', __FILE__),              'p' => 'P15522', 'section' => 'play', 'min' => 0, 'max' => 128),
+            'snapshot_delay'   => array('name' => __('Délai avant capture (s)', __FILE__),         'p' => 'P15584', 'section' => 'door', 'min' => 0, 'max' => 10),
+            'onhook_timer'     => array('name' => __('Raccrochage après ouverture (s)', __FILE__), 'p' => 'P15582', 'section' => 'door', 'min' => 3, 'max' => 1800),
+            'volume_system'    => array('name' => __('Volume système', __FILE__),                 'p' => 'P14003', 'section' => 'audio', 'min' => 0, 'max' => 6),
+            'volume_doorbell'  => array('name' => __('Volume sonnerie', __FILE__),                'p' => 'P14835', 'section' => 'audio', 'min' => 0, 'max' => 6),
+            'keep_open_time_1' => array('name' => __('Maintien porte 1 - durée (min)', __FILE__),  'p' => 'P15430', 'section' => 'sch_open_door', 'min' => 5, 'max' => 480),
+            'keep_open_time_2' => array('name' => __('Maintien porte 2 - durée (min)', __FILE__),  'p' => 'P15456', 'section' => 'sch_open_door', 'min' => 5, 'max' => 480),
+            'motion_sensitivity' => array('name' => __('Détection - sensibilité', __FILE__),       'p' => 'P14223', 'section' => 'event', 'min' => 0, 'max' => 100),
         );
     }
 
@@ -1269,7 +1269,7 @@ class gds3710 extends eqLogic {
                 $info->setIsVisible(0);
             }
             if (trim((string) $info->getName()) === '') {
-                $info->setName(__($def['name'], __FILE__));
+                $info->setName($def['name']);
             }
             $info->setType('info');
             $info->setSubType('numeric');
@@ -1291,7 +1291,7 @@ class gds3710 extends eqLogic {
                 $slider->setIsVisible(0);
             }
             if (trim((string) $slider->getName()) === '') {
-                $slider->setName(__($def['name'], __FILE__) . ' ' . __('(réglage)', __FILE__));
+                $slider->setName($def['name'] . ' ' . __('(réglage)', __FILE__));
             }
             $slider->setType('action');
             $slider->setSubType('slider');
@@ -1332,14 +1332,14 @@ class gds3710 extends eqLogic {
         $hours->setEqLogic_id($this->getId());
         $hours->save();
 
-        foreach (array('backlight_on' => 'Rétroéclairage - activer le planning',
-                       'backlight_off' => 'Rétroéclairage - désactiver le planning') as $blid => $label) {
+        foreach (array('backlight_on' => __('Rétroéclairage - activer le planning', __FILE__),
+                       'backlight_off' => __('Rétroéclairage - désactiver le planning', __FILE__)) as $blid => $label) {
             $cmd = $this->getCmd('action', $blid);
             if (!is_object($cmd)) {
                 $cmd = new gds3710Cmd();
                 $cmd->setIsVisible(0);
             }
-            $cmd->setName(__($label, __FILE__));
+            $cmd->setName($label);
             $cmd->setType('action');
             $cmd->setSubType('other');
             $cmd->setLogicalId($blid);
@@ -1353,12 +1353,12 @@ class gds3710 extends eqLogic {
          * defaut — elles deverrouillent une porte et l y laissent, ce n est pas quelque
          * chose qui doit atterrir sur un dashboard par inadvertance. */
         foreach (array(
-            'keep_open_1_on'  => array('Maintien porte 1 - activer',   'keep_open_1'),
-            'keep_open_1_off' => array('Maintien porte 1 - désactiver', 'keep_open_1'),
-            'keep_open_2_on'  => array('Maintien porte 2 - activer',   'keep_open_2'),
-            'keep_open_2_off' => array('Maintien porte 2 - désactiver', 'keep_open_2'),
-            'motion_on'       => array('Détection de mouvement - activer',   'motion_detection'),
-            'motion_off'      => array('Détection de mouvement - désactiver', 'motion_detection'),
+            'keep_open_1_on'  => array(__('Maintien porte 1 - activer', __FILE__),   'keep_open_1'),
+            'keep_open_1_off' => array(__('Maintien porte 1 - désactiver', __FILE__), 'keep_open_1'),
+            'keep_open_2_on'  => array(__('Maintien porte 2 - activer', __FILE__),   'keep_open_2'),
+            'keep_open_2_off' => array(__('Maintien porte 2 - désactiver', __FILE__), 'keep_open_2'),
+            'motion_on'       => array(__('Détection de mouvement - activer', __FILE__),   'motion_detection'),
+            'motion_off'      => array(__('Détection de mouvement - désactiver', __FILE__), 'motion_detection'),
         ) as $lid => $def) {
             $cmd = $this->getCmd('action', $lid);
             if (!is_object($cmd)) {
@@ -1366,7 +1366,7 @@ class gds3710 extends eqLogic {
                 $cmd->setIsVisible(0);
             }
             if (trim((string) $cmd->getName()) === '') {
-                $cmd->setName(__($def[0], __FILE__));
+                $cmd->setName($def[0]);
             }
             $cmd->setType('action');
             $cmd->setSubType('other');
@@ -1396,7 +1396,7 @@ class gds3710 extends eqLogic {
                 $cmd = new gds3710Cmd();
                 $cmd->setIsVisible(0);
             }
-            $cmd->setName(__($def['name'], __FILE__));
+            $cmd->setName($def['name']);
             $cmd->setType('info');
             $cmd->setSubType('string');
             $cmd->setLogicalId($lid);
@@ -1428,7 +1428,7 @@ class gds3710 extends eqLogic {
                 $cmd->setIsVisible(0);
             }
             if (trim((string) $cmd->getName()) === '') {
-                $cmd->setName(__($def['name'], __FILE__));
+                $cmd->setName($def['name']);
             }
             $cmd->setType('info');
             $cmd->setSubType($def['subType']);
@@ -1448,7 +1448,7 @@ class gds3710 extends eqLogic {
              * choix fait dans le tableau des commandes. On ne remplit que ce qui est
              * vide, ce qui rattrape aussi les installations anterieures aux unites. */
             if (trim((string) $cmd->getName()) === '') {
-                $cmd->setName(__($def['name'], __FILE__));
+                $cmd->setName($def['name']);
             }
             $cmd->setType('info');
             $cmd->setSubType($def['subType']);
