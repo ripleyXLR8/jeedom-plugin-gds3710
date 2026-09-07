@@ -239,6 +239,12 @@ class gds3710 extends eqLogic {
         return $cookie;
     }
 
+    /* Jette la session en cache. A appeler des qu'on sait qu'elle ne vaut plus rien :
+     * apres un redemarrage du portier, ou quand une requete la revele expiree. */
+    public function oublierSession() {
+        cache::set('gds3710::session::' . $this->getId(), '', 1);
+    }
+
     /* Lit une section de configuration du portier et la renvoie sous forme de tableau. */
     /* $_cookie permet de reutiliser une session deja ouverte par lappelant. Sans cela,
      * un appelant qui vient de souvrir sa propre session invalide celle mise en cache
@@ -253,7 +259,7 @@ class gds3710 extends eqLogic {
         if ($xml === null) {
             if ($_cookie === null) {
                 /* La session a peut-etre ete invalidee entre-temps : on la jette. */
-                cache::set('gds3710::session::' . $this->getId(), '', 1);
+                $this->oublierSession();
             }
             return null;
         }
@@ -1626,81 +1632,48 @@ class gds3710Cmd extends cmd {
 
     /*     * ***********************Methode static*************************** */
 
-    private function open_door($type){
-        log::add('gds3710', 'info', 'Requesting door opening 1 or closing 2 of type : '.$type);
+    /* Ouvre ou ferme une porte. $_type vaut 1 pour ouvrir, 2 pour fermer ; $_porte
+     * designe laquelle, et donc le PIN a presenter.
+     *
+     * Ce chemin n'utilise PAS la session administrateur : il s'authentifie par le PIN
+     * distant sur /goform/apicmd, un mecanisme separe. Il ne perturbe donc pas la
+     * session mise en cache.
+     *
+     * Les deux portes avaient chacune leur methode, identiques a un nom de cle pres. */
+    private function open_door($_type, $_porte = 1) {
         $gds3710 = eqLogic::byId($this->getEqLogic_id());
+        $cle = ($_porte == 2) ? 'remote_pin_2' : 'remote_pin';
+        log::add('gds3710', 'info', 'Porte ' . $_porte . ' : '
+            . (($_type == '1') ? 'ouverture' : 'fermeture') . ' demandee.');
 
         $ip = $gds3710->getConfiguration('ip');
-        $remote_pin = $gds3710->getConfiguration('remote_pin');
+        $remote_pin = $gds3710->getConfiguration($cle);
         $password = $gds3710->getConfiguration('password');
 
-        $ch = curl_init();
-        $optArray = array(
-            CURLOPT_URL => 'https://'.$ip.'/goform/apicmd?cmd=0&user=admin',
-            CURLOPT_SSL_VERIFYPEER  => false,
-            CURLOPT_SSL_VERIFYHOST => false,
-            CURLOPT_RETURNTRANSFER => true
-        );
-        curl_setopt_array($ch, $optArray);
-        log::add('gds3710', 'debug', 'curl options are : '.gds3710::redact($optArray));
-        $auth_challenge = gds3710::parseXml(curl_exec($ch), 'ouverture porte');
-        if ($auth_challenge === null) {
+        $defi = gds3710::parseXml(
+            self::httpApi('https://' . $ip . '/goform/apicmd?cmd=0&user=admin'), 'ouverture porte');
+        if ($defi === null) {
             return;
         }
-        $ChallengeCode = $auth_challenge->ChallengeCode[0];
-        $IDCode = $auth_challenge->IDCode[0];
-
-        $auth_response = md5($ChallengeCode.":".$remote_pin.":".$password);
-
-        $optArray = array(
-            CURLOPT_URL => 'https://'.$ip.'/goform/apicmd?cmd=1&user=admin&authcode='.$auth_response.'&idcode='.$IDCode.'&type='.$type,
-            CURLOPT_SSL_VERIFYPEER  => false,
-            CURLOPT_SSL_VERIFYHOST => false,
-            CURLOPT_RETURNTRANSFER => true
-        );
-
-        $ch = curl_init();
-        curl_setopt_array($ch, $optArray);
-        $data = curl_exec($ch);
-        log::add('gds3710', 'debug', 'result : '.print_r($data, true));
+        $authcode = md5($defi->ChallengeCode[0] . ':' . $remote_pin . ':' . $password);
+        $reponse = self::httpApi('https://' . $ip . '/goform/apicmd?cmd=1&user=admin&authcode='
+            . $authcode . '&idcode=' . $defi->IDCode[0] . '&type=' . $_type);
+        log::add('gds3710', 'debug', 'result : ' . gds3710::redact($reponse));
     }
 
-    private function open_door_2($type){
-        log::add('gds3710', 'info', 'Requesting door opening 2 or closing 2 of type : '.$type);
-        $gds3710 = eqLogic::byId($this->getEqLogic_id());
-
-        $ip = $gds3710->getConfiguration('ip');
-        $remote_pin = $gds3710->getConfiguration('remote_pin_2');
-        $password = $gds3710->getConfiguration('password');
-
+    /* Requete simple vers l'API du portier, sans session. */
+    private static function httpApi($_url) {
         $ch = curl_init();
-        $optArray = array(
-            CURLOPT_URL => 'https://'.$ip.'/goform/apicmd?cmd=0&user=admin',
-            CURLOPT_SSL_VERIFYPEER  => false,
+        curl_setopt_array($ch, array(
+            CURLOPT_URL => $_url,
+            CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_SSL_VERIFYHOST => false,
-            CURLOPT_RETURNTRANSFER => true
-        );
-        curl_setopt_array($ch, $optArray);
-        $auth_challenge = gds3710::parseXml(curl_exec($ch), 'ouverture porte');
-        if ($auth_challenge === null) {
-            return;
-        }
-        $ChallengeCode = $auth_challenge->ChallengeCode[0];
-        $IDCode = $auth_challenge->IDCode[0];
-
-        $auth_response = md5($ChallengeCode.":".$remote_pin.":".$password);
-
-        $optArray = array(
-            CURLOPT_URL => 'https://'.$ip.'/goform/apicmd?cmd=1&user=admin&authcode='.$auth_response.'&idcode='.$IDCode.'&type='.$type,
-            CURLOPT_SSL_VERIFYPEER  => false,
-            CURLOPT_SSL_VERIFYHOST => false,
-            CURLOPT_RETURNTRANSFER => true
-        );
-
-        $ch = curl_init();
-        curl_setopt_array($ch, $optArray);
-        $data = curl_exec($ch);
-        log::add('gds3710', 'debug', 'result : '.print_r($data, true));
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 15,
+        ));
+        $resultat = curl_exec($ch);
+        curl_close($ch);
+        return $resultat;
     }
 
     /* Sections ou chercher un P-value pour verifier une ecriture. Le portier accepte
@@ -1719,12 +1692,13 @@ class gds3710Cmd extends cmd {
         }
 
         $gds3710 = eqLogic::byId($this->getEqLogic_id());
-        $cookies = $this->getAuthCookies($gds3710);
-        log::add('gds3710', 'debug', 'Auth cookies is : '.gds3710::redact($cookies));
-
-        $cookie_string = "";
-        foreach ($cookies as $key => $value) {
-            $cookie_string.=$key."=".$value.";";
+        /* Une seule voie d'authentification pour toute la configuration : openSession(),
+         * qui met sa session en cache. getAuthCookies() en ouvrait une neuve a chaque
+         * appel — or le portier n'en tolere qu'une : la session du cron s'en trouvait
+         * invalidee, et la lecture suivante echouait sans un mot. */
+        $cookie_string = $gds3710->openSession();
+        if ($cookie_string === null) {
+            return;
         }
 
         $ip = $gds3710->getConfiguration('ip');
@@ -1785,19 +1759,12 @@ class gds3710Cmd extends cmd {
         log::add('gds3710', 'info', 'Requesting reboot');
 
         $gds3710 = eqLogic::byId($this->getEqLogic_id());
-        $cookies = $this->getAuthCookies($gds3710);
-        log::add('gds3710', 'debug', 'Auth cookies is : '.gds3710::redact($cookies));
-
-        $cookie_string = "";
-        foreach ($cookies as $key => $value) {
-            $cookie_string.=$key."=".$value.";";
+        $cookie_string = $gds3710->openSession();
+        if ($cookie_string === null) {
+            return;
         }
 
         $ip = $gds3710->getConfiguration('ip');
-        $password = $gds3710->getConfiguration('password');
-        $salt = "GDS3710lZpRsFzCbM";
-
-        $ch = curl_init();
 
         $url = 'https://'.$ip.'/goform/config?cmd=reboot';
 
@@ -1817,58 +1784,10 @@ class gds3710Cmd extends cmd {
         $result = gds3710::parseXml(curl_exec($ch), 'requete configuration');
         log::add('gds3710', 'debug', 'Result is : '. print_r($result, true));
 
+        /* Le portier redemarre : la session en cache ne vaut plus rien, et la garder
+         * ferait echouer en silence la premiere lecture qui la reutiliserait. */
+        $gds3710->oublierSession();
     }
-
-    private function getAuthCookies($gds){
-
-        $ip = $gds->getConfiguration('ip');
-        $password = $gds->getConfiguration('password');
-        $salt = "GDS3710lZpRsFzCbM";
-
-        $ch = curl_init();
-
-        $optArray = array(
-            CURLOPT_URL => 'https://'.$ip.'/goform/login?cmd=login&user=admin&type=0',
-            CURLOPT_SSL_VERIFYPEER  => false,
-            CURLOPT_SSL_VERIFYHOST => false,
-            CURLOPT_RETURNTRANSFER => true
-        );
-
-        curl_setopt_array($ch, $optArray);
-        $auth_challenge = gds3710::parseXml(curl_exec($ch), 'ouverture de session');
-        if ($auth_challenge === null) {
-            return array();
-        }
-
-        $ChallengeCode = $auth_challenge->ChallengeCode[0];
-        $IDCode = $auth_challenge->IDCode[0];
-
-        $auth_response = md5($ChallengeCode.":"."GDS3710lZpRsFzCbM".":".$password);
-        $url = 'https://'.$ip.'/goform/login?cmd=login&user=admin&authcode='.$auth_response;
-
-        $optArray = array(
-            CURLOPT_URL => $url,
-            CURLOPT_SSL_VERIFYPEER  => false,
-            CURLOPT_SSL_VERIFYHOST => false,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HEADER => true
-        );
-        $ch = curl_init();
-        curl_setopt_array($ch, $optArray);
-        $result = curl_exec($ch);
-
-        preg_match_all('/^Set-Cookie:\s*([^;]*)/mi', $result, $matches);
-        $cookies = array();
-        foreach($matches[1] as $item) {
-            parse_str($item, $cookie);
-            $cookies = array_merge($cookies, $cookie);
-        }
-        
-        return $cookies;
-
-    }
-
-
 
     private function cmos_normal(){
         log::add('gds3710', 'info', 'Requesting CMOS NORMAL');
@@ -2114,10 +2033,10 @@ class gds3710Cmd extends cmd {
                 $this->open_door('2');
                 break;
             case 'open2':
-                $this->open_door_2('1');
+                $this->open_door('1', 2);
                 break;
             case 'close2':
-                $this->open_door_2('2');
+                $this->open_door('2', 2);
                 break;
             case 'cmos_normal':
                 $this->cmos_normal();
