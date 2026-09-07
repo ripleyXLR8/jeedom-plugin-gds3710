@@ -279,6 +279,8 @@ If a call fails on the server side with an unexplained error, try the "Codec(s) 
 
 📖 **The complete and up-to-date documentation lives in [`docs/fr_FR/index.md`](docs/fr_FR/index.md)**, also published on the [documentation site](https://ripleyxlr8.github.io/jeedom-plugin-gds3710/fr_FR/). Should this README and the documentation disagree, the documentation wins.
 
-**The plugin interface is translated** into English, German and Spanish: `core/i18n/` carries a catalogue of 152 strings, kept in step with the code by `tools/extract_i18n.py` and checked on every push. French is the source language and needs no catalogue.
+**The plugin interface is translated** into English, German and Spanish: `core/i18n/` carries a catalogue of **226 strings**, kept in step with the code by `tools/extract_i18n.py` and checked on every push. French is the source language and needs no catalogue.
+
+Command names are translated at the point where they are declared, so a fresh installation in another language gets English, German or Spanish command names. ⚠️ **Commands that already exist are never renamed** — neither by an update nor by a language change. The plugin only ever fills a name that is empty, which is also what protects a command you renamed yourself.
 
 The in-plugin documentation, on the other hand, is still written in French only; the four language folders Jeedom expects hold the same text. This README is the English entry point.

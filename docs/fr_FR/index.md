@@ -445,6 +445,8 @@ Les réglages de détection vivent dans la section `event` du portier, qui renvo
 
 # Langues
 
-**L'interface du plugin est traduite** en anglais, en allemand et en espagnol. Le catalogue vit dans `core/i18n/` et couvre 152 chaînes ; `tools/extract_i18n.py` le tient en phase avec le code, et un contrôle refuse toute chaîne ajoutée sans traduction. Le français est la langue source : il n'a pas de catalogue.
+**L'interface du plugin est traduite** en anglais, en allemand et en espagnol. Le catalogue vit dans `core/i18n/` et couvre **226 chaînes** ; `tools/extract_i18n.py` le tient en phase avec le code, et un contrôle refuse toute chaîne ajoutée sans traduction. Le français est la langue source : il n'a pas de catalogue.
+
+Les **noms de commandes** sont traduits là où ils sont déclarés : une installation neuve dans une autre langue obtient donc des noms de commandes traduits. ⚠️ **Les commandes déjà existantes ne sont jamais renommées**, ni par une mise à jour ni par un changement de langue. Le plugin ne remplit qu'un nom vide — c'est aussi ce qui protège une commande que vous auriez renommée vous-même.
 
 ⚠️ **Cette documentation, elle, n'existe qu'en français.** Les quatre dossiers de langue attendus par Jeedom contiennent le même texte français.
