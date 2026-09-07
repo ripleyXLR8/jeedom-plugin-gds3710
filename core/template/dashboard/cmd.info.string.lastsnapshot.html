@@ -8,11 +8,31 @@
 
 	<div class="cmdName">#name#</div>
     <div class="directDisplay zoom" id="iconCmd#uid#">
-      	<img style="padding-top:5px; padding-bottom: 10px" class="img-responsive imgCmd#uid#" data-eqLogic_id="#id#" src="#state#"/>
+      	<!-- Pas de src ici : la capture n'est pas servie a son chemin direct, elle est
+      	     posee par le script ci-dessous. Voir gds3710UrlCapture(). -->
+      	<img style="padding-top:5px; padding-bottom: 10px" class="img-responsive imgCmd#uid#" data-eqLogic_id="#id#"/>
     </div>
 
 
   	<script>
+
+  	/* Une capture n'est PAS servie a son chemin direct : Jeedom refuse en 403 tout
+  	   fichier sous plugins/<id>/data/. Le widget posait pourtant ce chemin en src et
+  	   n'affichait donc jamais rien. On passe par downloadFile.php, qui exige une session
+  	   ou une clef API — c'est deja par la que passent les vignettes de l'historique.
+
+  	   calculPath() ne prefixe la racine de Jeedom que si le chemin ne commence pas par
+  	   « / » ; un chemin absolu, lui, serait pris pour un chemin disque. On retire donc la
+  	   barre initiale. */
+  	if (typeof gds3710UrlCapture !== 'function') {
+  		window.gds3710UrlCapture = function (chemin) {
+  			if (!chemin) {
+  				return '';
+  			}
+  			return 'plugins/gds3710/core/php/downloadFile.php?pathfile='
+  			     + encodeURIComponent(String(chemin).replace(/^\//, ''));
+  		};
+  	}
 
   	// Allow embeding in virtual
   	var is_virtual#id# = false;
@@ -39,10 +59,13 @@
 
   	findIdGDS('#id#','#state#');
   	// End Allow embeding in virtual
-  	
-  	if($('.imgCmd#uid#').attr('src') == ''){
+
+  	/* findIdGDS() recoit toujours le chemin brut : il en tire l'id de l'equipement en
+  	   decoupant sur « / ». Seul le src passe par downloadFile.php. */
+  	if('#state#' == ''){
   		$('.cmd[data-cmd_id=#id#]').hide();
   	} else {
+  		$('.imgCmd#uid#').attr('src', gds3710UrlCapture('#state#'));
   		$('.cmd[data-cmd_id=#id#]').show();
   	}
 
@@ -52,7 +75,7 @@
 	  		$('.cmd[data-cmd_id=#id#]').hide();
 	  	} else{
 	  		$('.cmd[data-cmd_id=#id#]').show();
-	  		$('.imgCmd#uid#').attr('src', _options.display_value);
+	  		$('.imgCmd#uid#').attr('src', gds3710UrlCapture(_options.display_value));
     		$('.cmd[data-cmd_id=#id#]').attr('title', 'Capture prise '+_options.valueDate);
 	  	}
     	findIdGDS(#id#, _options.display_value);
