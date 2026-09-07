@@ -3,12 +3,28 @@
 > by Richard Perez | richard@perez-mail.fr
 
 # Introduction
-Ce plugin permet l'intégration du portier GrandStream GDS3710 dans Jeedom. Dans sa version actuelle (5 mars 2019), il permet de :
-- Récupérer es évènements du portier et de les gérer via des scénariis ou des commandes.
-- D'afficher le flux MJPEG du portier dans un widget de dashboard ou de mobile.
-- D'enregistrer des images extraites du flux MJPEG.
-- De consulter les images enregistrées via une bibliothèque intégrée.
-- D'envoyer des images enregistrées via une autre commmande (testé avec le plugin Telegram).
+
+Ce plugin intègre le portier GrandStream GDS3710 dans Jeedom. Il permet de :
+
+- Recevoir les évènements du portier et les exploiter dans des scénarios ou des commandes.
+- Modifier la configuration du portier.
+- Actionner les contacts secs qui ouvrent une porte, ou pilotent tout autre équipement.
+- Afficher le flux MJPEG du portier dans un widget de dashboard ou de mobile.
+- Enregistrer des captures extraites du flux MJPEG.
+- Consulter ces captures dans une bibliothèque intégrée.
+- Transmettre des captures à une autre commande (testé avec le plugin Telegram).
+- Changer le mode du capteur vidéo (normal, faible luminosité, WDR).
+- Configurer le portier lui-même par une seule commande, sans aucune saisie manuelle.
+- Remonter les capteurs du portier : entrées et sorties digitales, état des relais, anti-arrachement, températures, uptime, version de firmware et mise à jour disponible.
+- Purger automatiquement les captures au-delà d'une durée de rétention.
+- Exposer chaque évènement décomposé en commandes : code, libellé, date, badge, utilisateur, porte, numéro SIP, dernière personne entrée et dernière alerte sécurité.
+- Piloter les réglages du portier : luminosité des LED du clavier, luminosité, contraste et saturation de l'image, délai avant capture, raccrochage après une ouverture distante, volumes, et planning du rétroéclairage blanc.
+- Enregistrer un **client SIP** depuis Jeedom et répondre aux appels du portier sur le dashboard, image et son compris.
+- Piloter le **maintien de porte ouverte** : mode, durée, et depuis quand une porte est maintenue.
+- Armer et désarmer la **détection de mouvement**, et en régler la sensibilité.
+- Associer une **commande Jeedom à la porte 2**, indispensable en mode webrelay où le portier n'a qu'une seule URL de relais.
+
+Il s'appuie sur la documentation publiée par GrandStream : http://www.grandstream.com/sites/default/files/Resources/gds37xx_http_api.pdf
 
 # Configuration du portier GrandStream GDS3710
 ## Pré-requis

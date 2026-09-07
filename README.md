@@ -30,8 +30,11 @@ This plugin integrates the GrandStream GDS3710 door station into Jeedom. It can:
 - Report the door station's sensors: digital inputs and outputs, relay state, tamper switch, temperatures, uptime, firmware version and update availability.
 - Automatically purge snapshots older than a retention period.
 - Expose each event broken down into commands: code, label, date, badge, user, door, SIP number, last person in and last security alert.
-- Drive the door station's settings: keypad LED brightness, image brightness, contrast and saturation, snapshot delay, on-hook timer after a remote opening, and the white backlight schedule.
+- Drive the door station's settings: keypad LED brightness, image brightness, contrast and saturation, snapshot delay, on-hook timer after a remote opening, volumes, and the white backlight schedule.
 - Register a **SIP client** from Jeedom and answer the door station's calls on the dashboard, video and audio included.
+- Drive the **keep door open** feature: mode, duration, and since when a door is being held.
+- Arm and disarm **motion detection**, and set its sensitivity.
+- Bind a **Jeedom command to door 2**, which is what makes it usable in webrelay mode where the door station has a single relay URL.
 
 This plugin is based on the documentation published by GrandStream: http://www.grandstream.com/sites/default/files/Resources/gds37xx_http_api.pdf
 

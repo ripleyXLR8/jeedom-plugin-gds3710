@@ -148,6 +148,20 @@ if veut --docs; then
   done
   [ $fail -eq 0 ] && echo "  OK, aucun marqueur present d un seul cote"
 
+  # L'introduction de la documentation etait restee a « version actuelle (5 mars 2019) »
+  # et n'annoncait que 5 fonctionnalites sur 17, alors que le README etait a jour. C'est
+  # la premiere chose que lit un utilisateur. Comparer le nombre d'items des deux listes
+  # attrape la divergence sans imposer une traduction mot a mot.
+  echo "== les deux introductions annoncent autant de fonctionnalites =="
+  n_readme=$(sed -n '/^# Introduction/,/^This plugin is based/p' README.md | grep -c "^- ")
+  n_doc=$(sed -n '/^# Introduction/,/^# Configuration du portier/p' docs/fr_FR/index.md | grep -c "^- ")
+  if [ "$n_readme" -ne "$n_doc" ]; then
+    echo "  DIVERGENCE : README=$n_readme item(s), documentation=$n_doc item(s)"
+    fail=1
+  else
+    echo "  OK, $n_readme de chaque cote"
+  fi
+
   echo "== les 4 langues sont identiques =="
   n=$(md5sum docs/*/index.md | awk '{print $1}' | sort -u | wc -l)
   if [ "$n" -ne 1 ]; then echo "  DIVERGENCE : $n versions differentes de index.md"; fail=1; else echo "  OK"; fi
