@@ -950,6 +950,12 @@ class gds3710 extends eqLogic {
 
     public function postSave() {
 
+        /* Un nom n'est pose que s'il est vide. postSave() le reposait auparavant a
+         * chaque enregistrement pour les commandes historiques : renommer « Ouvrir la
+         * porte 2 » en « Ouverture complete » tenait jusqu'au prochain enregistrement
+         * de l'equipement, puis disparaissait sans un mot. Les commandes ajoutees plus
+         * tard etaient deja protegees ; la regle vaut maintenant pour toutes. */
+
         // On vérifie que la clef secrète à bien été créée sinon, on la génère.
         $KEY = $this->getConfiguration('secretkey');
         if($KEY == ''){
@@ -976,7 +982,9 @@ class gds3710 extends eqLogic {
         if (!is_object($ldc_ON)) {
             $ldc_ON = new gds3710Cmd();
         }
-        $ldc_ON->setName(__('LDC - ON', __FILE__));
+        if (trim((string) $ldc_ON->getName()) === '') {
+            $ldc_ON->setName(__('LDC - ON', __FILE__));
+        }
         $ldc_ON->setEqLogic_id($this->getId());
         $ldc_ON->setLogicalId('ldc_ON');
         $ldc_ON->setType('action');
@@ -988,7 +996,9 @@ class gds3710 extends eqLogic {
         if (!is_object($ldc_OFF)) {
             $ldc_OFF = new gds3710Cmd();
         }
-        $ldc_OFF->setName(__('LDC - OFF', __FILE__));
+        if (trim((string) $ldc_OFF->getName()) === '') {
+            $ldc_OFF->setName(__('LDC - OFF', __FILE__));
+        }
         $ldc_OFF->setEqLogic_id($this->getId());
         $ldc_OFF->setLogicalId('ldc_off');
         $ldc_OFF->setType('action');
@@ -1001,7 +1011,9 @@ class gds3710 extends eqLogic {
         if (!is_object($reboot)) {
             $reboot = new gds3710Cmd();
         }
-        $reboot->setName(__('Reboot', __FILE__));
+        if (trim((string) $reboot->getName()) === '') {
+            $reboot->setName(__('Reboot', __FILE__));
+        }
         $reboot->setEqLogic_id($this->getId());
         $reboot->setLogicalId('reboot');
         $reboot->setType('action');
@@ -1014,7 +1026,9 @@ class gds3710 extends eqLogic {
         if (!is_object($open)) {
             $open = new gds3710Cmd();
         }
-        $open->setName(__('Ouvrir la porte', __FILE__));
+        if (trim((string) $open->getName()) === '') {
+            $open->setName(__('Ouvrir la porte', __FILE__));
+        }
         $open->setEqLogic_id($this->getId());
         $open->setLogicalId('open');
         $open->setType('action');
@@ -1027,7 +1041,9 @@ class gds3710 extends eqLogic {
         if (!is_object($open2)) {
             $open2 = new gds3710Cmd();
         }
-        $open2->setName(__('Ouvrir la porte 2', __FILE__));
+        if (trim((string) $open2->getName()) === '') {
+            $open2->setName(__('Ouvrir la porte 2', __FILE__));
+        }
         $open2->setEqLogic_id($this->getId());
         $open2->setLogicalId('open2');
         $open2->setType('action');
@@ -1040,7 +1056,9 @@ class gds3710 extends eqLogic {
         if (!is_object($close)) {
             $close = new gds3710Cmd();
         }
-        $close->setName(__('Fermer la porte', __FILE__));
+        if (trim((string) $close->getName()) === '') {
+            $close->setName(__('Fermer la porte', __FILE__));
+        }
         $close->setEqLogic_id($this->getId());
         $close->setLogicalId('close');
         $close->setType('action');
@@ -1053,7 +1071,9 @@ class gds3710 extends eqLogic {
         if (!is_object($close2)) {
             $close2 = new gds3710Cmd();
         }
-        $close2->setName(__('Fermer la porte 2', __FILE__));
+        if (trim((string) $close2->getName()) === '') {
+            $close2->setName(__('Fermer la porte 2', __FILE__));
+        }
         $close2->setEqLogic_id($this->getId());
         $close2->setLogicalId('close2');
         $close2->setType('action');
@@ -1066,7 +1086,9 @@ class gds3710 extends eqLogic {
         if (!is_object($snapshot)) {
             $snapshot = new gds3710Cmd();
         }
-        $snapshot->setName(__('Prendre un snapshot', __FILE__));
+        if (trim((string) $snapshot->getName()) === '') {
+            $snapshot->setName(__('Prendre un snapshot', __FILE__));
+        }
         $snapshot->setEqLogic_id($this->getId());
         $snapshot->setLogicalId('snapshot');
         $snapshot->setType('action');
@@ -1081,7 +1103,9 @@ class gds3710 extends eqLogic {
         if (!is_object($modifyconfig)) {
             $modifyconfig = new gds3710Cmd();
         }
-        $modifyconfig->setName(__('Modifier la configuration', __FILE__));
+        if (trim((string) $modifyconfig->getName()) === '') {
+            $modifyconfig->setName(__('Modifier la configuration', __FILE__));
+        }
         $modifyconfig->setType('action');
         $modifyconfig->setLogicalId('modifyConfig');
         $modifyconfig->setEqLogic_id($this->getId());
@@ -1098,7 +1122,9 @@ class gds3710 extends eqLogic {
         if (!is_object($sendSnapshot)) {
             $sendSnapshot = new gds3710Cmd();
         }
-        $sendSnapshot->setName(__('Envoyer un snapshot', __FILE__));
+        if (trim((string) $sendSnapshot->getName()) === '') {
+            $sendSnapshot->setName(__('Envoyer un snapshot', __FILE__));
+        }
         $sendSnapshot->setConfiguration('request', '-');
         $sendSnapshot->setType('action');
         $sendSnapshot->setLogicalId('sendSnapshot');
@@ -1116,7 +1142,9 @@ class gds3710 extends eqLogic {
         if (!is_object($history)) {
             $history = new gds3710Cmd();
         }
-        $history->setName(__('Ouvrir le dossier des captures', __FILE__));
+        if (trim((string) $history->getName()) === '') {
+            $history->setName(__('Ouvrir le dossier des captures', __FILE__));
+        }
         $history->setEqLogic_id($this->getId());
         $history->setLogicalId('Open_Snapshots_Folder');
         $history->setType('action');
@@ -1130,7 +1158,9 @@ class gds3710 extends eqLogic {
         if (!is_object($lastest_snapshot)) {
             $lastest_snapshot = new gds3710Cmd();
         }
-        $lastest_snapshot->setName(__('Chemin du dernier snapshot', __FILE__));
+        if (trim((string) $lastest_snapshot->getName()) === '') {
+            $lastest_snapshot->setName(__('Chemin du dernier snapshot', __FILE__));
+        }
         $lastest_snapshot->setEqLogic_id($this->getId());
         $lastest_snapshot->setLogicalId('Lastest_Snapshot_Path');
         $lastest_snapshot->setType('info');
@@ -1142,7 +1172,9 @@ class gds3710 extends eqLogic {
         if (!is_object($lastest_snapshot_URL)) {
             $lastest_snapshot_URL = new gds3710Cmd();
         }
-        $lastest_snapshot_URL->setName(__('Dernier snapshot', __FILE__));
+        if (trim((string) $lastest_snapshot_URL->getName()) === '') {
+            $lastest_snapshot_URL->setName(__('Dernier snapshot', __FILE__));
+        }
         $lastest_snapshot_URL->setEqLogic_id($this->getId());
         $lastest_snapshot_URL->setLogicalId('Lastest_Snapshot_URL');
         $lastest_snapshot_URL->setType('info');
@@ -1158,7 +1190,9 @@ class gds3710 extends eqLogic {
         if (!is_object($cmos_NORMAL)) {
             $cmos_NORMAL = new gds3710Cmd();
         }
-        $cmos_NORMAL->setName(__('CMOS - Normal', __FILE__));
+        if (trim((string) $cmos_NORMAL->getName()) === '') {
+            $cmos_NORMAL->setName(__('CMOS - Normal', __FILE__));
+        }
         $cmos_NORMAL->setEqLogic_id($this->getId());
         $cmos_NORMAL->setLogicalId('cmos_normal');
         $cmos_NORMAL->setType('action');
@@ -1171,7 +1205,9 @@ class gds3710 extends eqLogic {
         if (!is_object($cmos_LOWLIGHT)) {
             $cmos_LOWLIGHT = new gds3710Cmd();
         }
-        $cmos_LOWLIGHT->setName(__('CMOS - Low Light', __FILE__));
+        if (trim((string) $cmos_LOWLIGHT->getName()) === '') {
+            $cmos_LOWLIGHT->setName(__('CMOS - Low Light', __FILE__));
+        }
         $cmos_LOWLIGHT->setEqLogic_id($this->getId());
         $cmos_LOWLIGHT->setLogicalId('cmos_lowlight');
         $cmos_LOWLIGHT->setType('action');
@@ -1184,7 +1220,9 @@ class gds3710 extends eqLogic {
         if (!is_object($cmos_WDR)) {
             $cmos_WDR = new gds3710Cmd();
         }
-        $cmos_WDR->setName(__('CMOS - WDR', __FILE__));
+        if (trim((string) $cmos_WDR->getName()) === '') {
+            $cmos_WDR->setName(__('CMOS - WDR', __FILE__));
+        }
         $cmos_WDR->setEqLogic_id($this->getId());
         $cmos_WDR->setLogicalId('cmos_wdr');
         $cmos_WDR->setType('action');
@@ -1197,7 +1235,9 @@ class gds3710 extends eqLogic {
         if (!is_object($stream_mjpeg)) {
             $stream_mjpeg = new gds3710Cmd();
         }
-        $stream_mjpeg->setName(__('Stream MJPEG', __FILE__));
+        if (trim((string) $stream_mjpeg->getName()) === '') {
+            $stream_mjpeg->setName(__('Stream MJPEG', __FILE__));
+        }
         $stream_mjpeg->setEqLogic_id($this->getId());
         $stream_mjpeg->setLogicalId('stream_mjpeg');
         $stream_mjpeg->setType('info');
@@ -1213,7 +1253,9 @@ class gds3710 extends eqLogic {
         if (!is_object($info)) {
             $info = new gds3710Cmd();
         }  
-        $info->setName(__('Last event', __FILE__));
+        if (trim((string) $info->getName()) === '') {
+            $info->setName(__('Last event', __FILE__));
+        }
         $info->setType('info');
         $info->setSubType('string');
         $info->setLogicalId('Last event');
@@ -1252,7 +1294,9 @@ class gds3710 extends eqLogic {
             $sip = new gds3710Cmd();
             $sip->setIsVisible(0);
         }
-        $sip->setName(__('Client SIP', __FILE__));
+        if (trim((string) $sip->getName()) === '') {
+            $sip->setName(__('Client SIP', __FILE__));
+        }
         $sip->setType('info');
         $sip->setSubType('string');
         $sip->setLogicalId('sip_client');
@@ -1313,7 +1357,9 @@ class gds3710 extends eqLogic {
             $backlight = new gds3710Cmd();
             $backlight->setIsVisible(0);
         }
-        $backlight->setName(__('Rétroéclairage - planning actif', __FILE__));
+        if (trim((string) $backlight->getName()) === '') {
+            $backlight->setName(__('Rétroéclairage - planning actif', __FILE__));
+        }
         $backlight->setType('info');
         $backlight->setSubType('binary');
         $backlight->setLogicalId('backlight_schedule');
@@ -1325,7 +1371,9 @@ class gds3710 extends eqLogic {
             $hours = new gds3710Cmd();
             $hours->setIsVisible(0);
         }
-        $hours->setName(__('Rétroéclairage - horaires', __FILE__));
+        if (trim((string) $hours->getName()) === '') {
+            $hours->setName(__('Rétroéclairage - horaires', __FILE__));
+        }
         $hours->setType('info');
         $hours->setSubType('string');
         $hours->setLogicalId('backlight_hours');
@@ -1380,7 +1428,9 @@ class gds3710 extends eqLogic {
             $setHours = new gds3710Cmd();
             $setHours->setIsVisible(0);
         }
-        $setHours->setName(__('Rétroéclairage - définir les horaires', __FILE__));
+        if (trim((string) $setHours->getName()) === '') {
+            $setHours->setName(__('Rétroéclairage - définir les horaires', __FILE__));
+        }
         $setHours->setType('action');
         $setHours->setSubType('message');
         $setHours->setLogicalId('backlight_hours_set');
@@ -1409,7 +1459,9 @@ class gds3710 extends eqLogic {
         if (!is_object($configure)) {
             $configure = new gds3710Cmd();
         }
-        $configure->setName(__('Configurer le portier', __FILE__));
+        if (trim((string) $configure->getName()) === '') {
+            $configure->setName(__('Configurer le portier', __FILE__));
+        }
         $configure->setEqLogic_id($this->getId());
         $configure->setLogicalId('configureDoorbell');
         $configure->setType('action');

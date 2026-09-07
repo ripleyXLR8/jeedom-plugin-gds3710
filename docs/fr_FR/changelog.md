@@ -1,5 +1,7 @@
 # Change Log - Plugin GDS 3710
 
+### 07/09/2026 (les renommages de commandes sont conservés)
+- **Renommer une commande tenait jusqu'au prochain enregistrement de l'équipement, puis disparaissait sans un mot.** `postSave()` reposait inconditionnellement le nom de 23 commandes historiques — « Ouvrir la porte », « Reboot », « Prendre un snapshot »… Seules les commandes ajoutées récemment étaient protégées. La règle vaut désormais pour toutes : un nom n'est posé que s'il est vide.
 ### 07/09/2026 (la porte 2 peut piloter une commande Jeedom)
 - En **mode webrelay**, le portier n'a qu'une seule URL de relais : les deux boutons d'ouverture déclenchent la même action, la porte 2 n'ayant aucun effet propre. Une **commande Jeedom** peut désormais lui être associée dans la configuration de l'équipement — de quoi donner au second bouton l'ouverture complète d'un portail quand le portier ne commande que le vantail piéton. Le bouton reste proposé dans la fenêtre d'appel du client SIP.
 ### 07/09/2026 (les noms de commandes deviennent traduisibles)
