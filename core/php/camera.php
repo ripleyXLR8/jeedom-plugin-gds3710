@@ -105,8 +105,14 @@ if($auth_type == 'challenge'){
 
 } elseif ($auth_type == 'basic'){
 
-	$mjpeg_url = 'https://admin:'.$password.'@'.$ip.'/jpeg/stream';
-	log::add('gds3710', 'debug', 'MJPEG url is : '.gds3710::redact($mjpeg_url));
+	/* Les identifiants passaient dans l'URL (https://admin:motdepasse@ip/...). Le
+	 * resultat est le meme — le wrapper HTTP de PHP en fait un en-tete Authorization —
+	 * mais un echec de fopen() emettait un warning PHP contenant l'URL complete, mot de
+	 * passe compris, dans le log du serveur web : hors de portee de redact(), qui ne
+	 * couvre que le log du plugin. L'en-tete est donc pose explicitement, et l'URL ne
+	 * porte plus aucun secret. */
+	$mjpeg_url = 'https://'.$ip.'/jpeg/stream';
+	log::add('gds3710', 'debug', 'MJPEG url is : '.$mjpeg_url);
 
 } else {
 
@@ -114,11 +120,14 @@ if($auth_type == 'challenge'){
 
 }
 
+$headers = "Accept-language: en\r\n" . "Cookie: foo=bar\r\n";
+if ($auth_type == 'basic') {
+	$headers .= 'Authorization: Basic ' . base64_encode('admin:' . $password) . "\r\n";
+}
 $opts = array(
 	'http'=>array(
 			'method'=>"GET",
-			'header'=>"Accept-language: en\r\n" .
-			"Cookie: foo=bar\r\n"
+			'header'=>$headers
 		),
 			'ssl'=>[
 			'verify_peer' => false,
@@ -135,7 +144,9 @@ if (function_exists('apache_setenv')) {
 }
 @ini_set('zlib.output_compression', 0);
 
-$fp = fopen($mjpeg_url, 'r', false, $context);
+/* @ : l'echec est gere par la branche else ci-dessous. Sans lui, le warning PHP part
+ * dans le log du serveur web — c'est par la que l'URL a identifiants fuyait. */
+$fp = @fopen($mjpeg_url, 'r', false, $context);
 
 if ($fp) {
 	header("Cache-Control: no-cache");
