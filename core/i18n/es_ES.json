@@ -223,6 +223,7 @@
     },
     "plugins/gds3710/plugin_info/configuration.php": {
         " IMPORTANT : Veuillez lire la documentation pour en savoir plus ": " IMPORTANTE: consulte la documentación para saber más ",
+        "ATTENTION : l'activation de cette option est très fortement encouragée. Elle est obligatoire dans le cas où des actions critiques de sécurité sont déclenchées lors d'évènements générés par le portier.": "ATENCIÓN: se recomienda encarecidamente activar esta opción. Es obligatoria cuando eventos generados por el portero desencadenan acciones críticas de seguridad.",
         "Activer la protection par mot de passe : ": "Activar la protección por contraseña: ",
         "Autoriser les utilisateurs limités à effacer les captures : ": "Permitir a los usuarios restringidos borrar las capturas: ",
         "Autoriser les utilisateurs à effacer les captures : ": "Permitir a los usuarios borrar las capturas: ",
@@ -233,6 +234,7 @@
         "Contrôle en cours...": "Comprobando...",
         "Droits": "Permisos",
         "Désactiver le contrôle d'adresse d'origine : ": "Desactivar el control de la dirección de origen: ",
+        "Identifiant : ": "Usuario: ",
         "Il s'agit de l'identifiant que votre portier devra fournir pour publier ses évènements dans Jeedom.": "Este es el identificador que su portero deberá proporcionar para publicar sus eventos en Jeedom.",
         "Il s'agit du mot de passe que votre portier devra fournir pour publier ses évènements dans Jeedom.": "Esta es la contraseña que su portero deberá proporcionar para publicar sus eventos en Jeedom.",
         "Il s'agit du répertoire dans lequel seront enregistré les captures.": "Este es el directorio donde se guardarán las capturas.",
