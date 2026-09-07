@@ -321,6 +321,50 @@ class gds3710 extends eqLogic {
             'timezone' => array(
                 'name' => 'Fuseau horaire', 'p' => 'P14046', 'section' => 'date', 'subType' => 'string',
             ),
+
+            /* Maintien de porte ouverte. « Immediat » deverrouille la porte et l y laisse
+             * pendant la duree configuree ; « Planifie » suit la table horaire de
+             * l appareil. L etat est expose pour qu un scenario puisse verifier qu une
+             * porte n est pas restee ouverte. */
+            'keep_open_1' => array(
+                'name' => 'Maintien porte 1', 'p' => 'P15429', 'section' => 'sch_open_door', 'subType' => 'string',
+                'labels' => array('0' => 'Désactivé', '1' => 'Immédiat', '2' => 'Planifié'),
+            ),
+            'keep_open_2' => array(
+                'name' => 'Maintien porte 2', 'p' => 'P15455', 'section' => 'sch_open_door', 'subType' => 'string',
+                'labels' => array('0' => 'Désactivé', '1' => 'Immédiat', '2' => 'Planifié'),
+            ),
+            /* L appareil renvoie « (null) » quand la porte n est pas forcee ouverte. */
+            'forced_open_1' => array(
+                'name' => 'Porte 1 forcée ouverte depuis', 'p' => 'forced_door_open_time',
+                'section' => 'sch_open_door', 'subType' => 'string',
+            ),
+            'forced_open_2' => array(
+                'name' => 'Porte 2 forcée ouverte depuis', 'p' => 'forced_door2_open_time',
+                'section' => 'sch_open_door', 'subType' => 'string',
+            ),
+
+            /* Detection de mouvement. Elle vit dans la section « event », qui renvoie le
+             * mot de passe administrateur en clair dans P2 : ne jamais journaliser cette
+             * section brute. redact() masque P2, et readConfigSection() ne journalise pas
+             * son contenu. */
+            'motion_detection' => array(
+                'name' => 'Détection de mouvement', 'p' => 'P10250', 'section' => 'event', 'subType' => 'binary',
+            ),
+            'motion_schedule' => array(
+                'name' => 'Détection - planning', 'p' => 'P14221', 'section' => 'event', 'subType' => 'string',
+                'labels' => array('0' => 'Toute la journée', '1' => 'Planning 1', '2' => 'Planning 2',
+                                  '3' => 'Planning 3', '4' => 'Planning 4', '5' => 'Planning 5',
+                                  '6' => 'Planning 6', '7' => 'Planning 7', '8' => 'Planning 8',
+                                  '9' => 'Planning 9', '10' => 'Planning 10'),
+            ),
+            /* Les huit regions doivent etre definies ensemble et se dessinent dans
+             * l interface de l appareil. On les rapporte sans les ecrire : une detection
+             * activee sans aucune region ne se declenchera pas, et cela ne se voit
+             * nulle part ailleurs. */
+            'motion_region' => array(
+                'name' => 'Détection - régions', 'p' => 'P14224', 'section' => 'event', 'subType' => 'string',
+            ),
         );
     }
 
@@ -689,6 +733,9 @@ class gds3710 extends eqLogic {
             'onhook_timer'     => array('name' => 'Raccrochage après ouverture (s)', 'p' => 'P15582', 'section' => 'door', 'min' => 3, 'max' => 1800),
             'volume_system'    => array('name' => 'Volume système',                 'p' => 'P14003', 'section' => 'audio', 'min' => 0, 'max' => 6),
             'volume_doorbell'  => array('name' => 'Volume sonnerie',                'p' => 'P14835', 'section' => 'audio', 'min' => 0, 'max' => 6),
+            'keep_open_time_1' => array('name' => 'Maintien porte 1 - durée (min)',  'p' => 'P15430', 'section' => 'sch_open_door', 'min' => 5, 'max' => 480),
+            'keep_open_time_2' => array('name' => 'Maintien porte 2 - durée (min)',  'p' => 'P15456', 'section' => 'sch_open_door', 'min' => 5, 'max' => 480),
+            'motion_sensitivity' => array('name' => 'Détection - sensibilité',       'p' => 'P14223', 'section' => 'event', 'min' => 0, 'max' => 100),
         );
     }
 
@@ -1301,6 +1348,33 @@ class gds3710 extends eqLogic {
             $cmd->save();
         }
 
+        /* Maintien de porte et detection de mouvement : une paire marche/arret chacun,
+         * sur le modele du retroeclairage. Les commandes de maintien sont invisibles par
+         * defaut — elles deverrouillent une porte et l y laissent, ce n est pas quelque
+         * chose qui doit atterrir sur un dashboard par inadvertance. */
+        foreach (array(
+            'keep_open_1_on'  => array('Maintien porte 1 - activer',   'keep_open_1'),
+            'keep_open_1_off' => array('Maintien porte 1 - désactiver', 'keep_open_1'),
+            'keep_open_2_on'  => array('Maintien porte 2 - activer',   'keep_open_2'),
+            'keep_open_2_off' => array('Maintien porte 2 - désactiver', 'keep_open_2'),
+            'motion_on'       => array('Détection de mouvement - activer',   'motion_detection'),
+            'motion_off'      => array('Détection de mouvement - désactiver', 'motion_detection'),
+        ) as $lid => $def) {
+            $cmd = $this->getCmd('action', $lid);
+            if (!is_object($cmd)) {
+                $cmd = new gds3710Cmd();
+                $cmd->setIsVisible(0);
+            }
+            if (trim((string) $cmd->getName()) === '') {
+                $cmd->setName(__($def[0], __FILE__));
+            }
+            $cmd->setType('action');
+            $cmd->setSubType('other');
+            $cmd->setLogicalId($lid);
+            $cmd->setEqLogic_id($this->getId());
+            $cmd->save();
+        }
+
         $setHours = $this->getCmd('action', 'backlight_hours_set');
         if (!is_object($setHours)) {
             $setHours = new gds3710Cmd();
@@ -1417,6 +1491,12 @@ class gds3710 extends eqLogic {
             'backlight_on'       => array('etat' => 'backlight_schedule', 'widget' => 'binaryDefault'),
             'backlight_off'      => array('etat' => 'backlight_schedule', 'widget' => 'binaryDefault'),
             'backlight_hours_set'=> array('etat' => 'backlight_hours'),
+            'keep_open_1_on'     => array('etat' => 'keep_open_1'),
+            'keep_open_1_off'    => array('etat' => 'keep_open_1'),
+            'keep_open_2_on'     => array('etat' => 'keep_open_2'),
+            'keep_open_2_off'    => array('etat' => 'keep_open_2'),
+            'motion_on'          => array('etat' => 'motion_detection', 'widget' => 'binarySwitch'),
+            'motion_off'         => array('etat' => 'motion_detection', 'widget' => 'binarySwitch'),
         );
         $posees = 0;
         foreach ($liaisons as $action => $def) {
@@ -2061,6 +2141,31 @@ class gds3710Cmd extends cmd {
                 break;
             case 'configureDoorbell':
                 $eqLogic->pushEventNotificationConfig();
+                break;
+            /* Le portier refuse silencieusement certains parametres — les reglages de
+             * date en sont la preuve. writeConfig() relit systematiquement apres
+             * ecriture et journalise « Ecriture non confirmee » si l appareil n a pas
+             * pris la valeur : un echec ne peut donc pas passer inapercu. */
+            case 'keep_open_1_on':
+            case 'keep_open_1_off':
+            case 'keep_open_2_on':
+            case 'keep_open_2_off':
+                $porte2 = (strpos($lid, 'keep_open_2') === 0);
+                $actif = (substr($lid, -3) === '_on') ? '1' : '0';
+                if ($actif === '1') {
+                    log::add('gds3710', 'warning', 'Maintien de porte ' . ($porte2 ? '2' : '1')
+                        . ' active : la porte reste deverrouillee pendant la duree configuree.');
+                }
+                if ($eqLogic->writeConfig(array(($porte2 ? 'P15455' : 'P15429') => $actif), 'sch_open_door')) {
+                    $eqLogic->refreshStates();
+                }
+                break;
+            case 'motion_on':
+            case 'motion_off':
+                $actif = ($lid === 'motion_on') ? '1' : '0';
+                if ($eqLogic->writeConfig(array('P10250' => $actif), 'event')) {
+                    $eqLogic->refreshStates();
+                }
                 break;
             case 'backlight_on':
             case 'backlight_off':
