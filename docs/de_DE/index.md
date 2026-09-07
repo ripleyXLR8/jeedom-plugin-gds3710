@@ -423,6 +423,16 @@ Le plugin vous permet de transmettre des captures du flux MJPEG par l'intermédi
 
 ![Envoyer un snapshot dans un scénario](../assets/images/EnvoyerCaptureGDS3710.png)
 
+# La porte 2 peut piloter une commande Jeedom
+
+⚠️ **En mode webrelay (`P15440=1`), le portier n'a qu'une seule URL de relais.** Toute ouverture — clavier, badge, PIN distant 1 *ou* 2, et les deux boutons du plugin — appelle cette unique URL et déclenche donc la même action. La porte 2 n'a aucun effet propre, et les deux boutons sont indiscernables.
+
+La configuration de l'équipement permet d'associer une **commande Jeedom** à la porte 2. Le bouton « Ouvrir la porte 2 » exécute alors cette commande au lieu d'interroger le portier. C'est ainsi qu'un portail dont le portier ne commande que le vantail piéton obtient un second bouton pour l'ouverture complète — et ce bouton reste disponible dans la fenêtre d'appel du client SIP, qui liste les commandes d'ouverture visibles de l'équipement.
+
+💡 Pensez à **renommer la commande** en conséquence — « Ouverture voiture », par exemple. Le plugin ne remplit qu'un nom vide : votre choix est conservé.
+
+Laissez le champ vide pour interroger le portier comme avant. « Fermer la porte 2 » n'a alors plus de sens et n'exécute rien, ce qui est journalisé.
+
 # Maintien de porte ouverte et détection de mouvement
 
 Deux groupes de l'API du portier que le plugin ignorait jusqu'ici.

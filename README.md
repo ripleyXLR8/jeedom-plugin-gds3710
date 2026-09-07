@@ -233,6 +233,14 @@ Twelve states are reported, read from four of the door station's configuration s
 
 💡 Three of them are worth a look on a European installation: a **mains frequency** set to 60 Hz makes the picture flicker under artificial light; **daylight saving** left disabled shifts the timestamp of every event the door station reports by an hour in summer; and the **audio codec** may sit on PCMU while the SIP server offers better.
 
+# Door 2 can drive a Jeedom command instead
+
+⚠️ **In webrelay mode (`P15440=1`) the door station has a single relay URL.** Every opening — keypad, badge, remote PIN 1 *or* 2, and both of the plugin's buttons — calls that one URL and therefore performs the same action. Door 2 has no effect of its own, and the two buttons are indistinguishable.
+
+The equipment configuration can bind a **Jeedom command** to door 2. When set, "Open door 2" runs that command instead of asking the door station. That is how a gate whose door station only triggers the pedestrian leaf gets a second button for the full opening — and the button stays available in the SIP call window, which lists the equipment's visible opening commands.
+
+Leave the field empty to query the door station as before. "Close door 2" then has no meaning and does nothing, which is logged.
+
 # Keeping a door open, and motion detection
 
 Two groups of the door station's API the plugin used to ignore.

@@ -180,6 +180,18 @@
 				</div>
 
 				<div class="form-group">
+				    <label class="col-sm-3 control-label">{{Commande Jeedom pour la porte 2 :}}<sup><i class="fa fa-question-circle tooltips" title="{{Si votre portier est en mode webrelay, il n'a qu'une seule URL de relais : les deux portes déclenchent alors la même action. Associez ici une commande Jeedom au bouton « Ouvrir la porte 2 » pour lui donner un effet propre — l'ouverture complète d'un portail, par exemple. Laissez vide pour interroger le portier normalement.}}" style="font-size : 1em;color:grey;"></i></sup></label>
+				    <div class="col-sm-4">
+				        <div class="input-group">
+				            <input type="text" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="door2_cmd" placeholder="{{Aucune : le portier est interrogé normalement}}"/>
+				            <span class="input-group-btn">
+				                <a class="btn btn-default bt_choisirCmdPorte2" title="{{Choisir une commande}}"><i class="fa fa-list-alt"></i></a>
+				            </span>
+				        </div>
+				    </div>
+				</div>
+
+				<div class="form-group">
 				    <label class="col-sm-3 control-label">{{Type d'authentification MJPEG :}}</label>
 				    <div class="col-sm-3">
 				    	<select class="eqLogicAttr form-control tooltips" title="{{type d'authentification pour le flux MJPEG}}" data-l1key="configuration" data-l2key="auth_type">

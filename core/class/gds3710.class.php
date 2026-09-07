@@ -2113,10 +2113,42 @@ class gds3710Cmd extends cmd {
                 $this->open_door('2');
                 break;
             case 'open2':
-                $this->open_door('1', 2);
-                break;
             case 'close2':
-                $this->open_door('2', 2);
+                /* En mode webrelay (P15440=1) le portier n'a qu'UNE URL de relais : toute
+                 * ouverture, quelle que soit la porte et quel que soit le PIN presente,
+                 * declenche la meme action. La porte 2 de l'appareil est alors sans effet
+                 * propre — deux boutons pour un seul geste.
+                 *
+                 * Une commande Jeedom peut donc lui etre associee : le bouton « porte 2 »
+                 * execute alors cette commande au lieu d'interroger le portier. C'est ce
+                 * qui permet, par exemple, d'ouvrir en grand un portail dont le portier ne
+                 * commande que l'ouverture pietonne — et le bouton reste disponible dans
+                 * la fenetre d'appel du client SIP, qui liste les commandes d'ouverture
+                 * visibles de l'equipement. */
+                $deleguee = trim((string) $eqLogic->getConfiguration('door2_cmd'));
+                if ($deleguee !== '') {
+                    if ($lid === 'close2') {
+                        log::add('gds3710', 'info', 'Porte 2 deleguee a une commande Jeedom : '
+                            . '« Fermer la porte 2 » est sans objet et n a rien execute.');
+                        break;
+                    }
+                    /* Le selecteur rend la forme balisee « #[Objet][Eq][Cmd]# », la seule
+                     * que cmd::byString() sache resoudre — le nom humain nu, lui, echoue.
+                     * Une valeur saisie a la main sans les diese est rattrapee ici plutot
+                     * que de faire echouer l'ouverture sur un detail de syntaxe. */
+                    if (substr($deleguee, 0, 1) === '[') {
+                        $deleguee = '#' . $deleguee . '#';
+                    }
+                    log::add('gds3710', 'info', 'Porte 2 : execution de la commande Jeedom ' . $deleguee . '.');
+                    try {
+                        scenarioExpression::createAndExec('action', $deleguee);
+                    } catch (Exception $e) {
+                        log::add('gds3710', 'error', 'La commande Jeedom associee a la porte 2 a echoue ('
+                            . $deleguee . ') : ' . $e->getMessage());
+                    }
+                    break;
+                }
+                $this->open_door($lid === 'open2' ? '1' : '2', 2);
                 break;
             case 'cmos_normal':
                 $this->cmos_normal();
