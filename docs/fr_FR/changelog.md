@@ -1,5 +1,7 @@
 # Change Log - Plugin GDS 3710
 
+### 07/09/2026 (la porte 2 peut piloter une commande Jeedom)
+- En **mode webrelay**, le portier n'a qu'une seule URL de relais : les deux boutons d'ouverture déclenchent la même action, la porte 2 n'ayant aucun effet propre. Une **commande Jeedom** peut désormais lui être associée dans la configuration de l'équipement — de quoi donner au second bouton l'ouverture complète d'un portail quand le portier ne commande que le vantail piéton. Le bouton reste proposé dans la fenêtre d'appel du client SIP.
 ### 07/09/2026 (les noms de commandes deviennent traduisibles)
 - **61 noms de commandes échappaient à la traduction** et s'affichaient en français quelle que soit la langue : ils étaient passés à `__()` par une variable, donc invisibles à tout extracteur — y compris l'outillage de Jeedom. Ce sont pourtant les libellés les plus visibles du plugin : « Mode CMOS », « Entrée digitale 1 », « Dernière personne entrée », les réglages, les capteurs. Ils sont désormais marqués là où ils sont déclarés, et le catalogue passe de 152 à **226 chaînes**.
 - ⚠️ Les **commandes déjà créées ne sont pas renommées** : le plugin ne remplit qu'un nom vide, ce qui préserve aussi les commandes que vous avez renommées. Seule une installation neuve obtient les noms traduits.

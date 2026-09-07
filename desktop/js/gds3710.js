@@ -184,6 +184,14 @@ function addCmdToTable(_cmd) {
     });
 }
 
+/* Selecteur de commande pour la porte 2. Meme mecanique que les actions
+   d'evenements : on stocke la forme humaine, que scenarioExpression sait executer. */
+$('body').off('click.gds3710porte2').on('click.gds3710porte2', '.bt_choisirCmdPorte2', function () {
+    jeedom.cmd.getSelectModal({cmd: {type: 'action'}}, function (result) {
+        $('.eqLogicAttr[data-l1key=configuration][data-l2key=door2_cmd]').value(result.human);
+    });
+});
+
 $('.addAction').on('click', function () {
     addAction({}, $(this).attr('data-type'));
 });

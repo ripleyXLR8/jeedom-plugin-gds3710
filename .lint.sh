@@ -135,6 +135,7 @@ if veut --docs; then
     "core/i18n|traduite|translated"
     "Maintien de porte|Keep door open"
     "détection de mouvement|motion detection"
+    "mode webrelay|webrelay mode"
   )
   for m in "${MARQUEURS[@]}"; do
     in_readme=0; in_doc=0
