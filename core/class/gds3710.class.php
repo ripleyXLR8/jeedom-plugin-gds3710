@@ -2061,6 +2061,18 @@ class gds3710Cmd extends cmd {
         fclose($fp);
         log::add('gds3710', 'debug', 'Closing the file');
 
+        /* Le portier repond 200 meme quand l authentification a echoue : le corps est
+         * alors son XML d erreur, qui etait enregistre tel quel en .jpg, publie comme
+         * « dernier snapshot » et envoye par send_snapshot() le cas echeant. Une image
+         * JPEG commence par les octets FF D8 : tout autre contenu est une capture ratee. */
+        $entete = (string) @file_get_contents($output_file, false, null, 0, 2);
+        if ($entete !== "\xFF\xD8") {
+            log::add('gds3710', 'error', 'La capture recue n est pas une image JPEG '
+                . '(authentification refusee ou portier en erreur) : fichier supprime.');
+            @unlink($output_file);
+            return null;
+        }
+
         log::add('gds3710', 'debug', "Registering path to lastest picture");
         $eqLogic = $this->getEqLogic();
         $lastest_snapshot = $eqLogic->getCmd('info', 'Lastest_Snapshot_Path');
