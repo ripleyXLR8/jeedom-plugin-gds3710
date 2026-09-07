@@ -23,27 +23,13 @@ try {
 
     ajax::init();
 
-    /* Un administrateur peut toujours supprimer. Pour les autres profils la permission
-     * dépend de la configuration du plugin. L'admin est écarté en premier car
-     * isConnect('user') est également vrai pour lui : sans cela, un administrateur se
-     * retrouvait bloqué dès que l'option « autoriser les utilisateurs » était décochée. */
-    if (!isConnect('admin')) {
-        $allowed = isConnect('user')
-            ? config::byKey('is_user_allowed_to_delete', 'gds3710') == 1
-            : config::byKey('is_limited_user_allowed_to_delete', 'gds3710') == 1;
-        if (!$allowed) {
-            throw new Exception(__('401 - Suppression des captures non autorisée pour ce profil.', __FILE__));
-        }
-    }
-
     if (init('action') == 'checkRecordDir') {
         /* Contrôle des droits du répertoire des captures, depuis la page de configuration.
          * Jusqu'ici le problème n'était signalé qu'au moment d'une capture, c'est-à-dire
          * précisément quand personne ne regarde.
          *
          * Réservé aux administrateurs : ce point d'entrée renseigne sur le système de
-         * fichiers du serveur, et le garde en tête de ce fichier laisse passer d'autres
-         * profils quand la suppression de captures leur est ouverte. */
+         * fichiers du serveur. */
         if (!isConnect('admin')) {
             throw new Exception(__('401 - Contrôle réservé aux administrateurs.', __FILE__));
         }
@@ -145,6 +131,25 @@ try {
     }
 
     if (init('action') == 'removeRecord') {
+        /* Un administrateur peut toujours supprimer. Pour les autres profils la permission
+         * dépend de la configuration du plugin. L'admin est écarté en premier car
+         * isConnect('user') est également vrai pour lui : sans cela, un administrateur se
+         * retrouvait bloqué dès que l'option « autoriser les utilisateurs » était décochée.
+         *
+         * Ce garde ne vaut que pour la suppression. Placé en tête de fichier, il
+         * s'appliquait aux cinq actions : avec la configuration par défaut, un compte non
+         * administrateur ne pouvait plus appeler getSipConfig ni callAnswered — le widget
+         * SIP de son dashboard restait muet tant que la suppression de captures ne lui
+         * était pas ouverte, option sans aucun rapport. */
+        if (!isConnect('admin')) {
+            $allowed = isConnect('user')
+                ? config::byKey('is_user_allowed_to_delete', 'gds3710') == 1
+                : config::byKey('is_limited_user_allowed_to_delete', 'gds3710') == 1;
+            if (!$allowed) {
+                throw new Exception(__('401 - Suppression des captures non autorisée pour ce profil.', __FILE__));
+            }
+        }
+
         $file = init('file');
         $record_dir = realpath(calculPath(config::byKey('recdir', 'gds3710')));
 
