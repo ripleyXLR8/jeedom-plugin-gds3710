@@ -31,6 +31,12 @@ function gds3710_preparer_bac_a_sable() {
     copy(__DIR__ . '/doublures/core.inc.php', $coeur . '/core.inc.php');
     copy(GDS3710_RACINE . '/core/class/gds3710.class.php', $classes . '/gds3710.class.php');
 
+    /* install.php remonte de trois niveaux, et non quatre : il vit dans plugin_info/. Il
+     * ne fait que declarer des fonctions, il est donc chargeable tel quel. */
+    $infos = $bac . '/plugins/gds3710/plugin_info';
+    if (!is_dir($infos)) { mkdir($infos, 0777, true); }
+    copy(GDS3710_RACINE . '/plugin_info/install.php', $infos . '/install.php');
+
     return $bac;
 }
 
@@ -50,6 +56,7 @@ function gds3710_nettoyer_bac_a_sable($_bac) {
 
 $GLOBALS['gds3710_bac'] = gds3710_preparer_bac_a_sable();
 require_once $GLOBALS['gds3710_bac'] . '/plugins/gds3710/core/class/gds3710.class.php';
+require_once $GLOBALS['gds3710_bac'] . '/plugins/gds3710/plugin_info/install.php';
 
 /* ------------------------------------------------------------------ *
  *  Lecture du source                                                  *

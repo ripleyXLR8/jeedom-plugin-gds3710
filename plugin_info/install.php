@@ -22,34 +22,97 @@ require_once dirname(__FILE__) . '/../../../core/php/core.inc.php';
  * Elles s'appelaient template_*() depuis la creation du plugin et n'ont donc
  * jamais ete executees. */
 
+/* Reprises ponctuelles, numerotees et jouees UNE SEULE FOIS.
+ *
+ * Chacune repare l'effet d'un defaut passe sur les installations qui l'ont subi. Elles
+ * etaient toutes rejouees a chaque mise a jour du plugin — or gds3710_clean_html_values()
+ * parcourt l'integralite des commandes de chaque equipement, et cette liste ne peut que
+ * s'allonger. Le numero atteint est retenu dans la configuration du plugin.
+ *
+ * Regles : ne jamais renumeroter une entree existante, ne jamais modifier une entree deja
+ * publiee — seulement en ajouter. Le numero est une position dans l'histoire des
+ * installations, pas un ordre de lecture. */
+function gds3710_migrations() {
+    return array(
+        1 => 'gds3710_migration_1_protection_optionnelle',
+        2 => 'gds3710_migration_2_nettoyer_valeurs_heritees',
+        3 => 'gds3710_migration_3_restaurer_commandes_ldc',
+    );
+}
+
+function gds3710_niveau_de_schema() {
+    return (int) config::byKey('schema', 'gds3710', 0);
+}
+
 function gds3710_install() {
     /* Nouvelle installation : la protection par mot de passe de l'endpoint
      * d'evenements est active par defaut. Les installations existantes passent par
      * gds3710_update() et conservent leur reglage, pour ne pas voir leur remontee
      * d'evenements s'interrompre a la mise a jour. */
     config::save('password_protection', 1, 'gds3710');
+
+    /* Rien a reprendre sur une installation neuve : on se declare d'emblee au dernier
+     * niveau, pour ne pas parcourir des commandes qui viennent d'etre creees. */
+    $numeros = array_keys(gds3710_migrations());
+    config::save('schema', count($numeros) > 0 ? max($numeros) : 0, 'gds3710');
 }
 
 function gds3710_update() {
-    if (config::byKey('password_protection', 'gds3710', '') === '') {
-        config::save('password_protection', 0, 'gds3710');
+    /* Reprises non encore appliquees, dans l'ordre. Le niveau est enregistre apres chaque
+     * etape : une mise a jour interrompue reprend ou elle s'etait arretee, au lieu de
+     * tout rejouer ou de sauter ce qui restait. */
+    $niveau = gds3710_niveau_de_schema();
+    $applique = 0;
+    foreach (gds3710_migrations() as $numero => $fonction) {
+        if ($numero <= $niveau || !function_exists($fonction)) {
+            continue;
+        }
+        log::add('gds3710', 'info', 'Reprise ' . $numero . ' : ' . $fonction . '.');
+        $fonction();
+        config::save('schema', $numero, 'gds3710');
+        $applique++;
+    }
+    if ($applique === 0) {
+        log::add('gds3710', 'debug', 'Aucune reprise a appliquer (schema ' . $niveau . ').');
     }
 
-    /* La valeur de la commande « Stream MJPEG » nest ecrite que par postSave(). Elle se
-     * perd des quun evenement la vide — notamment un vidage de cache, qui remet a blanc
-     * toutes les valeurs de commandes de linstallation. Le widget affichait alors une
-     * image vide et le log crachait « No id parameter provided to camera.php », le seul
-     * remede connu etant de re-sauvegarder chaque equipement a la main. On republie ici,
-     * et le cron repare aussi en continu. */
+    /* Ceci n'est PAS une reprise mais une reparation, qui doit tourner a chaque mise a
+     * jour. La valeur de « Stream MJPEG » n'est ecrite que par postSave() et se perd des
+     * qu'un evenement la vide — notamment un vidage de cache, qui remet a blanc toutes les
+     * valeurs de commandes de l'installation. Le widget affichait alors une image vide et
+     * le log crachait « No id parameter provided to camera.php », le seul remede connu
+     * etant de re-sauvegarder chaque equipement a la main. Le cron repare aussi en
+     * continu. */
+    gds3710_reparer_url_du_flux();
+}
+
+function gds3710_reparer_url_du_flux() {
+    $republiees = 0;
     foreach (eqLogic::byType('gds3710') as $eq) {
         $cmd = $eq->getCmd('info', 'stream_mjpeg');
         if (is_object($cmd)) {
             $cmd->event('/plugins/gds3710/core/php/camera.php?id=' . $eq->getId());
+            $republiees++;
         }
     }
+    return $republiees;
+}
 
-    gds3710_clean_html_values();
-    gds3710_restore_ldc_commands();
+/* Reprise 1 : les installations anterieures a l'ajout de la protection par mot de passe la
+ * conservent desactivee, pour ne pas voir leur remontee d'evenements s'interrompre du jour
+ * au lendemain. Les nouvelles l'ont activee par gds3710_install(). */
+function gds3710_migration_1_protection_optionnelle() {
+    if (config::byKey('password_protection', 'gds3710', '') === '') {
+        config::save('password_protection', 0, 'gds3710');
+    }
+}
+
+function gds3710_migration_2_nettoyer_valeurs_heritees() {
+    return gds3710_clean_html_values();
+}
+
+function gds3710_migration_3_restaurer_commandes_ldc() {
+    return gds3710_restore_ldc_commands();
 }
 
 /* Les commandes LDC avaient ete retirees a tort. P10573 n est renvoye par aucune section
