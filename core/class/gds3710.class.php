@@ -1044,6 +1044,132 @@ class gds3710 extends eqLogic {
         return $return;
     }
 
+    /* Commandes fixes de l'equipement.
+     *
+     * Elles etaient creees par 23 blocs recopies, de dix a vingt lignes chacun, pour un
+     * total de plus de 400 lignes dans postSave(). Rien ne les distinguait qu'une poignee
+     * de valeurs : c'est une table, pas du code. Le motif descriptif existait deja pour
+     * les etats, les capteurs et les reglages ; il manquait ici.
+     *
+     * Les commandes engendrees par une regle — types d'evenements, reglages et leur
+     * curseur, details d'evenement — restent dans leurs boucles : leur nombre depend d'une
+     * autre table, elles n'ont pas leur place dans une enumeration.
+     *
+     * « visible » est une valeur POSEE A LA CREATION, jamais reimposee ensuite : masquer
+     * une commande depuis Jeedom doit tenir. Vingt de ces commandes la reimposaient a
+     * chaque enregistrement de l'equipement, « Ouvrir la porte 2 » comprise — alors que la
+     * documentation du client SIP promet que la masquer retire son bouton de la fenetre
+     * d'appel. Meme regle que pour le nom, corrigee en juillet pour les memes raisons. */
+    public static function get_command_list() {
+        return array(
+            'ldc_ON' => array(
+                'name' => __('LDC - ON', __FILE__), 'type' => 'action', 'subType' => 'other', 'visible' => 1),
+            'ldc_off' => array(
+                'name' => __('LDC - OFF', __FILE__), 'type' => 'action', 'subType' => 'other', 'visible' => 1),
+            'reboot' => array(
+                'name' => __('Reboot', __FILE__), 'type' => 'action', 'subType' => 'other', 'visible' => 1),
+            'open' => array(
+                'name' => __('Ouvrir la porte', __FILE__), 'type' => 'action', 'subType' => 'other', 'visible' => 1),
+            'open2' => array(
+                'name' => __('Ouvrir la porte 2', __FILE__), 'type' => 'action', 'subType' => 'other', 'visible' => 1),
+            'close' => array(
+                'name' => __('Fermer la porte', __FILE__), 'type' => 'action', 'subType' => 'other', 'visible' => 0),
+            'close2' => array(
+                'name' => __('Fermer la porte 2', __FILE__), 'type' => 'action', 'subType' => 'other', 'visible' => 0),
+            'snapshot' => array(
+                'name' => __('Prendre un snapshot', __FILE__), 'type' => 'action', 'subType' => 'other', 'visible' => 1,
+                'template' => array('dashboard' => ''),
+                'display' => array('icon' => '<i class="fa fa-image"></i>')),
+            'modifyConfig' => array(
+                'name' => __('Modifier la configuration', __FILE__), 'type' => 'action', 'subType' => 'message', 'visible' => 0,
+                'display' => array(
+                    'title_placeholder' => __('ID de la commande à modifier', __FILE__),
+                    'message_placeholder' => __('Valeur', __FILE__),
+                    'message_cmd_type' => 'action',
+                    'message_cmd_subtype' => 'message')),
+            'sendSnapshot' => array(
+                'name' => __('Envoyer un snapshot', __FILE__), 'type' => 'action', 'subType' => 'message', 'visible' => 0,
+                'configuration' => array('request' => '-'),
+                'display' => array(
+                    'title_placeholder' => __('Nombre captures ou options', __FILE__),
+                    'message_placeholder' => __('Commande message d\'envoi des captures', __FILE__),
+                    'message_cmd_type' => 'action',
+                    'message_cmd_subtype' => 'message')),
+            'Open_Snapshots_Folder' => array(
+                'name' => __('Ouvrir le dossier des captures', __FILE__), 'type' => 'action', 'subType' => 'other', 'visible' => 1,
+                'template' => array('dashboard' => 'snapshot_folder')),
+            'Lastest_Snapshot_Path' => array(
+                'name' => __('Chemin du dernier snapshot', __FILE__), 'type' => 'info', 'subType' => 'string', 'visible' => 0),
+            'Lastest_Snapshot_URL' => array(
+                'name' => __('Dernier snapshot', __FILE__), 'type' => 'info', 'subType' => 'string', 'visible' => 0,
+                'template' => array('dashboard' => 'lastsnapshot', 'mobile' => 'lastsnapshot')),
+            'cmos_normal' => array(
+                'name' => __('CMOS - Normal', __FILE__), 'type' => 'action', 'subType' => 'other', 'visible' => 1),
+            'cmos_lowlight' => array(
+                'name' => __('CMOS - Low Light', __FILE__), 'type' => 'action', 'subType' => 'other', 'visible' => 1),
+            'cmos_wdr' => array(
+                'name' => __('CMOS - WDR', __FILE__), 'type' => 'action', 'subType' => 'other', 'visible' => 1),
+            'stream_mjpeg' => array(
+                'name' => __('Stream MJPEG', __FILE__), 'type' => 'info', 'subType' => 'string', 'visible' => 1,
+                'template' => array('dashboard' => 'mjpegstream', 'mobile' => 'mjpegstream')),
+            'Last event' => array(
+                'name' => __('Last event', __FILE__), 'type' => 'info', 'subType' => 'string', 'visible' => 0),
+            'sip_client' => array(
+                'name' => __('Client SIP', __FILE__), 'type' => 'info', 'subType' => 'string', 'visible' => 0,
+                'template' => array('dashboard' => 'sipclient')),
+            'backlight_schedule' => array(
+                'name' => __('Rétroéclairage - planning actif', __FILE__), 'type' => 'info', 'subType' => 'binary', 'visible' => 0),
+            'backlight_hours' => array(
+                'name' => __('Rétroéclairage - horaires', __FILE__), 'type' => 'info', 'subType' => 'string', 'visible' => 0),
+            'backlight_hours_set' => array(
+                'name' => __('Rétroéclairage - définir les horaires', __FILE__), 'type' => 'action', 'subType' => 'message', 'visible' => 0,
+                'display' => array(
+                    'title_placeholder' => __('Début, format HHMMSS', __FILE__),
+                    'message_placeholder' => __('Fin, format HHMMSS', __FILE__))),
+            'configureDoorbell' => array(
+                'name' => __('Configurer le portier', __FILE__), 'type' => 'action', 'subType' => 'other', 'visible' => 0,
+                'display' => array('icon' => '<i class="fas fa-cogs"></i>')),
+        );
+    }
+
+    /* Cree ou met a jour une commande a partir de sa description.
+     *
+     * Le nom et la visibilite ne sont poses qu'a la creation : ce sont des choix que
+     * l'utilisateur peut reprendre, et les reimposer a chaque enregistrement les effacait
+     * sans un mot. Le type, le sous-type, le gabarit et les reglages d'affichage, eux,
+     * sont structurels : le plugin les maintient. */
+    private function poserCommande($_lid, $_def) {
+        $cmd = $this->getCmd($_def['type'], $_lid);
+        if (!is_object($cmd)) {
+            $cmd = new gds3710Cmd();
+            $cmd->setIsVisible(isset($_def['visible']) ? $_def['visible'] : 0);
+        }
+        if (trim((string) $cmd->getName()) === '') {
+            $cmd->setName($_def['name']);
+        }
+        $cmd->setEqLogic_id($this->getId());
+        $cmd->setLogicalId($_lid);
+        $cmd->setType($_def['type']);
+        $cmd->setSubType($_def['subType']);
+        if (isset($_def['template'])) {
+            foreach ($_def['template'] as $support => $gabarit) {
+                $cmd->setTemplate($support, $gabarit);
+            }
+        }
+        if (isset($_def['display'])) {
+            foreach ($_def['display'] as $clef => $valeur) {
+                $cmd->setDisplay($clef, $valeur);
+            }
+        }
+        if (isset($_def['configuration'])) {
+            foreach ($_def['configuration'] as $clef => $valeur) {
+                $cmd->setConfiguration($clef, $valeur);
+            }
+        }
+        $cmd->save();
+        return $cmd;
+    }
+
     /*     * *********************Méthodes d'instance************************* */
 
     public function preInsert() {
@@ -1092,291 +1218,26 @@ class gds3710 extends eqLogic {
          * Jeedom refusait, postSave() avortait, et l'equipement devenait insauvegardable.
          * C'est le bug « Une commande portant ce nom (Reboot) existe deja ». */
 
-        // Création des commandes LDC (correction de distorsion optique)
-        $ldc_ON = $this->getCmd('action', 'ldc_ON');
-        if (!is_object($ldc_ON)) {
-            $ldc_ON = new gds3710Cmd();
+        /* Toutes les commandes fixes de l'equipement, decrites dans get_command_list().
+         * Elles occupaient ici 23 blocs recopies, soit plus de 400 lignes. */
+        foreach (gds3710::get_command_list() as $lid => $def) {
+            $this->poserCommande($lid, $def);
         }
-        if (trim((string) $ldc_ON->getName()) === '') {
-            $ldc_ON->setName(__('LDC - ON', __FILE__));
-        }
-        $ldc_ON->setEqLogic_id($this->getId());
-        $ldc_ON->setLogicalId('ldc_ON');
-        $ldc_ON->setType('action');
-        $ldc_ON->setSubType('other');
-        $ldc_ON->setIsVisible(1);
-        $ldc_ON->save();
 
-        $ldc_OFF = $this->getCmd('action', 'ldc_off');
-        if (!is_object($ldc_OFF)) {
-            $ldc_OFF = new gds3710Cmd();
+        /* Ces deux valeurs ne viennent pas du portier : le widget les lit telles quelles.
+         * Elles sont posees apres la creation, une commande devant exister pour recevoir
+         * un evenement. */
+        $stream = $this->getCmd('info', 'stream_mjpeg');
+        if (is_object($stream)) {
+            $stream->event('/plugins/gds3710/core/php/camera.php?id=' . $this->getId());
         }
-        if (trim((string) $ldc_OFF->getName()) === '') {
-            $ldc_OFF->setName(__('LDC - OFF', __FILE__));
+        /* Le client SIP ne porte que l'id de l'equipement : le widget s'en sert pour aller
+         * chercher sa configuration par un appel ajax authentifie, le mot de passe du
+         * compte SIP n'ayant rien a faire dans la valeur d'une commande. */
+        $sip = $this->getCmd('info', 'sip_client');
+        if (is_object($sip)) {
+            $sip->event((string) $this->getId());
         }
-        $ldc_OFF->setEqLogic_id($this->getId());
-        $ldc_OFF->setLogicalId('ldc_off');
-        $ldc_OFF->setType('action');
-        $ldc_OFF->setSubType('other');
-        $ldc_OFF->setIsVisible(1);
-        $ldc_OFF->save();
-
-        // Création de la commande reboot si elle n'existe pas dèjà
-        $reboot = $this->getCmd('action', 'reboot');
-        if (!is_object($reboot)) {
-            $reboot = new gds3710Cmd();
-        }
-        if (trim((string) $reboot->getName()) === '') {
-            $reboot->setName(__('Reboot', __FILE__));
-        }
-        $reboot->setEqLogic_id($this->getId());
-        $reboot->setLogicalId('reboot');
-        $reboot->setType('action');
-        $reboot->setSubType('other');
-        $reboot->setIsVisible(1);
-        $reboot->save();
-            
-        // Création de la commande open si elle n'existe pas dèjà
-        $open = $this->getCmd('action', 'open');
-        if (!is_object($open)) {
-            $open = new gds3710Cmd();
-        }
-        if (trim((string) $open->getName()) === '') {
-            $open->setName(__('Ouvrir la porte', __FILE__));
-        }
-        $open->setEqLogic_id($this->getId());
-        $open->setLogicalId('open');
-        $open->setType('action');
-        $open->setSubType('other');
-        $open->setIsVisible(1);
-        $open->save();
-
-        // Création de la commande open2 si elle n'existe pas dèjà
-        $open2 = $this->getCmd('action', 'open2');
-        if (!is_object($open2)) {
-            $open2 = new gds3710Cmd();
-        }
-        if (trim((string) $open2->getName()) === '') {
-            $open2->setName(__('Ouvrir la porte 2', __FILE__));
-        }
-        $open2->setEqLogic_id($this->getId());
-        $open2->setLogicalId('open2');
-        $open2->setType('action');
-        $open2->setSubType('other');
-        $open2->setIsVisible(1);
-        $open2->save();
-        
-        // Création de la commande close si elle n'existe pas dèjà
-        $close = $this->getCmd('action', 'close');
-        if (!is_object($close)) {
-            $close = new gds3710Cmd();
-        }
-        if (trim((string) $close->getName()) === '') {
-            $close->setName(__('Fermer la porte', __FILE__));
-        }
-        $close->setEqLogic_id($this->getId());
-        $close->setLogicalId('close');
-        $close->setType('action');
-        $close->setSubType('other');
-        $close->setIsVisible(0);
-        $close->save();
-
-        // Création de la commande close2 si elle n'existe pas dèjà
-        $close2 = $this->getCmd('action', 'close2');
-        if (!is_object($close2)) {
-            $close2 = new gds3710Cmd();
-        }
-        if (trim((string) $close2->getName()) === '') {
-            $close2->setName(__('Fermer la porte 2', __FILE__));
-        }
-        $close2->setEqLogic_id($this->getId());
-        $close2->setLogicalId('close2');
-        $close2->setType('action');
-        $close2->setSubType('other');
-        $close2->setIsVisible(0);
-        $close2->save();
-
-        // Création de la commande snapshot
-        $snapshot = $this->getCmd('action', 'snapshot');
-        if (!is_object($snapshot)) {
-            $snapshot = new gds3710Cmd();
-        }
-        if (trim((string) $snapshot->getName()) === '') {
-            $snapshot->setName(__('Prendre un snapshot', __FILE__));
-        }
-        $snapshot->setEqLogic_id($this->getId());
-        $snapshot->setLogicalId('snapshot');
-        $snapshot->setType('action');
-        $snapshot->setSubType('other');
-        $snapshot->setDisplay('icon', '<i class="fa fa-image"></i>');
-        $snapshot->setTemplate('dashboard', '');
-        $snapshot->setIsVisible(1);
-        $snapshot->save();
-
-        // Création de la commande Modify Config
-        $modifyconfig = $this->getCmd('action', 'modifyConfig');
-        if (!is_object($modifyconfig)) {
-            $modifyconfig = new gds3710Cmd();
-        }
-        if (trim((string) $modifyconfig->getName()) === '') {
-            $modifyconfig->setName(__('Modifier la configuration', __FILE__));
-        }
-        $modifyconfig->setType('action');
-        $modifyconfig->setLogicalId('modifyConfig');
-        $modifyconfig->setEqLogic_id($this->getId());
-        $modifyconfig->setSubType('message');
-        $modifyconfig->setIsVisible(0);
-        $modifyconfig->setDisplay('title_placeholder', __('ID de la commande à modifier', __FILE__));
-        $modifyconfig->setDisplay('message_placeholder', __('Valeur', __FILE__));
-        $modifyconfig->setDisplay('message_cmd_type', 'action');
-        $modifyconfig->setDisplay('message_cmd_subtype', 'message');
-        $modifyconfig->save();
-
-        // Création de la commande Send SnapShot
-        $sendSnapshot = $this->getCmd('action', 'sendSnapshot');
-        if (!is_object($sendSnapshot)) {
-            $sendSnapshot = new gds3710Cmd();
-        }
-        if (trim((string) $sendSnapshot->getName()) === '') {
-            $sendSnapshot->setName(__('Envoyer un snapshot', __FILE__));
-        }
-        $sendSnapshot->setConfiguration('request', '-');
-        $sendSnapshot->setType('action');
-        $sendSnapshot->setLogicalId('sendSnapshot');
-        $sendSnapshot->setEqLogic_id($this->getId());
-        $sendSnapshot->setSubType('message');
-        $sendSnapshot->setIsVisible(0);
-        $sendSnapshot->setDisplay('title_placeholder', __('Nombre captures ou options', __FILE__));
-        $sendSnapshot->setDisplay('message_placeholder', __('Commande message d\'envoi des captures', __FILE__));
-        $sendSnapshot->setDisplay('message_cmd_type', 'action');
-        $sendSnapshot->setDisplay('message_cmd_subtype', 'message');
-        $sendSnapshot->save();
-
-        // Création de la commande d'historique
-        $history = $this->getCmd('action', 'Open_Snapshots_Folder');
-        if (!is_object($history)) {
-            $history = new gds3710Cmd();
-        }
-        if (trim((string) $history->getName()) === '') {
-            $history->setName(__('Ouvrir le dossier des captures', __FILE__));
-        }
-        $history->setEqLogic_id($this->getId());
-        $history->setLogicalId('Open_Snapshots_Folder');
-        $history->setType('action');
-        $history->setSubType('other');
-        $history->setTemplate('dashboard', 'snapshot_folder');
-        $history->setIsVisible(1);
-        $history->save();
-
-        // Création de la commande de récupération du dernier snapshot
-        $lastest_snapshot = $this->getCmd('info', 'Lastest_Snapshot_Path');
-        if (!is_object($lastest_snapshot)) {
-            $lastest_snapshot = new gds3710Cmd();
-        }
-        if (trim((string) $lastest_snapshot->getName()) === '') {
-            $lastest_snapshot->setName(__('Chemin du dernier snapshot', __FILE__));
-        }
-        $lastest_snapshot->setEqLogic_id($this->getId());
-        $lastest_snapshot->setLogicalId('Lastest_Snapshot_Path');
-        $lastest_snapshot->setType('info');
-        $lastest_snapshot->setSubType('string');
-        $lastest_snapshot->setIsVisible(0);
-        $lastest_snapshot->save();
-
-        $lastest_snapshot_URL = $this->getCmd('info', 'Lastest_Snapshot_URL');
-        if (!is_object($lastest_snapshot_URL)) {
-            $lastest_snapshot_URL = new gds3710Cmd();
-        }
-        if (trim((string) $lastest_snapshot_URL->getName()) === '') {
-            $lastest_snapshot_URL->setName(__('Dernier snapshot', __FILE__));
-        }
-        $lastest_snapshot_URL->setEqLogic_id($this->getId());
-        $lastest_snapshot_URL->setLogicalId('Lastest_Snapshot_URL');
-        $lastest_snapshot_URL->setType('info');
-        $lastest_snapshot_URL->setSubType('string');
-        $lastest_snapshot_URL->setTemplate('dashboard', 'lastsnapshot');
-        $lastest_snapshot_URL->setTemplate('mobile', 'lastsnapshot');
-        $lastest_snapshot_URL->setIsVisible(0);
-        $lastest_snapshot_URL->save();
-
-
-        // Création de CMOS Normal
-        $cmos_NORMAL = $this->getCmd('action', 'cmos_normal');
-        if (!is_object($cmos_NORMAL)) {
-            $cmos_NORMAL = new gds3710Cmd();
-        }
-        if (trim((string) $cmos_NORMAL->getName()) === '') {
-            $cmos_NORMAL->setName(__('CMOS - Normal', __FILE__));
-        }
-        $cmos_NORMAL->setEqLogic_id($this->getId());
-        $cmos_NORMAL->setLogicalId('cmos_normal');
-        $cmos_NORMAL->setType('action');
-        $cmos_NORMAL->setSubType('other');
-        $cmos_NORMAL->setIsVisible(1);
-        $cmos_NORMAL->save();
-
-        // Création de CMOS Low Light
-        $cmos_LOWLIGHT = $this->getCmd('action', 'cmos_lowlight');
-        if (!is_object($cmos_LOWLIGHT)) {
-            $cmos_LOWLIGHT = new gds3710Cmd();
-        }
-        if (trim((string) $cmos_LOWLIGHT->getName()) === '') {
-            $cmos_LOWLIGHT->setName(__('CMOS - Low Light', __FILE__));
-        }
-        $cmos_LOWLIGHT->setEqLogic_id($this->getId());
-        $cmos_LOWLIGHT->setLogicalId('cmos_lowlight');
-        $cmos_LOWLIGHT->setType('action');
-        $cmos_LOWLIGHT->setSubType('other');
-        $cmos_LOWLIGHT->setIsVisible(1);
-        $cmos_LOWLIGHT->save();
-
-        // Création de CMOS WDR
-        $cmos_WDR = $this->getCmd('action', 'cmos_wdr');
-        if (!is_object($cmos_WDR)) {
-            $cmos_WDR = new gds3710Cmd();
-        }
-        if (trim((string) $cmos_WDR->getName()) === '') {
-            $cmos_WDR->setName(__('CMOS - WDR', __FILE__));
-        }
-        $cmos_WDR->setEqLogic_id($this->getId());
-        $cmos_WDR->setLogicalId('cmos_wdr');
-        $cmos_WDR->setType('action');
-        $cmos_WDR->setSubType('other');
-        $cmos_WDR->setIsVisible(1);
-        $cmos_WDR->save();
-
-        // Création de la commande stream_mjpeg
-        $stream_mjpeg = $this->getCmd('info', 'stream_mjpeg');
-        if (!is_object($stream_mjpeg)) {
-            $stream_mjpeg = new gds3710Cmd();
-        }
-        if (trim((string) $stream_mjpeg->getName()) === '') {
-            $stream_mjpeg->setName(__('Stream MJPEG', __FILE__));
-        }
-        $stream_mjpeg->setEqLogic_id($this->getId());
-        $stream_mjpeg->setLogicalId('stream_mjpeg');
-        $stream_mjpeg->setType('info');
-        $stream_mjpeg->setSubType('string');
-        $stream_mjpeg->setTemplate('dashboard', 'mjpegstream');
-        $stream_mjpeg->setTemplate('mobile', 'mjpegstream');
-        $stream_mjpeg->setIsVisible(1);
-        $stream_mjpeg->save();
-        $stream_mjpeg->event('/plugins/gds3710/core/php/camera.php?id='.$this->getId());
-
-        // Création de la commande last event
-        $info = $this->getCmd('info', 'Last event');
-        if (!is_object($info)) {
-            $info = new gds3710Cmd();
-        }  
-        if (trim((string) $info->getName()) === '') {
-            $info->setName(__('Last event', __FILE__));
-        }
-        $info->setType('info');
-        $info->setSubType('string');
-        $info->setLogicalId('Last event');
-        $info->setIsVisible(0);
-        $info->setEqLogic_id($this->getId());
-        $info->save();
 
         // Création des autres commandes du portier
         $cmd_array = gds3710::get_GDS3710_event_list();
@@ -1401,24 +1262,6 @@ class gds3710 extends eqLogic {
             $info->setEqLogic_id($this->getId());
             $info->save(); 
         }
-
-        // Client SIP. La valeur ne porte que l'id de l'équipement : le widget s'en
-        // sert pour aller chercher sa configuration par un appel ajax authentifié.
-        $sip = $this->getCmd('info', 'sip_client');
-        if (!is_object($sip)) {
-            $sip = new gds3710Cmd();
-            $sip->setIsVisible(0);
-        }
-        if (trim((string) $sip->getName()) === '') {
-            $sip->setName(__('Client SIP', __FILE__));
-        }
-        $sip->setType('info');
-        $sip->setSubType('string');
-        $sip->setLogicalId('sip_client');
-        $sip->setTemplate('dashboard', 'sipclient');
-        $sip->setEqLogic_id($this->getId());
-        $sip->save();
-        $sip->event((string) $this->getId());
 
         // Réglages de confort : une commande info + un curseur qui l'écrit
         foreach (gds3710::get_setting_list() as $lid => $def) {
@@ -1466,43 +1309,27 @@ class gds3710 extends eqLogic {
             $slider->save();
         }
 
-        // Planning du rétroéclairage blanc
+        /* Le planning du retroeclairage et ses horaires sont decrits dans
+         * get_command_list(). Les deux boutons qui les pilotent restent ici : ils
+         * designent l'etat qu'ils modifient, dont l'identifiant n'existe qu'une fois
+         * la commande enregistree. */
         $backlight = $this->getCmd('info', 'backlight_schedule');
-        if (!is_object($backlight)) {
-            $backlight = new gds3710Cmd();
-            $backlight->setIsVisible(0);
-        }
-        if (trim((string) $backlight->getName()) === '') {
-            $backlight->setName(__('Rétroéclairage - planning actif', __FILE__));
-        }
-        $backlight->setType('info');
-        $backlight->setSubType('binary');
-        $backlight->setLogicalId('backlight_schedule');
-        $backlight->setEqLogic_id($this->getId());
-        $backlight->save();
-
-        $hours = $this->getCmd('info', 'backlight_hours');
-        if (!is_object($hours)) {
-            $hours = new gds3710Cmd();
-            $hours->setIsVisible(0);
-        }
-        if (trim((string) $hours->getName()) === '') {
-            $hours->setName(__('Rétroéclairage - horaires', __FILE__));
-        }
-        $hours->setType('info');
-        $hours->setSubType('string');
-        $hours->setLogicalId('backlight_hours');
-        $hours->setEqLogic_id($this->getId());
-        $hours->save();
-
         foreach (array('backlight_on' => __('Rétroéclairage - activer le planning', __FILE__),
                        'backlight_off' => __('Rétroéclairage - désactiver le planning', __FILE__)) as $blid => $label) {
+            if (!is_object($backlight)) {
+                break;
+            }
             $cmd = $this->getCmd('action', $blid);
             if (!is_object($cmd)) {
                 $cmd = new gds3710Cmd();
                 $cmd->setIsVisible(0);
             }
-            $cmd->setName($label);
+            /* Le nom n'est pose que s'il est vide. Ces deux commandes avaient echappe a la
+             * correction generale du renommage : leur nom d'origine revenait a chaque
+             * enregistrement de l'equipement. */
+            if (trim((string) $cmd->getName()) === '') {
+                $cmd->setName($label);
+            }
             $cmd->setType('action');
             $cmd->setSubType('other');
             $cmd->setLogicalId($blid);
@@ -1538,22 +1365,6 @@ class gds3710 extends eqLogic {
             $cmd->save();
         }
 
-        $setHours = $this->getCmd('action', 'backlight_hours_set');
-        if (!is_object($setHours)) {
-            $setHours = new gds3710Cmd();
-            $setHours->setIsVisible(0);
-        }
-        if (trim((string) $setHours->getName()) === '') {
-            $setHours->setName(__('Rétroéclairage - définir les horaires', __FILE__));
-        }
-        $setHours->setType('action');
-        $setHours->setSubType('message');
-        $setHours->setLogicalId('backlight_hours_set');
-        $setHours->setEqLogic_id($this->getId());
-        $setHours->setDisplay('title_placeholder', __('Début, format HHMMSS', __FILE__));
-        $setHours->setDisplay('message_placeholder', __('Fin, format HHMMSS', __FILE__));
-        $setHours->save();
-
         // Commandes issues de la décomposition des évènements
         foreach (gds3710::get_event_detail_list() as $lid => $def) {
             $cmd = $this->getCmd('info', $lid);
@@ -1561,29 +1372,17 @@ class gds3710 extends eqLogic {
                 $cmd = new gds3710Cmd();
                 $cmd->setIsVisible(0);
             }
-            $cmd->setName($def['name']);
+            /* Meme regle : les neuf commandes de decomposition d'evenement reimposaient
+             * elles aussi leur nom a chaque enregistrement. */
+            if (trim((string) $cmd->getName()) === '') {
+                $cmd->setName($def['name']);
+            }
             $cmd->setType('info');
             $cmd->setSubType('string');
             $cmd->setLogicalId($lid);
             $cmd->setEqLogic_id($this->getId());
             $cmd->save();
         }
-
-        // Création de la commande de configuration automatique du portier
-        $configure = $this->getCmd('action', 'configureDoorbell');
-        if (!is_object($configure)) {
-            $configure = new gds3710Cmd();
-        }
-        if (trim((string) $configure->getName()) === '') {
-            $configure->setName(__('Configurer le portier', __FILE__));
-        }
-        $configure->setEqLogic_id($this->getId());
-        $configure->setLogicalId('configureDoorbell');
-        $configure->setType('action');
-        $configure->setSubType('other');
-        $configure->setDisplay('icon', '<i class="fas fa-cogs"></i>');
-        $configure->setIsVisible(0);
-        $configure->save();
 
         /* Capteurs releves par cmd=get&type=sysinfo. Le plugin nappelait jamais cette
          * requete alors quelle expose gratuitement les entrees/sorties digitales, letat
