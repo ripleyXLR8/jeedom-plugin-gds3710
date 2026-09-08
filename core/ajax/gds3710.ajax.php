@@ -195,8 +195,24 @@ try {
 function get_last_snapshot_url_gds($file_name){
     $gds_id = explode("/", $file_name)[0];
     $gds3710 = eqLogic::byId($gds_id);
-    $lastest_snapshot_URL = $gds3710->getCmd(null, 'Lastest_Snapshot_URL');
-    $lastest_snapshot = $gds3710->getCmd(null, 'Lastest_Snapshot_Path');
+    /* Le type etait absent des deux getCmd(). La colonne logicalId est en collation
+     * insensible a la casse : sans type, MySQL ne distingue pas une commande action d'une
+     * commande info portant le meme identifiant, et rend l'une ou l'autre selon l'ordre
+     * des lignes. C'est le bug « Une commande portant ce nom (Reboot) existe deja »,
+     * corrige partout ailleurs mais oublie ici.
+     *
+     * L'equipement et les deux commandes sont verifies au passage : la suite appelle
+     * execCmd() puis event(), qui sont des erreurs fatales sur un false. */
+    if (!is_object($gds3710) || $gds3710->getEqType_name() !== 'gds3710') {
+        return;
+    }
+    $lastest_snapshot_URL = $gds3710->getCmd('info', 'Lastest_Snapshot_URL');
+    $lastest_snapshot = $gds3710->getCmd('info', 'Lastest_Snapshot_Path');
+    if (!is_object($lastest_snapshot) || !is_object($lastest_snapshot_URL)) {
+        log::add('gds3710', 'error', 'Commandes de derniere capture absentes de l equipement '
+            . $gds_id . ' : sauvegardez l equipement pour les recreer.');
+        return;
+    }
     $FilePath = $lastest_snapshot->execCmd();
 
     if(!file_exists($FilePath)){
