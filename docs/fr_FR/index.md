@@ -471,8 +471,16 @@ Les réglages de détection vivent dans la section `event` du portier, qui renvo
 
 # Langues
 
-**L'interface du plugin est traduite** en anglais, en allemand et en espagnol. Le catalogue vit dans `core/i18n/` et couvre **226 chaînes** ; `tools/extract_i18n.py` le tient en phase avec le code, et un contrôle refuse toute chaîne ajoutée sans traduction. Le français est la langue source : il n'a pas de catalogue.
+**L'interface du plugin est traduite** en anglais, en allemand et en espagnol. Le catalogue vit dans `core/i18n/` et couvre **232 chaînes** ; `tools/extract_i18n.py` le tient en phase avec le code, et un contrôle refuse toute chaîne ajoutée sans traduction. Le français est la langue source : il n'a pas de catalogue.
 
 Les **noms de commandes** sont traduits là où ils sont déclarés : une installation neuve dans une autre langue obtient donc des noms de commandes traduits. ⚠️ **Les commandes déjà existantes ne sont jamais renommées**, ni par une mise à jour ni par un changement de langue. Le plugin ne remplit qu'un nom vide — c'est aussi ce qui protège une commande que vous auriez renommée vous-même.
+
+# Tests unitaires
+
+Le dossier `tests/` porte une **suite de tests unitaires** qui tourne **sans installation Jeedom et sans aucune dépendance à installer** : ni Composer, ni PHPUnit. `tests/bootstrap.php` reconstitue l'arborescence minimale que la classe du plugin attend et la charge face à des doublures du cœur de Jeedom, ce qui permet d'éprouver directement les fonctions pures.
+
+Lancez-les avec `./.lint.sh --tests`, ou `php tests/run.php` si PHP est disponible localement. Elles s'exécutent aussi sur **PHP 8.1, 8.2 et 8.3** à chaque publication.
+
+Ce qu'elles couvrent : le masquage des secrets avant journalisation, les réponses malformées du portier, le calcul de l'URL d'une capture, et la **cohérence des tables de déclaration** — ce dernier contrôle aurait attrapé deux défauts réellement livrés par ce plugin : un libellé de section écrit une fois avec accent et une fois sans, qui produisait deux onglets identiques, et un identifiant de commande entrant en collision avec un autre à la casse près, qui rendait l'équipement insauvegardable.
 
 ⚠️ **Cette documentation, elle, n'existe qu'en français.** Les quatre dossiers de langue attendus par Jeedom contiennent le même texte français.

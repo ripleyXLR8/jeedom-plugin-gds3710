@@ -45,6 +45,11 @@ jobs:
       - name: Syntaxe PHP et JavaScript
         run: bash .lint.sh --syntaxe
 
+      # Les tests tournent sur les trois versions de PHP, au meme titre que la syntaxe :
+      # ils s'executent sans Jeedom et sans dependance a installer.
+      - name: Tests unitaires
+        run: bash .lint.sh --tests
+
   catalogue-et-documentation:
     name: Traductions et documentation
     runs-on: ubuntu-latest
