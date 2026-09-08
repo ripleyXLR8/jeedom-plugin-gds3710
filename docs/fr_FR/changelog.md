@@ -1,5 +1,9 @@
 # Change Log - Plugin GDS 3710
 
+### 09/09/2026 (le cron interroge moins le portier)
+- **Trois sections de configuration étaient lues deux fois à chaque passage du cron.** Les réglages et les états ont chacun leur table, et « audio », « event » et « sch_open_door » figurent dans les deux : le relevé envoyait **11 requêtes là où 8 suffisent**. Sur un appareil qui ne tolère **qu'une seule session administrateur**, chaque lecture superflue est une chance de plus de couper la session d'un humain devant l'interface web du portier. Le cron fait désormais une passe unique dont il transmet le résultat.
+- Les relectures qui **suivent une écriture** sont inchangées : leur rôle est justement d'interroger l'appareil pour confirmer que la valeur a été prise.
+
 ### 09/09/2026 (le plugin a des tests)
 - **Le dépôt n'avait aucun test** : l'intégration continue ne vérifiait que la syntaxe. `tests/` porte désormais **67 vérifications** qui tournent **sans installation Jeedom et sans aucune dépendance** — ni Composer, ni PHPUnit — sur PHP 8.1, 8.2 et 8.3 à chaque publication. Elles couvrent le masquage des secrets avant journalisation, les réponses malformées du portier, le calcul de l'URL d'une capture, la cohérence des tables de déclaration et quelques garde-fous sur le source lui-même.
 - Deux des contrôles visent des défauts **réellement livrés** par ce plugin, qu'aucune relecture n'avait vus : une section écrite « Sécurité » puis « Securite », qui donnait deux onglets identiques sur la page d'équipement, et un identifiant de commande entrant en collision avec un autre à la casse près, qui rendait l'équipement insauvegardable. Réintroduire l'un ou l'autre fait échouer la suite — c'est vérifié.
