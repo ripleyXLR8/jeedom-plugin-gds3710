@@ -6,42 +6,9 @@
  * la forme d'un appel. Une fois corriges, rien n'empeche de les reintroduire — sauf ces
  * controles. Ils lisent les fichiers du depot, pas ceux du bac a sable. */
 
-/* Retire les commentaires en conservant la numerotation des lignes.
- *
- * Sans cela, ces controles se declenchent sur les commentaires qui EXPLIQUENT le defaut
- * corrige — le plugin en compte beaucoup, et c'est une qualite. Le tokenizer de PHP
- * distingue le code du commentaire sans heuristique fragile. */
-function gds3710_code_seul($_source) {
-    $out = '';
-    foreach (token_get_all($_source) as $t) {
-        if (is_array($t)) {
-            if ($t[0] === T_COMMENT || $t[0] === T_DOC_COMMENT) {
-                $out .= str_repeat("\n", substr_count($t[1], "\n"));
-                continue;
-            }
-            $out .= $t[1];
-            continue;
-        }
-        $out .= $t;
-    }
-    return $out;
-}
-
-function gds3710_fichiers_php() {
-    $out = array();
-    foreach (array('core', 'desktop', 'plugin_info') as $dossier) {
-        $base = GDS3710_RACINE . '/' . $dossier;
-        if (!is_dir($base)) { continue; }
-        $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($base, FilesystemIterator::SKIP_DOTS));
-        foreach ($it as $f) {
-            if ($f->getExtension() !== 'php') { continue; }
-            $nom = str_replace(GDS3710_RACINE . '/', '', str_replace('\\', '/', $f->getPathname()));
-            $out[$nom] = gds3710_code_seul(file_get_contents($f->getPathname()));
-        }
-    }
-    return $out;
-}
-
+/* gds3710_fichiers_php() et gds3710_code_seul() vivent dans bootstrap.php : plusieurs
+ * fichiers de test s'en servent, et l'ordre alphabetique d'execution deciderait sinon de
+ * leur disponibilite. */
 $fichiers = gds3710_fichiers_php();
 
 Verif::bloc('source : getCmd() filtre toujours par type');

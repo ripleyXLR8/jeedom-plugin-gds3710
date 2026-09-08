@@ -180,15 +180,34 @@ class gds3710 extends eqLogic {
      *  Acces HTTP au portier                                              *
      * ------------------------------------------------------------------ */
 
-    private static function httpGet($_url, $_cookie = '') {
-        $ch = curl_init();
-        $opt = array(
-            CURLOPT_URL => $_url,
+    /* Sels d'authentification du portier. Ils etaient recopies en clair a trois endroits,
+     * dont un hors de cette classe : deux valeurs magiques, faciles a confondre puisque
+     * seules quelques lettres les separent.
+     *
+     * Les deux mecanismes sont bien distincts : SEL_SESSION ouvre la session
+     * d'administration (une seule a la fois sur l'appareil), SEL_MEDIA autorise la
+     * consultation d'une capture ou du flux et ne la perturbe pas. */
+    const SEL_SESSION = 'GDS3710lZpRsFzCbM';
+    const SEL_MEDIA = 'GDS3710lDyTlHwNgZ';
+
+    /* Options communes a tout appel vers le portier.
+     *
+     * Le certificat de l'appareil est auto-signe et son nom ne correspond a rien : la
+     * verification ne peut pas etre activee sans couper toute communication. Le delai
+     * d'attente, lui, etait absent des appels de capture — une requete pouvait donc
+     * bloquer indefiniment le cron ou la page qui l'avait declenchee. */
+    public static function optionsHttp($_extra = array()) {
+        return $_extra + array(
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_SSL_VERIFYHOST => false,
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 10,
+            CURLOPT_TIMEOUT => 15,
         );
+    }
+
+    private static function httpGet($_url, $_cookie = '') {
+        $ch = curl_init();
+        $opt = self::optionsHttp(array(CURLOPT_URL => $_url, CURLOPT_TIMEOUT => 10));
         if ($_cookie !== '') {
             $opt[CURLOPT_COOKIE] = $_cookie;
         }
@@ -196,6 +215,82 @@ class gds3710 extends eqLogic {
         $result = curl_exec($ch);
         curl_close($ch);
         return $result;
+    }
+
+    /* Recompose une chaine de cookies a partir des en-tetes d'une reponse HTTP.
+     *
+     * Isolee de la requete pour etre eprouvee : ce decoupage etait ecrit au milieu de
+     * take_snapshot(), donc intestable, alors qu'une chaine vide y passe inapercue et
+     * fait echouer la capture bien plus loin, sans rapport apparent. */
+    public static function extraireCookies($_entetes) {
+        if (!is_string($_entetes) || $_entetes === '') {
+            return '';
+        }
+        /* La classe de caracteres exclut aussi la fin de ligne. Avec le [^;]* d'origine,
+         * un Set-Cookie sans attribut — donc sans « ; » pour arreter la capture — emportait
+         * le retour chariot dans la valeur du cookie, qui partait corrompu a la requete
+         * suivante. Le portier envoie « ; path=/ » aujourd'hui, ce qui masquait le defaut. */
+        preg_match_all('/^Set-Cookie:\s*([^;\r\n]*)/mi', $_entetes, $matches);
+        $cookies = array();
+        foreach ($matches[1] as $item) {
+            $cookie = array();
+            parse_str($item, $cookie);
+            $cookies = array_merge($cookies, $cookie);
+        }
+        $chaine = '';
+        foreach ($cookies as $clef => $valeur) {
+            $chaine .= $clef . '=' . $valeur . ';';
+        }
+        return rtrim($chaine, ';');
+    }
+
+    /* Ouvre une session de consultation media et rend la chaine de cookies a rejouer.
+     *
+     * Distincte de openSession() : sel different, point d'entree « type=1 », et cookies
+     * lus dans les en-tetes de la reponse au lieu d'etre recomposes. Elle ne consomme donc
+     * pas la session d'administration, dont l'appareil n'admet qu'un exemplaire.
+     *
+     * Ce code vivait au milieu de take_snapshot(), avec ses options cURL recopiees trois
+     * fois — dont un CURLOPT_RETURNTRANSFER pose deux fois dans le meme tableau. */
+    public function sessionMedia() {
+        $ip = trim((string) $this->getConfiguration('ip'));
+        $password = (string) $this->getConfiguration('password');
+        if ($ip === '' || $password === '') {
+            log::add('gds3710', 'error', 'Adresse ou mot de passe du portier absent : capture impossible.');
+            return null;
+        }
+
+        $defi = gds3710::parseXml(
+            self::httpGet('https://' . $ip . '/goform/login?cmd=login&user=admin&type=1'),
+            'defi de capture');
+        if ($defi === null) {
+            return null;
+        }
+        $challenge = (string) $defi->ChallengeCode[0];
+        if ($challenge === '') {
+            log::add('gds3710', 'error', 'Le portier n a pas renvoye de defi d authentification pour la capture.');
+            return null;
+        }
+
+        /* Ne jamais journaliser la chaine hachee : elle porte le mot de passe en clair. */
+        $authcode = md5($challenge . ':' . gds3710::SEL_MEDIA . ':' . $password);
+
+        $ch = curl_init();
+        curl_setopt_array($ch, self::optionsHttp(array(
+            CURLOPT_URL => 'https://' . $ip . '/goform/login?cmd=login&user=admin&authcode='
+                . $authcode . '&type=1',
+            CURLOPT_HEADER => true,
+        )));
+        $reponse = curl_exec($ch);
+        curl_close($ch);
+
+        $cookies = gds3710::extraireCookies($reponse);
+        if ($cookies === '') {
+            log::add('gds3710', 'error', 'Authentification refusee pour la capture sur ' . $this->getHumanName()
+                . ' : aucun cookie de session recu. Verifiez le mot de passe administrateur.');
+            return null;
+        }
+        return $cookies;
     }
 
     /* Ouvre une session sur le portier et renvoie la chaine de cookies a rejouer.
@@ -225,7 +320,7 @@ class gds3710 extends eqLogic {
         if ($challenge === '') {
             return null;
         }
-        $authcode = md5($challenge . ':GDS3710lZpRsFzCbM:' . $password);
+        $authcode = md5($challenge . ':' . gds3710::SEL_SESSION . ':' . $password);
         $res = gds3710::parseXml(self::httpGet('https://' . $ip . '/goform/login?cmd=login&user=admin&authcode=' . $authcode), 'ouverture de session');
         if ($res === null || (string) $res->ResCode[0] !== '0') {
             log::add('gds3710', 'error', 'Authentification refusee par le portier ' . $this->getHumanName()
@@ -1969,68 +2064,14 @@ class gds3710Cmd extends cmd {
         log::add('gds3710', 'debug', 'Snapshot has been requested');
 
         $gds3710 = eqLogic::byId($this->getEqLogic_id());
-
         $ip = $gds3710->getConfiguration('ip');
-        $password = $gds3710->getConfiguration('password');
-        $salt = 'GDS3710lDyTlHwNgZ';
 
-        $ch = curl_init();
-
-        $optArray = array(
-            CURLOPT_URL => 'https://'.$ip.'/goform/login?cmd=login&user=admin&type=1',   
-            CURLOPT_SSL_VERIFYPEER  => false,
-            CURLOPT_SSL_VERIFYHOST => false,
-            CURLOPT_RETURNTRANSFER => true
-        );
-
-        log::add('gds3710', 'debug', 'URL array : '.gds3710::redact($optArray));
-
-        curl_setopt_array($ch, $optArray);
-        $data = curl_exec($ch);
-
-        log::add('gds3710', 'debug', 'URL return : '.gds3710::redact($data));
-
-        $auth_challenge = gds3710::parseXml($data, 'capture');
-        if ($auth_challenge === null) {
+        /* Authentification media : voir gds3710::sessionMedia(). Elle occupait ici une
+         * soixantaine de lignes, options cURL recopiees trois fois comprises. */
+        $cookies_string = $gds3710->sessionMedia();
+        if ($cookies_string === null) {
             return null;
         }
-        $ChallengeCode = $auth_challenge->ChallengeCode[0];
-        $string_to_be_hashed = $ChallengeCode.":".$salt.":".$password;
-
-        /* Ne jamais journaliser cette chaine : elle contient le mot de passe en clair. */
-        log::add('gds3710', 'debug', 'Challenge recu : '.$ChallengeCode);
-
-        $auth_response = md5($string_to_be_hashed);
-        $url ='https://'.$ip.'/goform/login?cmd=login&user=admin&authcode='.$auth_response.'&type=1';
-
-        $optArray = array(
-            CURLOPT_URL => $url,         
-            CURLOPT_SSL_VERIFYPEER  => false,
-            CURLOPT_SSL_VERIFYHOST => false,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HEADER => true
-        );
-
-        log::add('gds3710', 'debug', 'URL array : '.gds3710::redact($optArray));
-
-        $ch = curl_init();
-        curl_setopt_array($ch, $optArray);
-        $data = curl_exec($ch);
-
-        log::add('gds3710', 'debug', 'URL return : '.gds3710::redact($data));
-
-        preg_match_all('/^Set-Cookie:\s*([^;]*)/mi', $data, $matches);
-        $cookies = array();
-        foreach($matches[1] as $item) {
-            parse_str($item, $cookie);
-            $cookies = array_merge($cookies, $cookie);
-        }
-
-        $cookies_string = '';
-        foreach($cookies as $key => $value){
-            $cookies_string=$cookies_string.$key."=".$value.";";
-        }
-        $cookies_string = rtrim($cookies_string,';');
 
         $url ='https://'.$ip.'/snapshot/view0.jpg';
         
@@ -2065,17 +2106,14 @@ class gds3710Cmd extends cmd {
         }
         log::add('gds3710', 'debug', 'Trying to create the capture under : '.$output_file);
 
-        $optArray = array(
-            CURLOPT_URL => $url,         
-            CURLOPT_SSL_VERIFYPEER  => false,
-            CURLOPT_SSL_VERIFYHOST => false,
-            CURLOPT_RETURNTRANSFER => true,
+        /* CURLOPT_RETURNTRANSFER figurait DEUX fois dans ce tableau, et CURLOPT_BINARYTRANSFER
+         * n'a plus aucun effet depuis PHP 5.1.3. Le corps part dans $fp via CURLOPT_FILE. */
+        $optArray = gds3710::optionsHttp(array(
+            CURLOPT_URL => $url,
             CURLOPT_COOKIE => $cookies_string,
             CURLOPT_HEADER => false,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_BINARYTRANSFER => true,
-            CURLOPT_FILE => $fp
-        );
+            CURLOPT_FILE => $fp,
+        ));
 
         log::add('gds3710', 'debug', 'URL array : '.gds3710::redact($optArray));
 

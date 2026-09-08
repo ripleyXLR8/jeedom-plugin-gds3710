@@ -74,7 +74,9 @@ if (!$autorise) {
 $ip = $gds3710->getConfiguration('ip');
 $password = $gds3710->getConfiguration('password');
 $mac = $gds3710->getConfiguration('macaddress');
-$remote_pin = 'GDS3710lDyTlHwNgZ';
+/* Le sel etait recopie ici en clair, identique a celui de la capture : deux
+ * definitions de la meme valeur magique, dans deux fichiers. */
+$remote_pin = gds3710::SEL_MEDIA;
 $auth_type = $gds3710->getConfiguration('auth_type');
 log::add('gds3710', 'debug', 'Config is : '.$mac.' | '.$ip.' | '.$auth_type);
 
