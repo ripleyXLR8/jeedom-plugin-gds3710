@@ -292,8 +292,16 @@ If a call fails on the server side with an unexplained error, try the "Codec(s) 
 
 📖 **The complete and up-to-date documentation lives in [`docs/fr_FR/index.md`](docs/fr_FR/index.md)**, also published on the [documentation site](https://ripleyxlr8.github.io/jeedom-plugin-gds3710/fr_FR/). Should this README and the documentation disagree, the documentation wins.
 
-**The plugin interface is translated** into English, German and Spanish: `core/i18n/` carries a catalogue of **226 strings**, kept in step with the code by `tools/extract_i18n.py` and checked on every push. French is the source language and needs no catalogue.
+**The plugin interface is translated** into English, German and Spanish: `core/i18n/` carries a catalogue of **232 strings**, kept in step with the code by `tools/extract_i18n.py` and checked on every push. French is the source language and needs no catalogue.
 
 Command names are translated at the point where they are declared, so a fresh installation in another language gets English, German or Spanish command names. ⚠️ **Commands that already exist are never renamed** — neither by an update nor by a language change. The plugin only ever fills a name that is empty, which is also what protects a command you renamed yourself.
+
+# Unit tests
+
+`tests/` holds a **unit test suite** that runs without a Jeedom installation and without any dependency to install — no Composer, no PHPUnit. `tests/bootstrap.php` rebuilds the minimal tree the plugin class expects and loads it against stubs of the Jeedom core, so the pure functions can be exercised directly.
+
+Run them with `./.lint.sh --tests`, or `php tests/run.php` if PHP is available locally. They also run on **PHP 8.1, 8.2 and 8.3** on every push.
+
+What they cover: secret redaction before logging, the door station's malformed answers, the snapshot URL calculation, and the **consistency of the declaration tables** — the last one would have caught two defects this plugin actually shipped: a section label written both with and without its accent, which produced two identical tabs, and a command identifier colliding with another one that differed only in case, which made the equipment impossible to save.
 
 The in-plugin documentation, on the other hand, is still written in French only; the four language folders Jeedom expects hold the same text. This README is the English entry point.
