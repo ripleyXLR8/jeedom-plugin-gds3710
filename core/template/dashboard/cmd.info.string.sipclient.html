@@ -62,15 +62,15 @@
   <a class="btn btn-sm btn-default action">#name#</a>
 
   <div class="sipDisplay" style="display:none;" title="#name_display#" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">
-    <audio id="remoteAudio" autoplay></audio>
+    <audio class="remoteaudio" autoplay data-eqLogic_uid="#uid#" data-eqLogic_id="#id#"></audio>
     <center class="calleridentitydisplay" style="padding:8px; display:none" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">
       <div class="namedisplay" style="font-size: 2.2em" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">Name</div>
       <div class="uridisplay" style="font-size: 1.3em; opacity:0.75" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">uri</div>
     </center>
     <div class="sipmedia" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">
-    <img class="previewview" style="border: 3px solid grey; display:none" id="previewView" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" />
-    <video class="selfview" style="border: 3px solid grey; display:none" id="selfView" autoplay muted=true autoplay data-eqLogic_uid="#uid#" data-eqLogic_id="#id#"></video>
-    <video class="remoteview" style="border: 3px solid grey; display:none" id="remoteView" autoplay data-eqLogic_uid="#uid#" data-eqLogic_id="#id#"></video>
+    <img class="previewview" style="border: 3px solid grey; display:none" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#" />
+    <video class="selfview" style="border: 3px solid grey; display:none" autoplay muted=true autoplay data-eqLogic_uid="#uid#" data-eqLogic_id="#id#"></video>
+    <video class="remoteview" style="border: 3px solid grey; display:none" autoplay data-eqLogic_uid="#uid#" data-eqLogic_id="#id#"></video>
     </div>
     <center>
       <a class="sipactionbutton btn btn-sm btn-default action" data-eqLogic_uid="#uid#" data-eqLogic_id="#id#">Action</a>
@@ -131,7 +131,9 @@
     var redColor = 'rgb(185, 58, 62)';
     var orangeColor = 'rgb(195, 125, 40)';
 
-    sipClientState = {
+    /* « var » : sans lui, cet etat est une variable globale, et un second widget sur la
+       meme page ecrasait celui du premier. Idem pour ringtone et tonalite plus bas. */
+    var sipClientState = {
 
       internalSipStateText : '',
       internalSipRegistrationState : false,
@@ -536,8 +538,11 @@
       }
     }
 
-    $(document).off('click.gds3710porte')
-      .on('click.gds3710porte', '.sipdoor[data-eqLogic_id=#id#]', function () {
+    /* L'espace de noms porte l'id de la commande. Il etait commun a tous les widgets :
+       off() supprimant tous les gestionnaires d'un espace de noms quel que soit leur
+       selecteur, l'initialisation du second portier desactivait les boutons du premier. */
+    $(document).off('click.gds3710porte#id#')
+      .on('click.gds3710porte#id#', '.sipdoor[data-eqLogic_id=#id#]', function () {
         var bouton = $(this);
         if (bouton.hasClass('disabled')) {
           return;
@@ -603,8 +608,8 @@
 
     /* Gestionnaires delegues et nommes : une reinitialisation du widget les remplace
      * au lieu de les empiler, ce qui enverrait chaque touche plusieurs fois. */
-    $(document).off('click.gds3710clavier')
-      .on('click.gds3710clavier', '.sipkey[data-eqLogic_id=#id#]', function () {
+    $(document).off('click.gds3710clavier#id#')
+      .on('click.gds3710clavier#id#', '.sipkey[data-eqLogic_id=#id#]', function () {
         var touche = $(this).attr('data-touche');
         if (sipClientState.sipOnCall && session) {
           /* En communication, le clavier envoie des tonalites DTMF : c'est par ce
@@ -616,7 +621,7 @@
         composition += touche;
         majComposition();
       })
-      .on('click.gds3710clavier', '.sipclear[data-eqLogic_id=#id#]', function () {
+      .on('click.gds3710clavier#id#', '.sipclear[data-eqLogic_id=#id#]', function () {
         composition = '';
         majComposition();
       });
@@ -680,13 +685,22 @@
       $(".sipDisplay[data-eqLogic_uid=#uid#]").dialog("open");
     });
 
-    ringtone = new Audio("plugins/gds3710/core/sound/bell.mp3");
-    tonalite = new Audio("plugins/gds3710/core/sound/tonalite.mp3");
+    var ringtone = new Audio("plugins/gds3710/core/sound/bell.mp3");
+    var tonalite = new Audio("plugins/gds3710/core/sound/tonalite.mp3");
 
-    var selfView = document.getElementById('selfView');
-    var remoteView = document.getElementById('remoteView');
-    var remoteAudio = document.getElementById('remoteAudio');
-    var previewView = document.getElementById('previewView');
+    /* Ces quatre lecteurs etaient designes par des id en dur, alors que ce gabarit est
+       instancie une fois par commande : deux portiers sur le meme dashboard donnaient
+       quatre id en double, et getElementById rendait toujours ceux du premier. Le second
+       widget pilotait donc l'image et le son du premier. Les elements portent deja le
+       marqueur de leur equipement : on s'en sert. */
+    var selfView    = $('.selfview[data-eqLogic_id=#id#]')[0];
+    var remoteView  = $('.remoteview[data-eqLogic_id=#id#]')[0];
+    var remoteAudio = $('.remoteaudio[data-eqLogic_id=#id#]')[0];
+    var previewView = $('.previewview[data-eqLogic_id=#id#]')[0];
+    if (!selfView || !remoteView || !remoteAudio || !previewView) {
+      gds3710SipProblem('les lecteurs audio et video du widget sont introuvables');
+      return;
+    }
 
     var session;
     var request;

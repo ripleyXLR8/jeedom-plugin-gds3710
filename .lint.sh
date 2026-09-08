@@ -1,84 +1,196 @@
 #!/bin/bash
-# Controles avant commit : syntaxe PHP 8.2 (via Docker) et coherence de la documentation.
+# Controles avant commit : syntaxe, catalogue de traduction, coherence de la documentation.
+#
+# Le meme script sert en local et en integration continue. En local il n'y a ni php ni
+# node installes : il retombe alors sur Docker. En CI ils sont fournis par le runner et
+# sont utilises directement. La CI execute donc exactement les memes controles au lieu
+# de les recopier — ce plugin a deja paye cher deux listes recopiees a la main.
+#
+#   ./.lint.sh              tout
+#   ./.lint.sh --syntaxe    syntaxe PHP et JavaScript seulement
+#   ./.lint.sh --tests      tests unitaires seulement
+#   ./.lint.sh --i18n       catalogue de traduction seulement
+#   ./.lint.sh --docs       README, documentation et langues seulement
 cd "$(dirname "$0")"
 fail=0
-
-echo "== syntaxe PHP 8.2 =="
 export MSYS_NO_PATHCONV=1
-docker run --rm -v "$(pwd -W 2>/dev/null || pwd)":/app -w //app php:8.2-cli \
-  bash -c 'f=0; for x in $(find core desktop plugin_info -name "*.php"); do
-             out=$(php -l "$x" 2>&1); [ $? -ne 0 ] && { echo "$out"; f=1; };
-           done; [ $f -eq 0 ] && echo "  OK sur tous les fichiers"; exit $f' || fail=1
 
-# Le JavaScript du widget SIP est long et vit dans un fichier .html : rien ne le
-# verifie autrement. Un vrai analyseur, pas un comptage d accolades — celui-ci se
-# faisait piéger par une simple apostrophe dans un commentaire.
-echo "== syntaxe du widget SIP =="
-TPL=core/template/dashboard/cmd.info.string.sipclient.html
-if [ -f "$TPL" ]; then
-  python -c "
+ARGS="$*"
+tout=1
+for a in $ARGS; do
+  case "$a" in --syntaxe|--tests|--i18n|--docs) tout=0;; esac
+done
+veut() {
+  [ $tout -eq 1 ] && return 0
+  for a in $ARGS; do [ "$a" = "$1" ] && return 0; done
+  return 1
+}
+
+MONTAGE="$(pwd -W 2>/dev/null || pwd)"
+PHP_NATIF=$(command -v php || true)
+NODE_NATIF=$(command -v node || true)
+PYTHON=$(command -v python3 || command -v python || true)
+
+php_lint() {
+  if [ -n "$PHP_NATIF" ]; then
+    local f code=0
+    for f in "$@"; do php -l "$f" >/dev/null || code=1; done
+    return $code
+  fi
+  docker run --rm -v "$MONTAGE":/app -w //app php:8.2-cli \
+    bash -c 'f=0; for x in "$@"; do out=$(php -l "$x" 2>&1) || { echo "$out"; f=1; }; done; exit $f' _ "$@"
+}
+
+node_check() {
+  if [ -n "$NODE_NATIF" ]; then
+    node --check "$1" 2>/tmp/gdsjs.err
+  else
+    docker run --rm -v "$MONTAGE":/w -w //w node:22-alpine node --check "$1" 2>/tmp/gdsjs.err
+  fi
+}
+
+php_run() {
+  if [ -n "$PHP_NATIF" ]; then
+    php "$@"
+  else
+    docker run --rm -v "$MONTAGE":/app -w //app php:8.2-cli php "$@"
+  fi
+}
+
+if veut --syntaxe; then
+  if [ -n "$PHP_NATIF" ]; then
+    echo "== syntaxe PHP $(php -r 'echo PHP_VERSION;') =="
+  else
+    echo "== syntaxe PHP 8.2 (Docker) =="
+  fi
+  FICHIERS=$(find core desktop plugin_info tests -name "*.php" | sort)
+  if php_lint $FICHIERS; then
+    echo "  OK sur $(echo "$FICHIERS" | wc -l) fichier(s)"
+  else
+    fail=1
+  fi
+
+  # Le JavaScript du widget SIP est long et vit dans un fichier .html : rien ne le
+  # verifie autrement. Un vrai analyseur, pas un comptage d accolades — celui-ci se
+  # faisait piéger par une simple apostrophe dans un commentaire.
+  echo "== syntaxe du widget SIP =="
+  TPL=core/template/dashboard/cmd.info.string.sipclient.html
+  if [ -f "$TPL" ] && [ -n "$PYTHON" ]; then
+    "$PYTHON" -c "
 import io, sys
 s = io.open(sys.argv[1], encoding='utf-8').read()
 i = s.index('<script>', s.index('jssip'))
 io.open(sys.argv[2], 'w', encoding='utf-8', newline='\n').write(s[i+len('<script>'):s.rindex('</script>')])
 " "$TPL" .widget.tmp.js
-  if docker run --rm -v "$(pwd -W 2>/dev/null || pwd)":/w -w //w node:22-alpine node --check .widget.tmp.js 2>/tmp/gdsjs.err; then
-    echo "  OK"
-  else
-    echo "  ERREUR DE SYNTAXE :"; sed -n "1,6p" /tmp/gdsjs.err | sed "s/^/    /"; fail=1
+    if node_check .widget.tmp.js; then
+      echo "  OK"
+    else
+      echo "  ERREUR DE SYNTAXE :"; sed -n "1,6p" /tmp/gdsjs.err | sed "s/^/    /"; fail=1
+    fi
+    rm -f .widget.tmp.js /tmp/gdsjs.err
   fi
-  rm -f .widget.tmp.js /tmp/gdsjs.err
+
+  # Le JavaScript de la page d equipement echappait au controle : une erreur y rend la
+  # page muette, sans rien dans le log du plugin.
+  echo "== syntaxe du JavaScript de la page d equipement =="
+  for JS in desktop/js/*.js; do
+    case "$JS" in *jssip*) continue;; esac
+    [ -f "$JS" ] || continue
+    if node_check "$JS"; then
+      echo "  OK  $JS"
+    else
+      echo "  ERREUR DE SYNTAXE dans $JS :"; sed -n "1,6p" /tmp/gdsjs.err | sed "s/^/    /"; fail=1
+    fi
+    rm -f /tmp/gdsjs.err
+  done
 fi
 
-# Le JavaScript de la page d equipement echappait au controle : une erreur y rend la
-# page muette, sans rien dans le log du plugin.
-echo "== syntaxe du JavaScript de la page d equipement =="
-for JS in desktop/js/*.js; do
-  case "$JS" in *jssip*) continue;; esac
-  [ -f "$JS" ] || continue
-  if docker run --rm -v "$(pwd -W 2>/dev/null || pwd)":/w -w //w node:22-alpine node --check "$JS" 2>/tmp/gdsjs2.err; then
-    echo "  OK  $JS"
+if veut --tests; then
+  # Le plugin n'avait aucun test : la CI ne verifiait que la syntaxe, et rien ne
+  # protegeait les fonctions qui masquent les secrets, lisent les reponses du portier ou
+  # calculent l'URL d'une capture. Ces tests tournent sans Jeedom (voir tests/bootstrap.php)
+  # et sans aucune dependance a installer.
+  echo "== tests unitaires =="
+  if php_run tests/run.php; then
+    :
   else
-    echo "  ERREUR DE SYNTAXE dans $JS :"; sed -n "1,6p" /tmp/gdsjs2.err | sed "s/^/    /"; fail=1
-  fi
-  rm -f /tmp/gdsjs2.err
-done
-
-# Le README et docs/ ont deja diverge deux fois : une fois le README seul mis a jour,
-# une fois docs/ seul. Ces deux oublis ont laisse aux utilisateurs une documentation
-# fausse la ou elle comptait. Ce controle rend l oubli impossible a manquer.
-echo "== parite README / documentation =="
-# Le README est en anglais et la documentation en francais : chaque marqueur doit donc
-# reconnaitre les deux formulations, sans quoi le controle signalerait une divergence
-# sur chaque concept.
-MARQUEURS=(
-  "Configurer le portier"
-  "Remonter les capteurs|Poll the door station"
-  "Conserver les captures|Keep snapshots"
-  "contrôle d'adresse d'origine|contrôle de l'adresse d'origine|source address check"
-  "1.0.11.18"
-  "Dernière personne entrée|last person in"
-  "Réglages du portier|Door station settings"
-  "Client SIP|SIP client"
-  "connect-src|Politique de sécurité"
-  "DOOR_NUM"
-)
-for m in "${MARQUEURS[@]}"; do
-  in_readme=0; in_doc=0
-  grep -qiE "$m" README.md 2>/dev/null && in_readme=1
-  grep -qiE "$m" docs/fr_FR/index.md 2>/dev/null && in_doc=1
-  if [ $in_readme -ne $in_doc ]; then
-    printf "  DIVERGENCE : « %s » -> README=%s doc=%s\n" "$m" "$in_readme" "$in_doc"
     fail=1
   fi
-done
-[ $fail -eq 0 ] && echo "  OK, aucun marqueur present d un seul cote"
+fi
 
-echo "== les 4 langues sont identiques =="
-n=$(md5sum docs/*/index.md | awk '{print $1}' | sort -u | wc -l)
-if [ "$n" -ne 1 ]; then echo "  DIVERGENCE : $n versions differentes de index.md"; fail=1; else echo "  OK"; fi
-n=$(md5sum docs/*/changelog.md | awk '{print $1}' | sort -u | wc -l)
-if [ "$n" -ne 1 ]; then echo "  DIVERGENCE : $n versions differentes de changelog.md"; fail=1; else echo "  OK"; fi
+if veut --i18n; then
+  # Une chaine ajoutee au code sans entree dans les fichiers de langue s'affiche en
+  # francais pour tout le monde, sans que rien ne le signale. Ce controle rend l oubli
+  # visible ; « python tools/extract_i18n.py --ecrire » met le catalogue a jour.
+  echo "== catalogue de traduction =="
+  if [ -n "$PYTHON" ]; then
+    if "$PYTHON" tools/extract_i18n.py; then
+      echo "  OK, aucune chaine sans traduction"
+    else
+      echo "  Lancez « python tools/extract_i18n.py --ecrire », puis traduisez les entrees vides."
+      fail=1
+    fi
+  else
+    echo "  ignore : python introuvable"
+  fi
+fi
+
+if veut --docs; then
+  # Le README et docs/ ont deja diverge deux fois : une fois le README seul mis a jour,
+  # une fois docs/ seul. Ces deux oublis ont laisse aux utilisateurs une documentation
+  # fausse la ou elle comptait. Ce controle rend l oubli impossible a manquer.
+  echo "== parite README / documentation =="
+  # Le README est en anglais et la documentation en francais : chaque marqueur doit donc
+  # reconnaitre les deux formulations, sans quoi le controle signalerait une divergence
+  # sur chaque concept.
+  MARQUEURS=(
+    "Configurer le portier"
+    "Remonter les capteurs|Poll the door station"
+    "Conserver les captures|Keep snapshots"
+    "contrôle d'adresse d'origine|contrôle de l'adresse d'origine|source address check"
+    "1.0.11.18"
+    "Dernière personne entrée|last person in"
+    "Réglages du portier|Door station settings"
+    "Client SIP|SIP client"
+    "connect-src|Politique de sécurité"
+    "DOOR_NUM"
+    "core/i18n|traduite|translated"
+    "Maintien de porte|Keep door open"
+    "détection de mouvement|motion detection"
+    "mode webrelay|webrelay mode"
+    "Tests unitaires|Unit tests"
+  )
+  for m in "${MARQUEURS[@]}"; do
+    in_readme=0; in_doc=0
+    grep -qiE "$m" README.md 2>/dev/null && in_readme=1
+    grep -qiE "$m" docs/fr_FR/index.md 2>/dev/null && in_doc=1
+    if [ $in_readme -ne $in_doc ]; then
+      printf "  DIVERGENCE : « %s » -> README=%s doc=%s\n" "$m" "$in_readme" "$in_doc"
+      fail=1
+    fi
+  done
+  [ $fail -eq 0 ] && echo "  OK, aucun marqueur present d un seul cote"
+
+  # L'introduction de la documentation etait restee a « version actuelle (5 mars 2019) »
+  # et n'annoncait que 5 fonctionnalites sur 17, alors que le README etait a jour. C'est
+  # la premiere chose que lit un utilisateur. Comparer le nombre d'items des deux listes
+  # attrape la divergence sans imposer une traduction mot a mot.
+  echo "== les deux introductions annoncent autant de fonctionnalites =="
+  n_readme=$(sed -n '/^# Introduction/,/^This plugin is based/p' README.md | grep -c "^- ")
+  n_doc=$(sed -n '/^# Introduction/,/^# Configuration du portier/p' docs/fr_FR/index.md | grep -c "^- ")
+  if [ "$n_readme" -ne "$n_doc" ]; then
+    echo "  DIVERGENCE : README=$n_readme item(s), documentation=$n_doc item(s)"
+    fail=1
+  else
+    echo "  OK, $n_readme de chaque cote"
+  fi
+
+  echo "== les 4 langues sont identiques =="
+  n=$(md5sum docs/*/index.md | awk '{print $1}' | sort -u | wc -l)
+  if [ "$n" -ne 1 ]; then echo "  DIVERGENCE : $n versions differentes de index.md"; fail=1; else echo "  OK"; fi
+  n=$(md5sum docs/*/changelog.md | awk '{print $1}' | sort -u | wc -l)
+  if [ "$n" -ne 1 ]; then echo "  DIVERGENCE : $n versions differentes de changelog.md"; fail=1; else echo "  OK"; fi
+fi
 
 [ $fail -eq 0 ] && echo "== tout est vert ==" || echo "== ECHEC =="
 exit $fail

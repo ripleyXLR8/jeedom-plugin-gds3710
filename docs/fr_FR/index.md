@@ -3,12 +3,28 @@
 > by Richard Perez | richard@perez-mail.fr
 
 # Introduction
-Ce plugin permet l'intégration du portier GrandStream GDS3710 dans Jeedom. Dans sa version actuelle (5 mars 2019), il permet de :
-- Récupérer es évènements du portier et de les gérer via des scénariis ou des commandes.
-- D'afficher le flux MJPEG du portier dans un widget de dashboard ou de mobile.
-- D'enregistrer des images extraites du flux MJPEG.
-- De consulter les images enregistrées via une bibliothèque intégrée.
-- D'envoyer des images enregistrées via une autre commmande (testé avec le plugin Telegram).
+
+Ce plugin intègre le portier GrandStream GDS3710 dans Jeedom. Il permet de :
+
+- Recevoir les évènements du portier et les exploiter dans des scénarios ou des commandes.
+- Modifier la configuration du portier.
+- Actionner les contacts secs qui ouvrent une porte, ou pilotent tout autre équipement.
+- Afficher le flux MJPEG du portier dans un widget de dashboard ou de mobile.
+- Enregistrer des captures extraites du flux MJPEG.
+- Consulter ces captures dans une bibliothèque intégrée.
+- Transmettre des captures à une autre commande (testé avec le plugin Telegram).
+- Changer le mode du capteur vidéo (normal, faible luminosité, WDR).
+- Configurer le portier lui-même par une seule commande, sans aucune saisie manuelle.
+- Remonter les capteurs du portier : entrées et sorties digitales, état des relais, anti-arrachement, températures, uptime, version de firmware et mise à jour disponible.
+- Purger automatiquement les captures au-delà d'une durée de rétention.
+- Exposer chaque évènement décomposé en commandes : code, libellé, date, badge, utilisateur, porte, numéro SIP, dernière personne entrée et dernière alerte sécurité.
+- Piloter les réglages du portier : luminosité des LED du clavier, luminosité, contraste et saturation de l'image, délai avant capture, raccrochage après une ouverture distante, volumes, et planning du rétroéclairage blanc.
+- Enregistrer un **client SIP** depuis Jeedom et répondre aux appels du portier sur le dashboard, image et son compris.
+- Piloter le **maintien de porte ouverte** : mode, durée, et depuis quand une porte est maintenue.
+- Armer et désarmer la **détection de mouvement**, et en régler la sensibilité.
+- Associer une **commande Jeedom à la porte 2**, indispensable en mode webrelay où le portier n'a qu'une seule URL de relais.
+
+Il s'appuie sur la documentation publiée par GrandStream : http://www.grandstream.com/sites/default/files/Resources/gds37xx_http_api.pdf
 
 # Configuration du portier GrandStream GDS3710
 ## Pré-requis
@@ -422,3 +438,49 @@ Le plugin vous permet de transmettre des captures du flux MJPEG par l'intermédi
 - Dans le champs "Commande message d'envoi des captures" sélectionner la commande pour envoyer la ou les captures (il s'agit de la commande de votre bot Telegram).
 
 ![Envoyer un snapshot dans un scénario](../assets/images/EnvoyerCaptureGDS3710.png)
+
+# La porte 2 peut piloter une commande Jeedom
+
+⚠️ **En mode webrelay (`P15440=1`), le portier n'a qu'une seule URL de relais.** Toute ouverture — clavier, badge, PIN distant 1 *ou* 2, et les deux boutons du plugin — appelle cette unique URL et déclenche donc la même action. La porte 2 n'a aucun effet propre, et les deux boutons sont indiscernables.
+
+La configuration de l'équipement permet d'associer une **commande Jeedom** à la porte 2. Le bouton « Ouvrir la porte 2 » exécute alors cette commande au lieu d'interroger le portier. C'est ainsi qu'un portail dont le portier ne commande que le vantail piéton obtient un second bouton pour l'ouverture complète — et ce bouton reste disponible dans la fenêtre d'appel du client SIP, qui liste les commandes d'ouverture visibles de l'équipement.
+
+💡 Pensez à **renommer la commande** en conséquence — « Ouverture complète », par exemple. **Un nom que vous avez changé n'est jamais remis** : le plugin ne remplit qu'un nom vide. Cela vaut pour toutes les commandes de l'équipement, y compris les plus anciennes.
+
+Laissez le champ vide pour interroger le portier comme avant. « Fermer la porte 2 » n'a alors plus de sens et n'exécute rien, ce qui est journalisé.
+
+# Maintien de porte ouverte et détection de mouvement
+
+Deux groupes de l'API du portier que le plugin ignorait jusqu'ici.
+
+## Maintien de porte ouverte
+
+Chaque porte rapporte son **mode** — désactivé, immédiat ou planifié —, la **durée** du maintien en minutes, et, lorsqu'elle est maintenue, **depuis quand**. Deux commandes l'activent et le désactivent, un curseur règle la durée entre 5 et 480 minutes.
+
+⚠️ **Ces commandes sont créées masquées.** Activer le maintien **déverrouille la porte et l'y laisse** pendant toute la durée configurée : ce n'est pas quelque chose qui doit atterrir sur un dashboard par inadvertance. Rendez-les visibles délibérément, une fois que vous savez que vous en voulez.
+
+La commande « Porte 1 forcée ouverte depuis » vaut `(null)` tant que la porte n'est pas maintenue : un scénario peut donc vérifier qu'aucune porte n'est restée ouverte.
+
+## Détection de mouvement
+
+Son état, sa **sensibilité** (0 à 100) et son **planning d'alarme** sont rapportés ; deux commandes l'arment et la désarment. C'est ce qui la rend utile depuis un scénario : armer en partant, désarmer en rentrant. Le portier émet déjà l'évènement de type 900 lorsqu'elle se déclenche.
+
+⚠️ **Les régions de détection sont rapportées mais jamais écrites.** Les huit régions doivent être définies ensemble et se dessinent dans l'interface du portier. Sur un appareil où aucune n'est définie — l'état d'usine, toutes les coordonnées à zéro — armer la détection risque fort de ne rien déclencher. La commande « Détection - régions » existe précisément pour que cela se voie, au lieu de rester une énigme.
+
+Les réglages de détection vivent dans la section `event` du portier, qui renvoie le mot de passe administrateur en clair dans `P2`. Le plugin ne journalise jamais une section brute, et `redact()` masque `P2` de toute façon.
+
+# Langues
+
+**L'interface du plugin est traduite** en anglais, en allemand et en espagnol. Le catalogue vit dans `core/i18n/` et couvre **232 chaînes** ; `tools/extract_i18n.py` le tient en phase avec le code, et un contrôle refuse toute chaîne ajoutée sans traduction. Le français est la langue source : il n'a pas de catalogue.
+
+Les **noms de commandes** sont traduits là où ils sont déclarés : une installation neuve dans une autre langue obtient donc des noms de commandes traduits. ⚠️ **Les commandes déjà existantes ne sont jamais renommées**, ni par une mise à jour ni par un changement de langue. Le plugin ne remplit qu'un nom vide — c'est aussi ce qui protège une commande que vous auriez renommée vous-même.
+
+# Tests unitaires
+
+Le dossier `tests/` porte une **suite de tests unitaires** qui tourne **sans installation Jeedom et sans aucune dépendance à installer** : ni Composer, ni PHPUnit. `tests/bootstrap.php` reconstitue l'arborescence minimale que la classe du plugin attend et la charge face à des doublures du cœur de Jeedom, ce qui permet d'éprouver directement les fonctions pures.
+
+Lancez-les avec `./.lint.sh --tests`, ou `php tests/run.php` si PHP est disponible localement. Elles s'exécutent aussi sur **PHP 8.1, 8.2 et 8.3** à chaque publication.
+
+Ce qu'elles couvrent : le masquage des secrets avant journalisation, les réponses malformées du portier, le calcul de l'URL d'une capture, et la **cohérence des tables de déclaration** — ce dernier contrôle aurait attrapé deux défauts réellement livrés par ce plugin : un libellé de section écrit une fois avec accent et une fois sans, qui produisait deux onglets identiques, et un identifiant de commande entrant en collision avec un autre à la casse près, qui rendait l'équipement insauvegardable.
+
+⚠️ **Cette documentation, elle, n'existe qu'en français.** Les quatre dossiers de langue attendus par Jeedom contiennent le même texte français.

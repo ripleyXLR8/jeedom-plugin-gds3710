@@ -1,0 +1,64 @@
+name: Contrôles
+
+# Le dépôt n'avait aucune intégration continue : .lint.sh existait mais ne tournait qu'à
+# la main, depuis le poste du mainteneur, à travers Docker. La CI n'a donc pas sa propre
+# liste de contrôles — elle exécute ce même script, qui utilise le php et le node du
+# runner quand ils sont présents. Une liste recopiée finit toujours par diverger : c'est
+# exactement ce qui avait fait perdre les actions de neuf types d'évènements.
+
+on:
+  # « push » sur master seulement : sur une branche de travail, la publication et la
+  # demande de fusion declencheraient deux executions identiques du meme commit.
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  syntaxe:
+    name: Syntaxe (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Le plugin déclare « require 4.4 » : les installations vont de PHP 8.1 aux
+        # images récentes en 8.3. L'installation de référence est en 8.2.30.
+        php: ['8.1', '8.2', '8.3']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          tools: none
+
+      - name: Installer Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Syntaxe PHP et JavaScript
+        run: bash .lint.sh --syntaxe
+
+      # Les tests tournent sur les trois versions de PHP, au meme titre que la syntaxe :
+      # ils s'executent sans Jeedom et sans dependance a installer.
+      - name: Tests unitaires
+        run: bash .lint.sh --tests
+
+  catalogue-et-documentation:
+    name: Traductions et documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Catalogue de traduction, README et documentation
+        run: bash .lint.sh --i18n --docs

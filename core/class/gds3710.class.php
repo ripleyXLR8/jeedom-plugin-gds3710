@@ -90,6 +90,32 @@ class gds3710 extends eqLogic {
         return $xml;
     }
 
+    /* Traduit un chemin disque en URL servie par Jeedom, ou renvoie '' si aucune URL ne
+     * le sert.
+     *
+     * Le calcul historique, recopie en quatre endroits, etait
+     * substr($chemin, strpos($chemin, '/plugins')). Or la configuration autorise
+     * explicitement un repertoire de captures absolu, hors de l arborescence de Jeedom :
+     * strpos renvoie alors false, substr($chemin, false) equivaut a substr($chemin, 0), et
+     * la commande recevait le chemin disque entier en guise d URL. Le widget affichait une
+     * image cassee sans que rien ne l explique. */
+    public static function urlPublique($_chemin) {
+        $reel = realpath($_chemin);
+        $racine = realpath(__DIR__ . '/../../../..');
+        if ($reel === false || $racine === false) {
+            return '';
+        }
+        $reel = str_replace('\\', '/', $reel);
+        $racine = rtrim(str_replace('\\', '/', $racine), '/');
+        if (strpos($reel, $racine . '/') !== 0) {
+            log::add('gds3710', 'warning', 'La capture ' . $_chemin . ' est hors de la racine web de '
+                . 'Jeedom : aucune URL ne peut la servir, la tuile « Dernier snapshot » restera vide. '
+                . 'Choisissez un repertoire de captures situe sous ' . $racine . '.');
+            return '';
+        }
+        return substr($reel, strlen($racine));
+    }
+
     /* Purge quotidienne des captures. Le repertoire nen avait aucune : il grossissait
      * indefiniment (670 fichiers et 51 Mo sur linstallation de reference). Une retention
      * a 0 desactive la purge, ce qui reste le comportement historique. */
@@ -136,7 +162,7 @@ class gds3710 extends eqLogic {
                 if (is_array($files) && count($files) > 0) {
                     usort($files, function ($a, $b) { return filemtime($b) - filemtime($a); });
                     $path->event($files[0]);
-                    if (is_object($url)) { $url->event(substr($files[0], strpos($files[0], '/plugins'))); }
+                    if (is_object($url)) { $url->event(gds3710::urlPublique($files[0])); }
                 } else {
                     $path->event('');
                     if (is_object($url)) { $url->event(''); }
@@ -154,15 +180,34 @@ class gds3710 extends eqLogic {
      *  Acces HTTP au portier                                              *
      * ------------------------------------------------------------------ */
 
-    private static function httpGet($_url, $_cookie = '') {
-        $ch = curl_init();
-        $opt = array(
-            CURLOPT_URL => $_url,
+    /* Sels d'authentification du portier. Ils etaient recopies en clair a trois endroits,
+     * dont un hors de cette classe : deux valeurs magiques, faciles a confondre puisque
+     * seules quelques lettres les separent.
+     *
+     * Les deux mecanismes sont bien distincts : SEL_SESSION ouvre la session
+     * d'administration (une seule a la fois sur l'appareil), SEL_MEDIA autorise la
+     * consultation d'une capture ou du flux et ne la perturbe pas. */
+    const SEL_SESSION = 'GDS3710lZpRsFzCbM';
+    const SEL_MEDIA = 'GDS3710lDyTlHwNgZ';
+
+    /* Options communes a tout appel vers le portier.
+     *
+     * Le certificat de l'appareil est auto-signe et son nom ne correspond a rien : la
+     * verification ne peut pas etre activee sans couper toute communication. Le delai
+     * d'attente, lui, etait absent des appels de capture — une requete pouvait donc
+     * bloquer indefiniment le cron ou la page qui l'avait declenchee. */
+    public static function optionsHttp($_extra = array()) {
+        return $_extra + array(
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_SSL_VERIFYHOST => false,
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 10,
+            CURLOPT_TIMEOUT => 15,
         );
+    }
+
+    private static function httpGet($_url, $_cookie = '') {
+        $ch = curl_init();
+        $opt = self::optionsHttp(array(CURLOPT_URL => $_url, CURLOPT_TIMEOUT => 10));
         if ($_cookie !== '') {
             $opt[CURLOPT_COOKIE] = $_cookie;
         }
@@ -170,6 +215,82 @@ class gds3710 extends eqLogic {
         $result = curl_exec($ch);
         curl_close($ch);
         return $result;
+    }
+
+    /* Recompose une chaine de cookies a partir des en-tetes d'une reponse HTTP.
+     *
+     * Isolee de la requete pour etre eprouvee : ce decoupage etait ecrit au milieu de
+     * take_snapshot(), donc intestable, alors qu'une chaine vide y passe inapercue et
+     * fait echouer la capture bien plus loin, sans rapport apparent. */
+    public static function extraireCookies($_entetes) {
+        if (!is_string($_entetes) || $_entetes === '') {
+            return '';
+        }
+        /* La classe de caracteres exclut aussi la fin de ligne. Avec le [^;]* d'origine,
+         * un Set-Cookie sans attribut — donc sans « ; » pour arreter la capture — emportait
+         * le retour chariot dans la valeur du cookie, qui partait corrompu a la requete
+         * suivante. Le portier envoie « ; path=/ » aujourd'hui, ce qui masquait le defaut. */
+        preg_match_all('/^Set-Cookie:\s*([^;\r\n]*)/mi', $_entetes, $matches);
+        $cookies = array();
+        foreach ($matches[1] as $item) {
+            $cookie = array();
+            parse_str($item, $cookie);
+            $cookies = array_merge($cookies, $cookie);
+        }
+        $chaine = '';
+        foreach ($cookies as $clef => $valeur) {
+            $chaine .= $clef . '=' . $valeur . ';';
+        }
+        return rtrim($chaine, ';');
+    }
+
+    /* Ouvre une session de consultation media et rend la chaine de cookies a rejouer.
+     *
+     * Distincte de openSession() : sel different, point d'entree « type=1 », et cookies
+     * lus dans les en-tetes de la reponse au lieu d'etre recomposes. Elle ne consomme donc
+     * pas la session d'administration, dont l'appareil n'admet qu'un exemplaire.
+     *
+     * Ce code vivait au milieu de take_snapshot(), avec ses options cURL recopiees trois
+     * fois — dont un CURLOPT_RETURNTRANSFER pose deux fois dans le meme tableau. */
+    public function sessionMedia() {
+        $ip = trim((string) $this->getConfiguration('ip'));
+        $password = (string) $this->getConfiguration('password');
+        if ($ip === '' || $password === '') {
+            log::add('gds3710', 'error', 'Adresse ou mot de passe du portier absent : capture impossible.');
+            return null;
+        }
+
+        $defi = gds3710::parseXml(
+            self::httpGet('https://' . $ip . '/goform/login?cmd=login&user=admin&type=1'),
+            'defi de capture');
+        if ($defi === null) {
+            return null;
+        }
+        $challenge = (string) $defi->ChallengeCode[0];
+        if ($challenge === '') {
+            log::add('gds3710', 'error', 'Le portier n a pas renvoye de defi d authentification pour la capture.');
+            return null;
+        }
+
+        /* Ne jamais journaliser la chaine hachee : elle porte le mot de passe en clair. */
+        $authcode = md5($challenge . ':' . gds3710::SEL_MEDIA . ':' . $password);
+
+        $ch = curl_init();
+        curl_setopt_array($ch, self::optionsHttp(array(
+            CURLOPT_URL => 'https://' . $ip . '/goform/login?cmd=login&user=admin&authcode='
+                . $authcode . '&type=1',
+            CURLOPT_HEADER => true,
+        )));
+        $reponse = curl_exec($ch);
+        curl_close($ch);
+
+        $cookies = gds3710::extraireCookies($reponse);
+        if ($cookies === '') {
+            log::add('gds3710', 'error', 'Authentification refusee pour la capture sur ' . $this->getHumanName()
+                . ' : aucun cookie de session recu. Verifiez le mot de passe administrateur.');
+            return null;
+        }
+        return $cookies;
     }
 
     /* Ouvre une session sur le portier et renvoie la chaine de cookies a rejouer.
@@ -199,7 +320,7 @@ class gds3710 extends eqLogic {
         if ($challenge === '') {
             return null;
         }
-        $authcode = md5($challenge . ':GDS3710lZpRsFzCbM:' . $password);
+        $authcode = md5($challenge . ':' . gds3710::SEL_SESSION . ':' . $password);
         $res = gds3710::parseXml(self::httpGet('https://' . $ip . '/goform/login?cmd=login&user=admin&authcode=' . $authcode), 'ouverture de session');
         if ($res === null || (string) $res->ResCode[0] !== '0') {
             log::add('gds3710', 'error', 'Authentification refusee par le portier ' . $this->getHumanName()
@@ -211,6 +332,12 @@ class gds3710 extends eqLogic {
          * 90 et 300 secondes dinactivite. */
         cache::set('gds3710::session::' . $this->getId(), $cookie, 90);
         return $cookie;
+    }
+
+    /* Jette la session en cache. A appeler des qu'on sait qu'elle ne vaut plus rien :
+     * apres un redemarrage du portier, ou quand une requete la revele expiree. */
+    public function oublierSession() {
+        cache::set('gds3710::session::' . $this->getId(), '', 1);
     }
 
     /* Lit une section de configuration du portier et la renvoie sous forme de tableau. */
@@ -227,7 +354,7 @@ class gds3710 extends eqLogic {
         if ($xml === null) {
             if ($_cookie === null) {
                 /* La session a peut-etre ete invalidee entre-temps : on la jette. */
-                cache::set('gds3710::session::' . $this->getId(), '', 1);
+                $this->oublierSession();
             }
             return null;
         }
@@ -248,65 +375,135 @@ class gds3710 extends eqLogic {
     public static function get_state_list() {
         return array(
             'cmos_mode' => array(
-                'name' => 'Mode CMOS', 'p' => 'P10572', 'section' => 'cmos', 'subType' => 'string',
+                'name' => __('Mode CMOS', __FILE__), 'p' => 'P10572', 'section' => 'cmos', 'subType' => 'string',
                 'labels' => array('1' => 'Normal', '2' => 'Low Light', '3' => 'WDR'),
             ),
             'ldc_state' => array(
-                'name' => 'LDC (correction de distorsion)', 'p' => 'P10573', 'section' => 'cmos', 'subType' => 'binary',
+                'name' => __('LDC (correction de distorsion)', __FILE__), 'p' => 'P10573', 'section' => 'cmos', 'subType' => 'binary',
             ),
             'power_frequency' => array(
-                'name' => 'Fréquence secteur', 'p' => 'P12314', 'section' => 'cmos', 'subType' => 'string',
+                'name' => __('Fréquence secteur', __FILE__), 'p' => 'P12314', 'section' => 'cmos', 'subType' => 'string',
                 'labels' => array('0' => '50 Hz', '1' => '60 Hz'),
             ),
             'shutter_speed' => array(
-                'name' => 'Vitesse d\'obturation', 'p' => 'P10503', 'section' => 'cmos', 'subType' => 'string',
+                'name' => __('Vitesse d\'obturation', __FILE__), 'p' => 'P10503', 'section' => 'cmos', 'subType' => 'string',
                 'labels' => array('0' => 'Auto', '30' => '1/30 s', '60' => '1/60 s', '125' => '1/125 s',
                                   '250' => '1/250 s', '500' => '1/500 s', '1000' => '1/1000 s',
                                   '2000' => '1/2000 s', '5000' => '1/5000 s', '10000' => '1/10000 s'),
             ),
             'audio_codec' => array(
-                'name' => 'Codec audio', 'p' => 'P14000', 'section' => 'audio', 'subType' => 'string',
+                'name' => __('Codec audio', __FILE__), 'p' => 'P14000', 'section' => 'audio', 'subType' => 'string',
                 'labels' => array('1' => 'PCMU', '2' => 'PCMA', '4' => 'G722'),
             ),
             'osd_time' => array(
-                'name' => 'Horodatage incrusté', 'p' => 'P10044', 'section' => 'osd', 'subType' => 'binary',
+                'name' => __('Horodatage incrusté', __FILE__), 'p' => 'P10044', 'section' => 'osd', 'subType' => 'binary',
             ),
             'osd_text_shown' => array(
-                'name' => 'Texte incrusté', 'p' => 'P10045', 'section' => 'osd', 'subType' => 'binary',
+                'name' => __('Texte incrusté', __FILE__), 'p' => 'P10045', 'section' => 'osd', 'subType' => 'binary',
             ),
             'osd_text' => array(
-                'name' => 'Texte incrusté - contenu', 'p' => 'P10040', 'section' => 'osd', 'subType' => 'string',
+                'name' => __('Texte incrusté - contenu', __FILE__), 'p' => 'P10040', 'section' => 'osd', 'subType' => 'string',
             ),
             'ntp_enabled' => array(
-                'name' => 'NTP actif', 'p' => 'P5006', 'section' => 'date', 'subType' => 'binary',
+                'name' => __('NTP actif', __FILE__), 'p' => 'P5006', 'section' => 'date', 'subType' => 'binary',
             ),
             'ntp_server' => array(
-                'name' => 'Serveur NTP', 'p' => 'P30', 'section' => 'date', 'subType' => 'string',
+                'name' => __('Serveur NTP', __FILE__), 'p' => 'P30', 'section' => 'date', 'subType' => 'string',
             ),
             'dst_enabled' => array(
-                'name' => 'Heure d\'été', 'p' => 'P10004', 'section' => 'date', 'subType' => 'binary',
+                'name' => __('Heure d\'été', __FILE__), 'p' => 'P10004', 'section' => 'date', 'subType' => 'binary',
             ),
             'timezone' => array(
-                'name' => 'Fuseau horaire', 'p' => 'P14046', 'section' => 'date', 'subType' => 'string',
+                'name' => __('Fuseau horaire', __FILE__), 'p' => 'P14046', 'section' => 'date', 'subType' => 'string',
+            ),
+
+            /* Maintien de porte ouverte. « Immediat » deverrouille la porte et l y laisse
+             * pendant la duree configuree ; « Planifie » suit la table horaire de
+             * l appareil. L etat est expose pour qu un scenario puisse verifier qu une
+             * porte n est pas restee ouverte. */
+            'keep_open_1' => array(
+                'name' => __('Maintien porte 1', __FILE__), 'p' => 'P15429', 'section' => 'sch_open_door', 'subType' => 'string',
+                'labels' => array('0' => 'Désactivé', '1' => 'Immédiat', '2' => 'Planifié'),
+            ),
+            'keep_open_2' => array(
+                'name' => __('Maintien porte 2', __FILE__), 'p' => 'P15455', 'section' => 'sch_open_door', 'subType' => 'string',
+                'labels' => array('0' => 'Désactivé', '1' => 'Immédiat', '2' => 'Planifié'),
+            ),
+            /* L appareil renvoie « (null) » quand la porte n est pas forcee ouverte. */
+            'forced_open_1' => array(
+                'name' => __('Porte 1 forcée ouverte depuis', __FILE__), 'p' => 'forced_door_open_time',
+                'section' => 'sch_open_door', 'subType' => 'string',
+            ),
+            'forced_open_2' => array(
+                'name' => __('Porte 2 forcée ouverte depuis', __FILE__), 'p' => 'forced_door2_open_time',
+                'section' => 'sch_open_door', 'subType' => 'string',
+            ),
+
+            /* Detection de mouvement. Elle vit dans la section « event », qui renvoie le
+             * mot de passe administrateur en clair dans P2 : ne jamais journaliser cette
+             * section brute. redact() masque P2, et readConfigSection() ne journalise pas
+             * son contenu. */
+            'motion_detection' => array(
+                'name' => __('Détection de mouvement', __FILE__), 'p' => 'P10250', 'section' => 'event', 'subType' => 'binary',
+            ),
+            'motion_schedule' => array(
+                'name' => __('Détection - planning', __FILE__), 'p' => 'P14221', 'section' => 'event', 'subType' => 'string',
+                'labels' => array('0' => 'Toute la journée', '1' => 'Planning 1', '2' => 'Planning 2',
+                                  '3' => 'Planning 3', '4' => 'Planning 4', '5' => 'Planning 5',
+                                  '6' => 'Planning 6', '7' => 'Planning 7', '8' => 'Planning 8',
+                                  '9' => 'Planning 9', '10' => 'Planning 10'),
+            ),
+            /* Les huit regions doivent etre definies ensemble et se dessinent dans
+             * l interface de l appareil. On les rapporte sans les ecrire : une detection
+             * activee sans aucune region ne se declenchera pas, et cela ne se voit
+             * nulle part ailleurs. */
+            'motion_region' => array(
+                'name' => __('Détection - régions', __FILE__), 'p' => 'P14224', 'section' => 'event', 'subType' => 'string',
             ),
         );
     }
 
-    /* Relit les sections concernees et met a jour les etats. Une seule lecture par
-     * section, quel que soit le nombre d etats qu elle porte : chaque requete pese
-     * sur un appareil qui ne tolere qu une session administrateur. */
-    public function refreshStates() {
+    /* Sections de configuration citees par une table de declaration, sans doublon. */
+    public static function sectionsDe($_table) {
         $sections = array();
-        foreach (gds3710::get_state_list() as $def) {
-            $sections[$def['section']] = true;
+        foreach ($_table as $def) {
+            if (isset($def['section']) && $def['section'] !== '') {
+                $sections[$def['section']] = true;
+            }
         }
+        return array_keys($sections);
+    }
+
+    /* Lit plusieurs sections en une passe et rend leur contenu fusionne.
+     *
+     * Les P-values des deux tables de declaration ne se recouvrent pas — un test le
+     * garantit — la fusion ne peut donc pas faire disparaitre une valeur au profit
+     * d une autre. */
+    public function lireSections($_sections) {
         $lu = array();
-        foreach (array_keys($sections) as $section) {
+        foreach ($_sections as $section) {
             $contenu = $this->readConfigSection($section);
             if (is_array($contenu)) {
                 $lu = array_merge($lu, $contenu);
             }
         }
+        return $lu;
+    }
+
+    /* Relit les sections concernees et met a jour les etats. Une seule lecture par
+     * section, quel que soit le nombre d etats qu elle porte : chaque requete pese
+     * sur un appareil qui ne tolere qu une session administrateur.
+     *
+     * $_lu permet de fournir des sections deja lues. Sans lui, refreshSettings() et
+     * refreshStates() relisaient chacun de leur cote, alors que « audio », « event » et
+     * « sch_open_door » figurent dans les DEUX tables : ces trois sections partaient
+     * donc deux fois a chaque passage du cron. Les appels qui suivent une ecriture, eux,
+     * ne passent rien et relisent bel et bien l appareil — c est precisement leur role,
+     * confirmer que la valeur a ete prise. */
+    public function refreshStates($_lu = null) {
+        $lu = is_array($_lu)
+            ? $_lu
+            : $this->lireSections(gds3710::sectionsDe(gds3710::get_state_list()));
         if (count($lu) === 0) {
             return false;
         }
@@ -333,17 +530,17 @@ class gds3710 extends eqLogic {
 
     public static function get_sensor_list() {
         return array(
-            'di0'                   => array('name' => 'Entrée digitale 1',   'subType' => 'binary'),
-            'di1'                   => array('name' => 'Entrée digitale 2',   'subType' => 'binary'),
-            'do'                    => array('name' => 'Sortie digitale',     'subType' => 'binary'),
-            'atp_in'                => array('name' => 'Anti-arrachement',    'subType' => 'binary'),
-            'doorctrl0'             => array('name' => 'Relais porte 1',      'subType' => 'string'),
-            'doorctrl1'             => array('name' => 'Relais porte 2',      'subType' => 'string'),
-            'systemp'               => array('name' => 'Température carte',   'subType' => 'numeric', 'unite' => '°C', 'historized' => 1),
-            'sensortemp'            => array('name' => 'Température capteur', 'subType' => 'numeric', 'unite' => '°C', 'historized' => 1),
-            'P15009'                => array('name' => 'Uptime',              'subType' => 'string'),
-            'P70'                   => array('name' => 'Version firmware',    'subType' => 'string'),
-            'Pfw_available_version' => array('name' => 'Mise à jour dispo',   'subType' => 'string'),
+            'di0'                   => array('name' => __('Entrée digitale 1', __FILE__),   'subType' => 'binary'),
+            'di1'                   => array('name' => __('Entrée digitale 2', __FILE__),   'subType' => 'binary'),
+            'do'                    => array('name' => __('Sortie digitale', __FILE__),     'subType' => 'binary'),
+            'atp_in'                => array('name' => __('Anti-arrachement', __FILE__),    'subType' => 'binary'),
+            'doorctrl0'             => array('name' => __('Relais porte 1', __FILE__),      'subType' => 'string'),
+            'doorctrl1'             => array('name' => __('Relais porte 2', __FILE__),      'subType' => 'string'),
+            'systemp'               => array('name' => __('Température carte', __FILE__),   'subType' => 'numeric', 'unite' => '°C', 'historized' => 1),
+            'sensortemp'            => array('name' => __('Température capteur', __FILE__), 'subType' => 'numeric', 'unite' => '°C', 'historized' => 1),
+            'P15009'                => array('name' => __('Uptime', __FILE__),              'subType' => 'string'),
+            'P70'                   => array('name' => __('Version firmware', __FILE__),    'subType' => 'string'),
+            'Pfw_available_version' => array('name' => __('Mise à jour dispo', __FILE__),   'subType' => 'string'),
         );
     }
 
@@ -357,7 +554,8 @@ class gds3710 extends eqLogic {
      * sept) est tronquee au premier & si elle part en GET. Le portier decode dabord
      * lencodage pourcent, puis re-decoupe sa propre chaine de requete. Il repond
      * ResCode 0 / OK malgre la troncature, donc lecriture doit toujours etre relue. */
-    private static function httpPostConfig($_ip, $_cookie, $_params) {
+    /* Publique : gds3710Cmd::setConfig() ecrit par ce meme chemin, pour la meme raison. */
+    public static function httpPostConfig($_ip, $_cookie, $_params) {
         $body = 'cmd=set';
         foreach ($_params as $key => $value) {
             $body .= '&' . $key . '=' . urlencode((string) $value);
@@ -484,15 +682,15 @@ class gds3710 extends eqLogic {
      * decomposees. Elles sappliquent a tout evenement, quel que soit son type. */
     public static function get_event_detail_list() {
         return array(
-            'last_event_type'     => array('name' => 'Dernier évènement - code'),
-            'last_event_message'  => array('name' => 'Dernier évènement - libellé'),
-            'last_event_date'     => array('name' => 'Dernier évènement - date'),
-            'last_card'           => array('name' => 'Dernier badge'),
-            'last_username'       => array('name' => 'Dernier utilisateur'),
-            'last_doornum'        => array('name' => 'Dernière porte utilisée'),
-            'last_sip'            => array('name' => 'Dernier numéro SIP'),
-            'last_person_in'      => array('name' => 'Dernière personne entrée'),
-            'last_security_alert' => array('name' => 'Dernière alerte sécurité'),
+            'last_event_type'     => array('name' => __('Dernier évènement - code', __FILE__)),
+            'last_event_message'  => array('name' => __('Dernier évènement - libellé', __FILE__)),
+            'last_event_date'     => array('name' => __('Dernier évènement - date', __FILE__)),
+            'last_card'           => array('name' => __('Dernier badge', __FILE__)),
+            'last_username'       => array('name' => __('Dernier utilisateur', __FILE__)),
+            'last_doornum'        => array('name' => __('Dernière porte utilisée', __FILE__)),
+            'last_sip'            => array('name' => __('Dernier numéro SIP', __FILE__)),
+            'last_person_in'      => array('name' => __('Dernière personne entrée', __FILE__)),
+            'last_security_alert' => array('name' => __('Dernière alerte sécurité', __FILE__)),
         );
     }
 
@@ -647,15 +845,18 @@ class gds3710 extends eqLogic {
      * firmware 1.0.13.15 ; les plus recentes napparaissent quà partir de 1.0.13.5. */
     public static function get_setting_list() {
         return array(
-            'blue_led_idle'    => array('name' => 'LED clavier - veille',            'p' => 'P15591', 'section' => 'door', 'min' => 1, 'max' => 255),
-            'blue_led_pressed' => array('name' => 'LED clavier - appui',             'p' => 'P15592', 'section' => 'door', 'min' => 1, 'max' => 255),
-            'img_brightness'   => array('name' => 'Image - luminosité',              'p' => 'P15520', 'section' => 'play', 'min' => 0, 'max' => 128),
-            'img_contrast'     => array('name' => 'Image - contraste',               'p' => 'P15521', 'section' => 'play', 'min' => 0, 'max' => 128),
-            'img_saturation'   => array('name' => 'Image - saturation',              'p' => 'P15522', 'section' => 'play', 'min' => 0, 'max' => 128),
-            'snapshot_delay'   => array('name' => 'Délai avant capture (s)',         'p' => 'P15584', 'section' => 'door', 'min' => 0, 'max' => 10),
-            'onhook_timer'     => array('name' => 'Raccrochage après ouverture (s)', 'p' => 'P15582', 'section' => 'door', 'min' => 3, 'max' => 1800),
-            'volume_system'    => array('name' => 'Volume système',                 'p' => 'P14003', 'section' => 'audio', 'min' => 0, 'max' => 6),
-            'volume_doorbell'  => array('name' => 'Volume sonnerie',                'p' => 'P14835', 'section' => 'audio', 'min' => 0, 'max' => 6),
+            'blue_led_idle'    => array('name' => __('LED clavier - veille', __FILE__),            'p' => 'P15591', 'section' => 'door', 'min' => 1, 'max' => 255),
+            'blue_led_pressed' => array('name' => __('LED clavier - appui', __FILE__),             'p' => 'P15592', 'section' => 'door', 'min' => 1, 'max' => 255),
+            'img_brightness'   => array('name' => __('Image - luminosité', __FILE__),              'p' => 'P15520', 'section' => 'play', 'min' => 0, 'max' => 128),
+            'img_contrast'     => array('name' => __('Image - contraste', __FILE__),               'p' => 'P15521', 'section' => 'play', 'min' => 0, 'max' => 128),
+            'img_saturation'   => array('name' => __('Image - saturation', __FILE__),              'p' => 'P15522', 'section' => 'play', 'min' => 0, 'max' => 128),
+            'snapshot_delay'   => array('name' => __('Délai avant capture (s)', __FILE__),         'p' => 'P15584', 'section' => 'door', 'min' => 0, 'max' => 10),
+            'onhook_timer'     => array('name' => __('Raccrochage après ouverture (s)', __FILE__), 'p' => 'P15582', 'section' => 'door', 'min' => 3, 'max' => 1800),
+            'volume_system'    => array('name' => __('Volume système', __FILE__),                 'p' => 'P14003', 'section' => 'audio', 'min' => 0, 'max' => 6),
+            'volume_doorbell'  => array('name' => __('Volume sonnerie', __FILE__),                'p' => 'P14835', 'section' => 'audio', 'min' => 0, 'max' => 6),
+            'keep_open_time_1' => array('name' => __('Maintien porte 1 - durée (min)', __FILE__),  'p' => 'P15430', 'section' => 'sch_open_door', 'min' => 5, 'max' => 480),
+            'keep_open_time_2' => array('name' => __('Maintien porte 2 - durée (min)', __FILE__),  'p' => 'P15456', 'section' => 'sch_open_door', 'min' => 5, 'max' => 480),
+            'motion_sensitivity' => array('name' => __('Détection - sensibilité', __FILE__),       'p' => 'P14223', 'section' => 'event', 'min' => 0, 'max' => 100),
         );
     }
 
@@ -682,19 +883,13 @@ class gds3710 extends eqLogic {
     }
 
     /* Relit les reglages sur le portier et met a jour les commandes info associees.
-     * Une seule lecture par section, pas une par reglage. */
-    public function refreshSettings() {
-        $sections = array();
-        foreach (gds3710::get_setting_list() as $lid => $def) {
-            $sections[$def['section']] = true;
-        }
-        $data = array();
-        foreach (array_keys($sections) as $section) {
-            $read = $this->readConfigSection($section);
-            if (is_array($read)) {
-                $data = array_merge($data, $read);
-            }
-        }
+     * Une seule lecture par section, pas une par reglage.
+     *
+     * $_lu : voir refreshStates(), meme mecanique et meme raison. */
+    public function refreshSettings($_lu = null) {
+        $data = is_array($_lu)
+            ? $_lu
+            : $this->lireSections(gds3710::sectionsDe(gds3710::get_setting_list()));
         if (count($data) === 0) {
             return false;
         }
@@ -841,12 +1036,138 @@ class gds3710 extends eqLogic {
              * en fonctionnement. La famille 1500 couvre les connexions administrateur. */
             "102" => array("section" =>'Ouverture porte', 'section_icon'=>'jeedom-porte-ferme', "type" => 102, "short_name" => "UnauthorizedDoorOpeningAttempt", "message" => "Unauthorized Door Opening Attempt", "use_case" => "Indicates that someone attempted to open the door without authorization."),
             "401" => array("section" =>'Ouverture porte', 'section_icon'=>'jeedom-porte-ferme', "type" => 401, "short_name" => "OpenDoorViaSI", "message" => "Open Door via SI", "use_case" => "Indicates that door has been opened using SI (Special Input) signal."),
-            "1002" => array("section" =>'Securite', 'section_icon'=>'securite-key1', "type" => 1002, "short_name" => "DoorLockAbnormalAlarm", "message" => "Door and Lock Abnormal Alarm", "use_case" => "Indicates an abnormal state of the door or of the lock."),
-            "1110" => array("section" =>'Securite', 'section_icon'=>'securite-key1', "type" => 1110, "short_name" => "NonScheduledAccess", "message" => "Non-scheduled Access", "use_case" => "Indicates an access outside of the authorized schedule."),
+            "1002" => array("section" =>'Sécurité', 'section_icon'=>'securite-key1', "type" => 1002, "short_name" => "DoorLockAbnormalAlarm", "message" => "Door and Lock Abnormal Alarm", "use_case" => "Indicates an abnormal state of the door or of the lock."),
+            "1110" => array("section" =>'Sécurité', 'section_icon'=>'securite-key1', "type" => 1110, "short_name" => "NonScheduledAccess", "message" => "Non-scheduled Access", "use_case" => "Indicates an access outside of the authorized schedule."),
             "1500" => array("section" =>'Surveillance Logiciel', 'section_icon'=>'fas fa-exclamation-triangle', "type" => 1500, "short_name" => "AdminLogIn", "message" => "Admin Log In", "use_case" => "Indicates that an administrator signed in on the device web interface."),
             "1503" => array("section" =>'Surveillance Logiciel', 'section_icon'=>'fas fa-exclamation-triangle', "type" => 1503, "short_name" => "AdminLogOff", "message" => "Admin Log Off", "use_case" => "Indicates that an administrator session ended, by logout or timeout."),
         );
         return $return;
+    }
+
+    /* Commandes fixes de l'equipement.
+     *
+     * Elles etaient creees par 23 blocs recopies, de dix a vingt lignes chacun, pour un
+     * total de plus de 400 lignes dans postSave(). Rien ne les distinguait qu'une poignee
+     * de valeurs : c'est une table, pas du code. Le motif descriptif existait deja pour
+     * les etats, les capteurs et les reglages ; il manquait ici.
+     *
+     * Les commandes engendrees par une regle — types d'evenements, reglages et leur
+     * curseur, details d'evenement — restent dans leurs boucles : leur nombre depend d'une
+     * autre table, elles n'ont pas leur place dans une enumeration.
+     *
+     * « visible » est une valeur POSEE A LA CREATION, jamais reimposee ensuite : masquer
+     * une commande depuis Jeedom doit tenir. Vingt de ces commandes la reimposaient a
+     * chaque enregistrement de l'equipement, « Ouvrir la porte 2 » comprise — alors que la
+     * documentation du client SIP promet que la masquer retire son bouton de la fenetre
+     * d'appel. Meme regle que pour le nom, corrigee en juillet pour les memes raisons. */
+    public static function get_command_list() {
+        return array(
+            'ldc_ON' => array(
+                'name' => __('LDC - ON', __FILE__), 'type' => 'action', 'subType' => 'other', 'visible' => 1),
+            'ldc_off' => array(
+                'name' => __('LDC - OFF', __FILE__), 'type' => 'action', 'subType' => 'other', 'visible' => 1),
+            'reboot' => array(
+                'name' => __('Reboot', __FILE__), 'type' => 'action', 'subType' => 'other', 'visible' => 1),
+            'open' => array(
+                'name' => __('Ouvrir la porte', __FILE__), 'type' => 'action', 'subType' => 'other', 'visible' => 1),
+            'open2' => array(
+                'name' => __('Ouvrir la porte 2', __FILE__), 'type' => 'action', 'subType' => 'other', 'visible' => 1),
+            'close' => array(
+                'name' => __('Fermer la porte', __FILE__), 'type' => 'action', 'subType' => 'other', 'visible' => 0),
+            'close2' => array(
+                'name' => __('Fermer la porte 2', __FILE__), 'type' => 'action', 'subType' => 'other', 'visible' => 0),
+            'snapshot' => array(
+                'name' => __('Prendre un snapshot', __FILE__), 'type' => 'action', 'subType' => 'other', 'visible' => 1,
+                'template' => array('dashboard' => ''),
+                'display' => array('icon' => '<i class="fa fa-image"></i>')),
+            'modifyConfig' => array(
+                'name' => __('Modifier la configuration', __FILE__), 'type' => 'action', 'subType' => 'message', 'visible' => 0,
+                'display' => array(
+                    'title_placeholder' => __('ID de la commande à modifier', __FILE__),
+                    'message_placeholder' => __('Valeur', __FILE__),
+                    'message_cmd_type' => 'action',
+                    'message_cmd_subtype' => 'message')),
+            'sendSnapshot' => array(
+                'name' => __('Envoyer un snapshot', __FILE__), 'type' => 'action', 'subType' => 'message', 'visible' => 0,
+                'configuration' => array('request' => '-'),
+                'display' => array(
+                    'title_placeholder' => __('Nombre captures ou options', __FILE__),
+                    'message_placeholder' => __('Commande message d\'envoi des captures', __FILE__),
+                    'message_cmd_type' => 'action',
+                    'message_cmd_subtype' => 'message')),
+            'Open_Snapshots_Folder' => array(
+                'name' => __('Ouvrir le dossier des captures', __FILE__), 'type' => 'action', 'subType' => 'other', 'visible' => 1,
+                'template' => array('dashboard' => 'snapshot_folder')),
+            'Lastest_Snapshot_Path' => array(
+                'name' => __('Chemin du dernier snapshot', __FILE__), 'type' => 'info', 'subType' => 'string', 'visible' => 0),
+            'Lastest_Snapshot_URL' => array(
+                'name' => __('Dernier snapshot', __FILE__), 'type' => 'info', 'subType' => 'string', 'visible' => 0,
+                'template' => array('dashboard' => 'lastsnapshot', 'mobile' => 'lastsnapshot')),
+            'cmos_normal' => array(
+                'name' => __('CMOS - Normal', __FILE__), 'type' => 'action', 'subType' => 'other', 'visible' => 1),
+            'cmos_lowlight' => array(
+                'name' => __('CMOS - Low Light', __FILE__), 'type' => 'action', 'subType' => 'other', 'visible' => 1),
+            'cmos_wdr' => array(
+                'name' => __('CMOS - WDR', __FILE__), 'type' => 'action', 'subType' => 'other', 'visible' => 1),
+            'stream_mjpeg' => array(
+                'name' => __('Stream MJPEG', __FILE__), 'type' => 'info', 'subType' => 'string', 'visible' => 1,
+                'template' => array('dashboard' => 'mjpegstream', 'mobile' => 'mjpegstream')),
+            'Last event' => array(
+                'name' => __('Last event', __FILE__), 'type' => 'info', 'subType' => 'string', 'visible' => 0),
+            'sip_client' => array(
+                'name' => __('Client SIP', __FILE__), 'type' => 'info', 'subType' => 'string', 'visible' => 0,
+                'template' => array('dashboard' => 'sipclient')),
+            'backlight_schedule' => array(
+                'name' => __('Rétroéclairage - planning actif', __FILE__), 'type' => 'info', 'subType' => 'binary', 'visible' => 0),
+            'backlight_hours' => array(
+                'name' => __('Rétroéclairage - horaires', __FILE__), 'type' => 'info', 'subType' => 'string', 'visible' => 0),
+            'backlight_hours_set' => array(
+                'name' => __('Rétroéclairage - définir les horaires', __FILE__), 'type' => 'action', 'subType' => 'message', 'visible' => 0,
+                'display' => array(
+                    'title_placeholder' => __('Début, format HHMMSS', __FILE__),
+                    'message_placeholder' => __('Fin, format HHMMSS', __FILE__))),
+            'configureDoorbell' => array(
+                'name' => __('Configurer le portier', __FILE__), 'type' => 'action', 'subType' => 'other', 'visible' => 0,
+                'display' => array('icon' => '<i class="fas fa-cogs"></i>')),
+        );
+    }
+
+    /* Cree ou met a jour une commande a partir de sa description.
+     *
+     * Le nom et la visibilite ne sont poses qu'a la creation : ce sont des choix que
+     * l'utilisateur peut reprendre, et les reimposer a chaque enregistrement les effacait
+     * sans un mot. Le type, le sous-type, le gabarit et les reglages d'affichage, eux,
+     * sont structurels : le plugin les maintient. */
+    private function poserCommande($_lid, $_def) {
+        $cmd = $this->getCmd($_def['type'], $_lid);
+        if (!is_object($cmd)) {
+            $cmd = new gds3710Cmd();
+            $cmd->setIsVisible(isset($_def['visible']) ? $_def['visible'] : 0);
+        }
+        if (trim((string) $cmd->getName()) === '') {
+            $cmd->setName($_def['name']);
+        }
+        $cmd->setEqLogic_id($this->getId());
+        $cmd->setLogicalId($_lid);
+        $cmd->setType($_def['type']);
+        $cmd->setSubType($_def['subType']);
+        if (isset($_def['template'])) {
+            foreach ($_def['template'] as $support => $gabarit) {
+                $cmd->setTemplate($support, $gabarit);
+            }
+        }
+        if (isset($_def['display'])) {
+            foreach ($_def['display'] as $clef => $valeur) {
+                $cmd->setDisplay($clef, $valeur);
+            }
+        }
+        if (isset($_def['configuration'])) {
+            foreach ($_def['configuration'] as $clef => $valeur) {
+                $cmd->setConfiguration($clef, $valeur);
+            }
+        }
+        $cmd->save();
+        return $cmd;
     }
 
     /*     * *********************Méthodes d'instance************************* */
@@ -870,6 +1191,12 @@ class gds3710 extends eqLogic {
 
     public function postSave() {
 
+        /* Un nom n'est pose que s'il est vide. postSave() le reposait auparavant a
+         * chaque enregistrement pour les commandes historiques : renommer « Ouvrir la
+         * porte 2 » en « Ouverture complete » tenait jusqu'au prochain enregistrement
+         * de l'equipement, puis disparaissait sans un mot. Les commandes ajoutees plus
+         * tard etaient deja protegees ; la regle vaut maintenant pour toutes. */
+
         // On vérifie que la clef secrète à bien été créée sinon, on la génère.
         $KEY = $this->getConfiguration('secretkey');
         if($KEY == ''){
@@ -891,255 +1218,26 @@ class gds3710 extends eqLogic {
          * Jeedom refusait, postSave() avortait, et l'equipement devenait insauvegardable.
          * C'est le bug « Une commande portant ce nom (Reboot) existe deja ». */
 
-        // Création des commandes LDC (correction de distorsion optique)
-        $ldc_ON = $this->getCmd('action', 'ldc_ON');
-        if (!is_object($ldc_ON)) {
-            $ldc_ON = new gds3710Cmd();
+        /* Toutes les commandes fixes de l'equipement, decrites dans get_command_list().
+         * Elles occupaient ici 23 blocs recopies, soit plus de 400 lignes. */
+        foreach (gds3710::get_command_list() as $lid => $def) {
+            $this->poserCommande($lid, $def);
         }
-        $ldc_ON->setName(__('LDC - ON', __FILE__));
-        $ldc_ON->setEqLogic_id($this->getId());
-        $ldc_ON->setLogicalId('ldc_ON');
-        $ldc_ON->setType('action');
-        $ldc_ON->setSubType('other');
-        $ldc_ON->setIsVisible(1);
-        $ldc_ON->save();
 
-        $ldc_OFF = $this->getCmd('action', 'ldc_off');
-        if (!is_object($ldc_OFF)) {
-            $ldc_OFF = new gds3710Cmd();
+        /* Ces deux valeurs ne viennent pas du portier : le widget les lit telles quelles.
+         * Elles sont posees apres la creation, une commande devant exister pour recevoir
+         * un evenement. */
+        $stream = $this->getCmd('info', 'stream_mjpeg');
+        if (is_object($stream)) {
+            $stream->event('/plugins/gds3710/core/php/camera.php?id=' . $this->getId());
         }
-        $ldc_OFF->setName(__('LDC - OFF', __FILE__));
-        $ldc_OFF->setEqLogic_id($this->getId());
-        $ldc_OFF->setLogicalId('ldc_off');
-        $ldc_OFF->setType('action');
-        $ldc_OFF->setSubType('other');
-        $ldc_OFF->setIsVisible(1);
-        $ldc_OFF->save();
-
-        // Création de la commande reboot si elle n'existe pas dèjà
-        $reboot = $this->getCmd('action', 'reboot');
-        if (!is_object($reboot)) {
-            $reboot = new gds3710Cmd();
+        /* Le client SIP ne porte que l'id de l'equipement : le widget s'en sert pour aller
+         * chercher sa configuration par un appel ajax authentifie, le mot de passe du
+         * compte SIP n'ayant rien a faire dans la valeur d'une commande. */
+        $sip = $this->getCmd('info', 'sip_client');
+        if (is_object($sip)) {
+            $sip->event((string) $this->getId());
         }
-        $reboot->setName(__('Reboot', __FILE__));
-        $reboot->setEqLogic_id($this->getId());
-        $reboot->setLogicalId('reboot');
-        $reboot->setType('action');
-        $reboot->setSubType('other');
-        $reboot->setIsVisible(1);
-        $reboot->save();
-            
-        // Création de la commande open si elle n'existe pas dèjà
-        $open = $this->getCmd('action', 'open');
-        if (!is_object($open)) {
-            $open = new gds3710Cmd();
-        }
-        $open->setName(__('Ouvrir la porte', __FILE__));
-        $open->setEqLogic_id($this->getId());
-        $open->setLogicalId('open');
-        $open->setType('action');
-        $open->setSubType('other');
-        $open->setIsVisible(1);
-        $open->save();
-
-        // Création de la commande open2 si elle n'existe pas dèjà
-        $open2 = $this->getCmd('action', 'open2');
-        if (!is_object($open2)) {
-            $open2 = new gds3710Cmd();
-        }
-        $open2->setName(__('Ouvrir la porte 2', __FILE__));
-        $open2->setEqLogic_id($this->getId());
-        $open2->setLogicalId('open2');
-        $open2->setType('action');
-        $open2->setSubType('other');
-        $open2->setIsVisible(1);
-        $open2->save();
-        
-        // Création de la commande close si elle n'existe pas dèjà
-        $close = $this->getCmd('action', 'close');
-        if (!is_object($close)) {
-            $close = new gds3710Cmd();
-        }
-        $close->setName(__('Fermer la porte', __FILE__));
-        $close->setEqLogic_id($this->getId());
-        $close->setLogicalId('close');
-        $close->setType('action');
-        $close->setSubType('other');
-        $close->setIsVisible(0);
-        $close->save();
-
-        // Création de la commande close2 si elle n'existe pas dèjà
-        $close2 = $this->getCmd('action', 'close2');
-        if (!is_object($close2)) {
-            $close2 = new gds3710Cmd();
-        }
-        $close2->setName(__('Fermer la porte 2', __FILE__));
-        $close2->setEqLogic_id($this->getId());
-        $close2->setLogicalId('close2');
-        $close2->setType('action');
-        $close2->setSubType('other');
-        $close2->setIsVisible(0);
-        $close2->save();
-
-        // Création de la commande snapshot
-        $snapshot = $this->getCmd('action', 'snapshot');
-        if (!is_object($snapshot)) {
-            $snapshot = new gds3710Cmd();
-        }
-        $snapshot->setName(__('Prendre un snapshot', __FILE__));
-        $snapshot->setEqLogic_id($this->getId());
-        $snapshot->setLogicalId('snapshot');
-        $snapshot->setType('action');
-        $snapshot->setSubType('other');
-        $snapshot->setDisplay('icon', '<i class="fa fa-image"></i>');
-        $snapshot->setTemplate('dashboard', '');
-        $snapshot->setIsVisible(1);
-        $snapshot->save();
-
-        // Création de la commande Modify Config
-        $modifyconfig = $this->getCmd('action', 'modifyConfig');
-        if (!is_object($modifyconfig)) {
-            $modifyconfig = new gds3710Cmd();
-        }
-        $modifyconfig->setName(__('Modifier la configuration', __FILE__));
-        $modifyconfig->setType('action');
-        $modifyconfig->setLogicalId('modifyConfig');
-        $modifyconfig->setEqLogic_id($this->getId());
-        $modifyconfig->setSubType('message');
-        $modifyconfig->setIsVisible(0);
-        $modifyconfig->setDisplay('title_placeholder', __('ID de la commande à modifier', __FILE__));
-        $modifyconfig->setDisplay('message_placeholder', __('Valeur', __FILE__));
-        $modifyconfig->setDisplay('message_cmd_type', 'action');
-        $modifyconfig->setDisplay('message_cmd_subtype', 'message');
-        $modifyconfig->save();
-
-        // Création de la commande Send SnapShot
-        $sendSnapshot = $this->getCmd('action', 'sendSnapshot');
-        if (!is_object($sendSnapshot)) {
-            $sendSnapshot = new gds3710Cmd();
-        }
-        $sendSnapshot->setName(__('Envoyer un snapshot', __FILE__));
-        $sendSnapshot->setConfiguration('request', '-');
-        $sendSnapshot->setType('action');
-        $sendSnapshot->setLogicalId('sendSnapshot');
-        $sendSnapshot->setEqLogic_id($this->getId());
-        $sendSnapshot->setSubType('message');
-        $sendSnapshot->setIsVisible(0);
-        $sendSnapshot->setDisplay('title_placeholder', __('Nombre captures ou options', __FILE__));
-        $sendSnapshot->setDisplay('message_placeholder', __('Commande message d\'envoi des captures', __FILE__));
-        $sendSnapshot->setDisplay('message_cmd_type', 'action');
-        $sendSnapshot->setDisplay('message_cmd_subtype', 'message');
-        $sendSnapshot->save();
-
-        // Création de la commande d'historique
-        $history = $this->getCmd('action', 'Open_Snapshots_Folder');
-        if (!is_object($history)) {
-            $history = new gds3710Cmd();
-        }
-        $history->setName(__('Ouvrir le dossier des captures', __FILE__));
-        $history->setEqLogic_id($this->getId());
-        $history->setLogicalId('Open_Snapshots_Folder');
-        $history->setType('action');
-        $history->setSubType('other');
-        $history->setTemplate('dashboard', 'snapshot_folder');
-        $history->setIsVisible(1);
-        $history->save();
-
-        // Création de la commande de récupération du dernier snapshot
-        $lastest_snapshot = $this->getCmd('info', 'Lastest_Snapshot_Path');
-        if (!is_object($lastest_snapshot)) {
-            $lastest_snapshot = new gds3710Cmd();
-        }
-        $lastest_snapshot->setName(__('Chemin du dernier snapshot', __FILE__));
-        $lastest_snapshot->setEqLogic_id($this->getId());
-        $lastest_snapshot->setLogicalId('Lastest_Snapshot_Path');
-        $lastest_snapshot->setType('info');
-        $lastest_snapshot->setSubType('string');
-        $lastest_snapshot->setIsVisible(0);
-        $lastest_snapshot->save();
-
-        $lastest_snapshot_URL = $this->getCmd('info', 'Lastest_Snapshot_URL');
-        if (!is_object($lastest_snapshot_URL)) {
-            $lastest_snapshot_URL = new gds3710Cmd();
-        }
-        $lastest_snapshot_URL->setName(__('Dernier snapshot', __FILE__));
-        $lastest_snapshot_URL->setEqLogic_id($this->getId());
-        $lastest_snapshot_URL->setLogicalId('Lastest_Snapshot_URL');
-        $lastest_snapshot_URL->setType('info');
-        $lastest_snapshot_URL->setSubType('string');
-        $lastest_snapshot_URL->setTemplate('dashboard', 'lastsnapshot');
-        $lastest_snapshot_URL->setTemplate('mobile', 'lastsnapshot');
-        $lastest_snapshot_URL->setIsVisible(0);
-        $lastest_snapshot_URL->save();
-
-
-        // Création de CMOS Normal
-        $cmos_NORMAL = $this->getCmd('action', 'cmos_normal');
-        if (!is_object($cmos_NORMAL)) {
-            $cmos_NORMAL = new gds3710Cmd();
-        }
-        $cmos_NORMAL->setName(__('CMOS - Normal', __FILE__));
-        $cmos_NORMAL->setEqLogic_id($this->getId());
-        $cmos_NORMAL->setLogicalId('cmos_normal');
-        $cmos_NORMAL->setType('action');
-        $cmos_NORMAL->setSubType('other');
-        $cmos_NORMAL->setIsVisible(1);
-        $cmos_NORMAL->save();
-
-        // Création de CMOS Low Light
-        $cmos_LOWLIGHT = $this->getCmd('action', 'cmos_lowlight');
-        if (!is_object($cmos_LOWLIGHT)) {
-            $cmos_LOWLIGHT = new gds3710Cmd();
-        }
-        $cmos_LOWLIGHT->setName(__('CMOS - Low Light', __FILE__));
-        $cmos_LOWLIGHT->setEqLogic_id($this->getId());
-        $cmos_LOWLIGHT->setLogicalId('cmos_lowlight');
-        $cmos_LOWLIGHT->setType('action');
-        $cmos_LOWLIGHT->setSubType('other');
-        $cmos_LOWLIGHT->setIsVisible(1);
-        $cmos_LOWLIGHT->save();
-
-        // Création de CMOS WDR
-        $cmos_WDR = $this->getCmd('action', 'cmos_wdr');
-        if (!is_object($cmos_WDR)) {
-            $cmos_WDR = new gds3710Cmd();
-        }
-        $cmos_WDR->setName(__('CMOS - WDR', __FILE__));
-        $cmos_WDR->setEqLogic_id($this->getId());
-        $cmos_WDR->setLogicalId('cmos_wdr');
-        $cmos_WDR->setType('action');
-        $cmos_WDR->setSubType('other');
-        $cmos_WDR->setIsVisible(1);
-        $cmos_WDR->save();
-
-        // Création de la commande stream_mjpeg
-        $stream_mjpeg = $this->getCmd('info', 'stream_mjpeg');
-        if (!is_object($stream_mjpeg)) {
-            $stream_mjpeg = new gds3710Cmd();
-        }
-        $stream_mjpeg->setName(__('Stream MJPEG', __FILE__));
-        $stream_mjpeg->setEqLogic_id($this->getId());
-        $stream_mjpeg->setLogicalId('stream_mjpeg');
-        $stream_mjpeg->setType('info');
-        $stream_mjpeg->setSubType('string');
-        $stream_mjpeg->setTemplate('dashboard', 'mjpegstream');
-        $stream_mjpeg->setTemplate('mobile', 'mjpegstream');
-        $stream_mjpeg->setIsVisible(1);
-        $stream_mjpeg->save();
-        $stream_mjpeg->event('/plugins/gds3710/core/php/camera.php?id='.$this->getId());
-
-        // Création de la commande last event
-        $info = $this->getCmd('info', 'Last event');
-        if (!is_object($info)) {
-            $info = new gds3710Cmd();
-        }  
-        $info->setName(__('Last event', __FILE__));
-        $info->setType('info');
-        $info->setSubType('string');
-        $info->setLogicalId('Last event');
-        $info->setIsVisible(0);
-        $info->setEqLogic_id($this->getId());
-        $info->save();
 
         // Création des autres commandes du portier
         $cmd_array = gds3710::get_GDS3710_event_list();
@@ -1165,22 +1263,6 @@ class gds3710 extends eqLogic {
             $info->save(); 
         }
 
-        // Client SIP. La valeur ne porte que l'id de l'équipement : le widget s'en
-        // sert pour aller chercher sa configuration par un appel ajax authentifié.
-        $sip = $this->getCmd('info', 'sip_client');
-        if (!is_object($sip)) {
-            $sip = new gds3710Cmd();
-            $sip->setIsVisible(0);
-        }
-        $sip->setName(__('Client SIP', __FILE__));
-        $sip->setType('info');
-        $sip->setSubType('string');
-        $sip->setLogicalId('sip_client');
-        $sip->setTemplate('dashboard', 'sipclient');
-        $sip->setEqLogic_id($this->getId());
-        $sip->save();
-        $sip->event((string) $this->getId());
-
         // Réglages de confort : une commande info + un curseur qui l'écrit
         foreach (gds3710::get_setting_list() as $lid => $def) {
             $info = $this->getCmd('info', $lid);
@@ -1189,7 +1271,7 @@ class gds3710 extends eqLogic {
                 $info->setIsVisible(0);
             }
             if (trim((string) $info->getName()) === '') {
-                $info->setName(__($def['name'], __FILE__));
+                $info->setName($def['name']);
             }
             $info->setType('info');
             $info->setSubType('numeric');
@@ -1211,7 +1293,7 @@ class gds3710 extends eqLogic {
                 $slider->setIsVisible(0);
             }
             if (trim((string) $slider->getName()) === '') {
-                $slider->setName(__($def['name'], __FILE__) . ' ' . __('(réglage)', __FILE__));
+                $slider->setName($def['name'] . ' ' . __('(réglage)', __FILE__));
             }
             $slider->setType('action');
             $slider->setSubType('slider');
@@ -1227,39 +1309,27 @@ class gds3710 extends eqLogic {
             $slider->save();
         }
 
-        // Planning du rétroéclairage blanc
+        /* Le planning du retroeclairage et ses horaires sont decrits dans
+         * get_command_list(). Les deux boutons qui les pilotent restent ici : ils
+         * designent l'etat qu'ils modifient, dont l'identifiant n'existe qu'une fois
+         * la commande enregistree. */
         $backlight = $this->getCmd('info', 'backlight_schedule');
-        if (!is_object($backlight)) {
-            $backlight = new gds3710Cmd();
-            $backlight->setIsVisible(0);
-        }
-        $backlight->setName(__('Rétroéclairage - planning actif', __FILE__));
-        $backlight->setType('info');
-        $backlight->setSubType('binary');
-        $backlight->setLogicalId('backlight_schedule');
-        $backlight->setEqLogic_id($this->getId());
-        $backlight->save();
-
-        $hours = $this->getCmd('info', 'backlight_hours');
-        if (!is_object($hours)) {
-            $hours = new gds3710Cmd();
-            $hours->setIsVisible(0);
-        }
-        $hours->setName(__('Rétroéclairage - horaires', __FILE__));
-        $hours->setType('info');
-        $hours->setSubType('string');
-        $hours->setLogicalId('backlight_hours');
-        $hours->setEqLogic_id($this->getId());
-        $hours->save();
-
-        foreach (array('backlight_on' => 'Rétroéclairage - activer le planning',
-                       'backlight_off' => 'Rétroéclairage - désactiver le planning') as $blid => $label) {
+        foreach (array('backlight_on' => __('Rétroéclairage - activer le planning', __FILE__),
+                       'backlight_off' => __('Rétroéclairage - désactiver le planning', __FILE__)) as $blid => $label) {
+            if (!is_object($backlight)) {
+                break;
+            }
             $cmd = $this->getCmd('action', $blid);
             if (!is_object($cmd)) {
                 $cmd = new gds3710Cmd();
                 $cmd->setIsVisible(0);
             }
-            $cmd->setName(__($label, __FILE__));
+            /* Le nom n'est pose que s'il est vide. Ces deux commandes avaient echappe a la
+             * correction generale du renommage : leur nom d'origine revenait a chaque
+             * enregistrement de l'equipement. */
+            if (trim((string) $cmd->getName()) === '') {
+                $cmd->setName($label);
+            }
             $cmd->setType('action');
             $cmd->setSubType('other');
             $cmd->setLogicalId($blid);
@@ -1268,19 +1338,32 @@ class gds3710 extends eqLogic {
             $cmd->save();
         }
 
-        $setHours = $this->getCmd('action', 'backlight_hours_set');
-        if (!is_object($setHours)) {
-            $setHours = new gds3710Cmd();
-            $setHours->setIsVisible(0);
+        /* Maintien de porte et detection de mouvement : une paire marche/arret chacun,
+         * sur le modele du retroeclairage. Les commandes de maintien sont invisibles par
+         * defaut — elles deverrouillent une porte et l y laissent, ce n est pas quelque
+         * chose qui doit atterrir sur un dashboard par inadvertance. */
+        foreach (array(
+            'keep_open_1_on'  => array(__('Maintien porte 1 - activer', __FILE__),   'keep_open_1'),
+            'keep_open_1_off' => array(__('Maintien porte 1 - désactiver', __FILE__), 'keep_open_1'),
+            'keep_open_2_on'  => array(__('Maintien porte 2 - activer', __FILE__),   'keep_open_2'),
+            'keep_open_2_off' => array(__('Maintien porte 2 - désactiver', __FILE__), 'keep_open_2'),
+            'motion_on'       => array(__('Détection de mouvement - activer', __FILE__),   'motion_detection'),
+            'motion_off'      => array(__('Détection de mouvement - désactiver', __FILE__), 'motion_detection'),
+        ) as $lid => $def) {
+            $cmd = $this->getCmd('action', $lid);
+            if (!is_object($cmd)) {
+                $cmd = new gds3710Cmd();
+                $cmd->setIsVisible(0);
+            }
+            if (trim((string) $cmd->getName()) === '') {
+                $cmd->setName($def[0]);
+            }
+            $cmd->setType('action');
+            $cmd->setSubType('other');
+            $cmd->setLogicalId($lid);
+            $cmd->setEqLogic_id($this->getId());
+            $cmd->save();
         }
-        $setHours->setName(__('Rétroéclairage - définir les horaires', __FILE__));
-        $setHours->setType('action');
-        $setHours->setSubType('message');
-        $setHours->setLogicalId('backlight_hours_set');
-        $setHours->setEqLogic_id($this->getId());
-        $setHours->setDisplay('title_placeholder', __('Début, format HHMMSS', __FILE__));
-        $setHours->setDisplay('message_placeholder', __('Fin, format HHMMSS', __FILE__));
-        $setHours->save();
 
         // Commandes issues de la décomposition des évènements
         foreach (gds3710::get_event_detail_list() as $lid => $def) {
@@ -1289,27 +1372,17 @@ class gds3710 extends eqLogic {
                 $cmd = new gds3710Cmd();
                 $cmd->setIsVisible(0);
             }
-            $cmd->setName(__($def['name'], __FILE__));
+            /* Meme regle : les neuf commandes de decomposition d'evenement reimposaient
+             * elles aussi leur nom a chaque enregistrement. */
+            if (trim((string) $cmd->getName()) === '') {
+                $cmd->setName($def['name']);
+            }
             $cmd->setType('info');
             $cmd->setSubType('string');
             $cmd->setLogicalId($lid);
             $cmd->setEqLogic_id($this->getId());
             $cmd->save();
         }
-
-        // Création de la commande de configuration automatique du portier
-        $configure = $this->getCmd('action', 'configureDoorbell');
-        if (!is_object($configure)) {
-            $configure = new gds3710Cmd();
-        }
-        $configure->setName(__('Configurer le portier', __FILE__));
-        $configure->setEqLogic_id($this->getId());
-        $configure->setLogicalId('configureDoorbell');
-        $configure->setType('action');
-        $configure->setSubType('other');
-        $configure->setDisplay('icon', '<i class="fas fa-cogs"></i>');
-        $configure->setIsVisible(0);
-        $configure->save();
 
         /* Capteurs releves par cmd=get&type=sysinfo. Le plugin nappelait jamais cette
          * requete alors quelle expose gratuitement les entrees/sorties digitales, letat
@@ -1321,7 +1394,7 @@ class gds3710 extends eqLogic {
                 $cmd->setIsVisible(0);
             }
             if (trim((string) $cmd->getName()) === '') {
-                $cmd->setName(__($def['name'], __FILE__));
+                $cmd->setName($def['name']);
             }
             $cmd->setType('info');
             $cmd->setSubType($def['subType']);
@@ -1341,7 +1414,7 @@ class gds3710 extends eqLogic {
              * choix fait dans le tableau des commandes. On ne remplit que ce qui est
              * vide, ce qui rattrape aussi les installations anterieures aux unites. */
             if (trim((string) $cmd->getName()) === '') {
-                $cmd->setName(__($def['name'], __FILE__));
+                $cmd->setName($def['name']);
             }
             $cmd->setType('info');
             $cmd->setSubType($def['subType']);
@@ -1384,6 +1457,12 @@ class gds3710 extends eqLogic {
             'backlight_on'       => array('etat' => 'backlight_schedule', 'widget' => 'binaryDefault'),
             'backlight_off'      => array('etat' => 'backlight_schedule', 'widget' => 'binaryDefault'),
             'backlight_hours_set'=> array('etat' => 'backlight_hours'),
+            'keep_open_1_on'     => array('etat' => 'keep_open_1'),
+            'keep_open_1_off'    => array('etat' => 'keep_open_1'),
+            'keep_open_2_on'     => array('etat' => 'keep_open_2'),
+            'keep_open_2_off'    => array('etat' => 'keep_open_2'),
+            'motion_on'          => array('etat' => 'motion_detection', 'widget' => 'binarySwitch'),
+            'motion_off'         => array('etat' => 'motion_detection', 'widget' => 'binarySwitch'),
         );
         $posees = 0;
         foreach ($liaisons as $action => $def) {
@@ -1476,8 +1555,16 @@ class gds3710 extends eqLogic {
                 continue;
             }
 
-            $eq->refreshSettings();
-            $eq->refreshStates();
+            /* Une seule passe de lecture pour les reglages ET les etats. Les deux tables
+             * partagent trois sections (« audio », « event », « sch_open_door ») : les
+             * laisser lire chacune de leur cote envoyait 11 requetes la ou 8 suffisent,
+             * sur un appareil qui ne tolere qu une session administrateur a la fois. */
+            $lu = $eq->lireSections(array_unique(array_merge(
+                gds3710::sectionsDe(gds3710::get_setting_list()),
+                gds3710::sectionsDe(gds3710::get_state_list())
+            )));
+            $eq->refreshSettings($lu);
+            $eq->refreshStates($lu);
 
             $info = $eq->readConfigSection('sysinfo');
             if ($info === null) {
@@ -1599,81 +1686,48 @@ class gds3710Cmd extends cmd {
 
     /*     * ***********************Methode static*************************** */
 
-    private function open_door($type){
-        log::add('gds3710', 'info', 'Requesting door opening 1 or closing 2 of type : '.$type);
+    /* Ouvre ou ferme une porte. $_type vaut 1 pour ouvrir, 2 pour fermer ; $_porte
+     * designe laquelle, et donc le PIN a presenter.
+     *
+     * Ce chemin n'utilise PAS la session administrateur : il s'authentifie par le PIN
+     * distant sur /goform/apicmd, un mecanisme separe. Il ne perturbe donc pas la
+     * session mise en cache.
+     *
+     * Les deux portes avaient chacune leur methode, identiques a un nom de cle pres. */
+    private function open_door($_type, $_porte = 1) {
         $gds3710 = eqLogic::byId($this->getEqLogic_id());
+        $cle = ($_porte == 2) ? 'remote_pin_2' : 'remote_pin';
+        log::add('gds3710', 'info', 'Porte ' . $_porte . ' : '
+            . (($_type == '1') ? 'ouverture' : 'fermeture') . ' demandee.');
 
         $ip = $gds3710->getConfiguration('ip');
-        $remote_pin = $gds3710->getConfiguration('remote_pin');
+        $remote_pin = $gds3710->getConfiguration($cle);
         $password = $gds3710->getConfiguration('password');
 
-        $ch = curl_init();
-        $optArray = array(
-            CURLOPT_URL => 'https://'.$ip.'/goform/apicmd?cmd=0&user=admin',
-            CURLOPT_SSL_VERIFYPEER  => false,
-            CURLOPT_SSL_VERIFYHOST => false,
-            CURLOPT_RETURNTRANSFER => true
-        );
-        curl_setopt_array($ch, $optArray);
-        log::add('gds3710', 'debug', 'curl options are : '.gds3710::redact($optArray));
-        $auth_challenge = gds3710::parseXml(curl_exec($ch), 'ouverture porte');
-        if ($auth_challenge === null) {
+        $defi = gds3710::parseXml(
+            self::httpApi('https://' . $ip . '/goform/apicmd?cmd=0&user=admin'), 'ouverture porte');
+        if ($defi === null) {
             return;
         }
-        $ChallengeCode = $auth_challenge->ChallengeCode[0];
-        $IDCode = $auth_challenge->IDCode[0];
-
-        $auth_response = md5($ChallengeCode.":".$remote_pin.":".$password);
-
-        $optArray = array(
-            CURLOPT_URL => 'https://'.$ip.'/goform/apicmd?cmd=1&user=admin&authcode='.$auth_response.'&idcode='.$IDCode.'&type='.$type,
-            CURLOPT_SSL_VERIFYPEER  => false,
-            CURLOPT_SSL_VERIFYHOST => false,
-            CURLOPT_RETURNTRANSFER => true
-        );
-
-        $ch = curl_init();
-        curl_setopt_array($ch, $optArray);
-        $data = curl_exec($ch);
-        log::add('gds3710', 'debug', 'result : '.print_r($data, true));
+        $authcode = md5($defi->ChallengeCode[0] . ':' . $remote_pin . ':' . $password);
+        $reponse = self::httpApi('https://' . $ip . '/goform/apicmd?cmd=1&user=admin&authcode='
+            . $authcode . '&idcode=' . $defi->IDCode[0] . '&type=' . $_type);
+        log::add('gds3710', 'debug', 'result : ' . gds3710::redact($reponse));
     }
 
-    private function open_door_2($type){
-        log::add('gds3710', 'info', 'Requesting door opening 2 or closing 2 of type : '.$type);
-        $gds3710 = eqLogic::byId($this->getEqLogic_id());
-
-        $ip = $gds3710->getConfiguration('ip');
-        $remote_pin = $gds3710->getConfiguration('remote_pin_2');
-        $password = $gds3710->getConfiguration('password');
-
+    /* Requete simple vers l'API du portier, sans session. */
+    private static function httpApi($_url) {
         $ch = curl_init();
-        $optArray = array(
-            CURLOPT_URL => 'https://'.$ip.'/goform/apicmd?cmd=0&user=admin',
-            CURLOPT_SSL_VERIFYPEER  => false,
+        curl_setopt_array($ch, array(
+            CURLOPT_URL => $_url,
+            CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_SSL_VERIFYHOST => false,
-            CURLOPT_RETURNTRANSFER => true
-        );
-        curl_setopt_array($ch, $optArray);
-        $auth_challenge = gds3710::parseXml(curl_exec($ch), 'ouverture porte');
-        if ($auth_challenge === null) {
-            return;
-        }
-        $ChallengeCode = $auth_challenge->ChallengeCode[0];
-        $IDCode = $auth_challenge->IDCode[0];
-
-        $auth_response = md5($ChallengeCode.":".$remote_pin.":".$password);
-
-        $optArray = array(
-            CURLOPT_URL => 'https://'.$ip.'/goform/apicmd?cmd=1&user=admin&authcode='.$auth_response.'&idcode='.$IDCode.'&type='.$type,
-            CURLOPT_SSL_VERIFYPEER  => false,
-            CURLOPT_SSL_VERIFYHOST => false,
-            CURLOPT_RETURNTRANSFER => true
-        );
-
-        $ch = curl_init();
-        curl_setopt_array($ch, $optArray);
-        $data = curl_exec($ch);
-        log::add('gds3710', 'debug', 'result : '.print_r($data, true));
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 15,
+        ));
+        $resultat = curl_exec($ch);
+        curl_close($ch);
+        return $resultat;
     }
 
     /* Sections ou chercher un P-value pour verifier une ecriture. Le portier accepte
@@ -1692,35 +1746,26 @@ class gds3710Cmd extends cmd {
         }
 
         $gds3710 = eqLogic::byId($this->getEqLogic_id());
-        $cookies = $this->getAuthCookies($gds3710);
-        log::add('gds3710', 'debug', 'Auth cookies is : '.gds3710::redact($cookies));
-
-        $cookie_string = "";
-        foreach ($cookies as $key => $value) {
-            $cookie_string.=$key."=".$value.";";
+        /* Une seule voie d'authentification pour toute la configuration : openSession(),
+         * qui met sa session en cache. getAuthCookies() en ouvrait une neuve a chaque
+         * appel — or le portier n'en tolere qu'une : la session du cron s'en trouvait
+         * invalidee, et la lecture suivante echouait sans un mot. */
+        $cookie_string = $gds3710->openSession();
+        if ($cookie_string === null) {
+            return;
         }
 
         $ip = $gds3710->getConfiguration('ip');
-        $password = $gds3710->getConfiguration('password');
-        $salt = "GDS3710lZpRsFzCbM";
 
-        $ch = curl_init();
-        $url = 'https://'.$ip.'/goform/config?cmd=set&'.$id.'='.$parameter_value;
-
-        $optArray = array(
-            CURLOPT_URL => $url,
-            CURLOPT_SSL_VERIFYPEER  => false,
-            CURLOPT_SSL_VERIFYHOST => false,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_COOKIE => $cookie_string
-        );
-
-        log::add('gds3710', 'debug', 'Calling url : '.$url);
-
-        $ch = curl_init();
-        curl_setopt_array($ch, $optArray);
-
-        $result =  gds3710::parseXml(curl_exec($ch), 'requete configuration');
+        /* Ecriture en POST, et non plus dans la chaine de requete. Le portier decode
+         * l'encodage pourcent PUIS re-decoupe sa propre chaine de requete sur les « & » :
+         * une valeur qui en contient — un gabarit d'URL, par exemple — etait tronquee au
+         * premier, en silence et avec un ResCode 0. La valeur n'etait meme pas encodee ici,
+         * donc une simple espace suffisait aussi a la couper. C'est le chemin de la commande
+         * « Modifier la configuration », de LDC et des modes CMOS. */
+        log::add('gds3710', 'debug', 'Ecriture de ' . $id . ' en POST sur ' . $ip);
+        $result = gds3710::parseXml(gds3710::httpPostConfig($ip, $cookie_string, array($id => $parameter_value)),
+                                    'requete configuration');
         log::add('gds3710', 'debug', 'Result is : '. print_r($result, true));
 
         /* Relecture : un ResCode 0 ne prouve rien, le portier repond OK meme pour un
@@ -1733,9 +1778,13 @@ class gds3710Cmd extends cmd {
                 continue;
             }
             $trouve = true;
-            if ((string) $lu[$id] !== (string) $parameter_value) {
+            /* Le portier rend les caracteres speciaux sous forme d'entites : « &amp; » pour
+             * un « & ». Sans decodage, une valeur desormais ecrite correctement serait
+             * signalee comme non confirmee. */
+            $relu = html_entity_decode((string) $lu[$id], ENT_QUOTES, 'UTF-8');
+            if ($relu !== (string) $parameter_value) {
                 log::add('gds3710', 'error', 'Ecriture non confirmee pour ' . $id . ' : lu "'
-                    . $lu[$id] . '", attendu "' . $parameter_value . '".');
+                    . $relu . '", attendu "' . $parameter_value . '".');
             }
             break;
         }
@@ -1764,19 +1813,12 @@ class gds3710Cmd extends cmd {
         log::add('gds3710', 'info', 'Requesting reboot');
 
         $gds3710 = eqLogic::byId($this->getEqLogic_id());
-        $cookies = $this->getAuthCookies($gds3710);
-        log::add('gds3710', 'debug', 'Auth cookies is : '.gds3710::redact($cookies));
-
-        $cookie_string = "";
-        foreach ($cookies as $key => $value) {
-            $cookie_string.=$key."=".$value.";";
+        $cookie_string = $gds3710->openSession();
+        if ($cookie_string === null) {
+            return;
         }
 
         $ip = $gds3710->getConfiguration('ip');
-        $password = $gds3710->getConfiguration('password');
-        $salt = "GDS3710lZpRsFzCbM";
-
-        $ch = curl_init();
 
         $url = 'https://'.$ip.'/goform/config?cmd=reboot';
 
@@ -1796,58 +1838,10 @@ class gds3710Cmd extends cmd {
         $result = gds3710::parseXml(curl_exec($ch), 'requete configuration');
         log::add('gds3710', 'debug', 'Result is : '. print_r($result, true));
 
+        /* Le portier redemarre : la session en cache ne vaut plus rien, et la garder
+         * ferait echouer en silence la premiere lecture qui la reutiliserait. */
+        $gds3710->oublierSession();
     }
-
-    private function getAuthCookies($gds){
-
-        $ip = $gds->getConfiguration('ip');
-        $password = $gds->getConfiguration('password');
-        $salt = "GDS3710lZpRsFzCbM";
-
-        $ch = curl_init();
-
-        $optArray = array(
-            CURLOPT_URL => 'https://'.$ip.'/goform/login?cmd=login&user=admin&type=0',
-            CURLOPT_SSL_VERIFYPEER  => false,
-            CURLOPT_SSL_VERIFYHOST => false,
-            CURLOPT_RETURNTRANSFER => true
-        );
-
-        curl_setopt_array($ch, $optArray);
-        $auth_challenge = gds3710::parseXml(curl_exec($ch), 'ouverture de session');
-        if ($auth_challenge === null) {
-            return array();
-        }
-
-        $ChallengeCode = $auth_challenge->ChallengeCode[0];
-        $IDCode = $auth_challenge->IDCode[0];
-
-        $auth_response = md5($ChallengeCode.":"."GDS3710lZpRsFzCbM".":".$password);
-        $url = 'https://'.$ip.'/goform/login?cmd=login&user=admin&authcode='.$auth_response;
-
-        $optArray = array(
-            CURLOPT_URL => $url,
-            CURLOPT_SSL_VERIFYPEER  => false,
-            CURLOPT_SSL_VERIFYHOST => false,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HEADER => true
-        );
-        $ch = curl_init();
-        curl_setopt_array($ch, $optArray);
-        $result = curl_exec($ch);
-
-        preg_match_all('/^Set-Cookie:\s*([^;]*)/mi', $result, $matches);
-        $cookies = array();
-        foreach($matches[1] as $item) {
-            parse_str($item, $cookie);
-            $cookies = array_merge($cookies, $cookie);
-        }
-        
-        return $cookies;
-
-    }
-
-
 
     private function cmos_normal(){
         log::add('gds3710', 'info', 'Requesting CMOS NORMAL');
@@ -1869,68 +1863,14 @@ class gds3710Cmd extends cmd {
         log::add('gds3710', 'debug', 'Snapshot has been requested');
 
         $gds3710 = eqLogic::byId($this->getEqLogic_id());
-
         $ip = $gds3710->getConfiguration('ip');
-        $password = $gds3710->getConfiguration('password');
-        $salt = 'GDS3710lDyTlHwNgZ';
 
-        $ch = curl_init();
-
-        $optArray = array(
-            CURLOPT_URL => 'https://'.$ip.'/goform/login?cmd=login&user=admin&type=1',   
-            CURLOPT_SSL_VERIFYPEER  => false,
-            CURLOPT_SSL_VERIFYHOST => false,
-            CURLOPT_RETURNTRANSFER => true
-        );
-
-        log::add('gds3710', 'debug', 'URL array : '.gds3710::redact($optArray));
-
-        curl_setopt_array($ch, $optArray);
-        $data = curl_exec($ch);
-
-        log::add('gds3710', 'debug', 'URL return : '.gds3710::redact($data));
-
-        $auth_challenge = gds3710::parseXml($data, 'capture');
-        if ($auth_challenge === null) {
+        /* Authentification media : voir gds3710::sessionMedia(). Elle occupait ici une
+         * soixantaine de lignes, options cURL recopiees trois fois comprises. */
+        $cookies_string = $gds3710->sessionMedia();
+        if ($cookies_string === null) {
             return null;
         }
-        $ChallengeCode = $auth_challenge->ChallengeCode[0];
-        $string_to_be_hashed = $ChallengeCode.":".$salt.":".$password;
-
-        /* Ne jamais journaliser cette chaine : elle contient le mot de passe en clair. */
-        log::add('gds3710', 'debug', 'Challenge recu : '.$ChallengeCode);
-
-        $auth_response = md5($string_to_be_hashed);
-        $url ='https://'.$ip.'/goform/login?cmd=login&user=admin&authcode='.$auth_response.'&type=1';
-
-        $optArray = array(
-            CURLOPT_URL => $url,         
-            CURLOPT_SSL_VERIFYPEER  => false,
-            CURLOPT_SSL_VERIFYHOST => false,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HEADER => true
-        );
-
-        log::add('gds3710', 'debug', 'URL array : '.gds3710::redact($optArray));
-
-        $ch = curl_init();
-        curl_setopt_array($ch, $optArray);
-        $data = curl_exec($ch);
-
-        log::add('gds3710', 'debug', 'URL return : '.gds3710::redact($data));
-
-        preg_match_all('/^Set-Cookie:\s*([^;]*)/mi', $data, $matches);
-        $cookies = array();
-        foreach($matches[1] as $item) {
-            parse_str($item, $cookie);
-            $cookies = array_merge($cookies, $cookie);
-        }
-
-        $cookies_string = '';
-        foreach($cookies as $key => $value){
-            $cookies_string=$cookies_string.$key."=".$value.";";
-        }
-        $cookies_string = rtrim($cookies_string,';');
 
         $url ='https://'.$ip.'/snapshot/view0.jpg';
         
@@ -1965,17 +1905,14 @@ class gds3710Cmd extends cmd {
         }
         log::add('gds3710', 'debug', 'Trying to create the capture under : '.$output_file);
 
-        $optArray = array(
-            CURLOPT_URL => $url,         
-            CURLOPT_SSL_VERIFYPEER  => false,
-            CURLOPT_SSL_VERIFYHOST => false,
-            CURLOPT_RETURNTRANSFER => true,
+        /* CURLOPT_RETURNTRANSFER figurait DEUX fois dans ce tableau, et CURLOPT_BINARYTRANSFER
+         * n'a plus aucun effet depuis PHP 5.1.3. Le corps part dans $fp via CURLOPT_FILE. */
+        $optArray = gds3710::optionsHttp(array(
+            CURLOPT_URL => $url,
             CURLOPT_COOKIE => $cookies_string,
             CURLOPT_HEADER => false,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_BINARYTRANSFER => true,
-            CURLOPT_FILE => $fp
-        );
+            CURLOPT_FILE => $fp,
+        ));
 
         log::add('gds3710', 'debug', 'URL array : '.gds3710::redact($optArray));
 
@@ -1989,6 +1926,18 @@ class gds3710Cmd extends cmd {
         fclose($fp);
         log::add('gds3710', 'debug', 'Closing the file');
 
+        /* Le portier repond 200 meme quand l authentification a echoue : le corps est
+         * alors son XML d erreur, qui etait enregistre tel quel en .jpg, publie comme
+         * « dernier snapshot » et envoye par send_snapshot() le cas echeant. Une image
+         * JPEG commence par les octets FF D8 : tout autre contenu est une capture ratee. */
+        $entete = (string) @file_get_contents($output_file, false, null, 0, 2);
+        if ($entete !== "\xFF\xD8") {
+            log::add('gds3710', 'error', 'La capture recue n est pas une image JPEG '
+                . '(authentification refusee ou portier en erreur) : fichier supprime.');
+            @unlink($output_file);
+            return null;
+        }
+
         log::add('gds3710', 'debug', "Registering path to lastest picture");
         $eqLogic = $this->getEqLogic();
         $lastest_snapshot = $eqLogic->getCmd('info', 'Lastest_Snapshot_Path');
@@ -1998,7 +1947,7 @@ class gds3710Cmd extends cmd {
         log::add('gds3710', 'debug', "Registering URL to the lastest snapshot");
         $eqLogic = $this->getEqLogic();
         $lastest_snapshot_URL = $eqLogic->getCmd('info', 'Lastest_Snapshot_URL');
-        $lastest_snapshot_URL->event(substr($output_file, strpos($output_file, '/plugins')));
+        $lastest_snapshot_URL->event(gds3710::urlPublique($output_file));
         $lastest_snapshot_URL->save();
 
         return $output_file;
@@ -2093,10 +2042,42 @@ class gds3710Cmd extends cmd {
                 $this->open_door('2');
                 break;
             case 'open2':
-                $this->open_door_2('1');
-                break;
             case 'close2':
-                $this->open_door_2('2');
+                /* En mode webrelay (P15440=1) le portier n'a qu'UNE URL de relais : toute
+                 * ouverture, quelle que soit la porte et quel que soit le PIN presente,
+                 * declenche la meme action. La porte 2 de l'appareil est alors sans effet
+                 * propre — deux boutons pour un seul geste.
+                 *
+                 * Une commande Jeedom peut donc lui etre associee : le bouton « porte 2 »
+                 * execute alors cette commande au lieu d'interroger le portier. C'est ce
+                 * qui permet, par exemple, d'ouvrir en grand un portail dont le portier ne
+                 * commande que l'ouverture pietonne — et le bouton reste disponible dans
+                 * la fenetre d'appel du client SIP, qui liste les commandes d'ouverture
+                 * visibles de l'equipement. */
+                $deleguee = trim((string) $eqLogic->getConfiguration('door2_cmd'));
+                if ($deleguee !== '') {
+                    if ($lid === 'close2') {
+                        log::add('gds3710', 'info', 'Porte 2 deleguee a une commande Jeedom : '
+                            . '« Fermer la porte 2 » est sans objet et n a rien execute.');
+                        break;
+                    }
+                    /* Le selecteur rend la forme balisee « #[Objet][Eq][Cmd]# », la seule
+                     * que cmd::byString() sache resoudre — le nom humain nu, lui, echoue.
+                     * Une valeur saisie a la main sans les diese est rattrapee ici plutot
+                     * que de faire echouer l'ouverture sur un detail de syntaxe. */
+                    if (substr($deleguee, 0, 1) === '[') {
+                        $deleguee = '#' . $deleguee . '#';
+                    }
+                    log::add('gds3710', 'info', 'Porte 2 : execution de la commande Jeedom ' . $deleguee . '.');
+                    try {
+                        scenarioExpression::createAndExec('action', $deleguee);
+                    } catch (Exception $e) {
+                        log::add('gds3710', 'error', 'La commande Jeedom associee a la porte 2 a echoue ('
+                            . $deleguee . ') : ' . $e->getMessage());
+                    }
+                    break;
+                }
+                $this->open_door($lid === 'open2' ? '1' : '2', 2);
                 break;
             case 'cmos_normal':
                 $this->cmos_normal();
@@ -2121,6 +2102,31 @@ class gds3710Cmd extends cmd {
                 break;
             case 'configureDoorbell':
                 $eqLogic->pushEventNotificationConfig();
+                break;
+            /* Le portier refuse silencieusement certains parametres — les reglages de
+             * date en sont la preuve. writeConfig() relit systematiquement apres
+             * ecriture et journalise « Ecriture non confirmee » si l appareil n a pas
+             * pris la valeur : un echec ne peut donc pas passer inapercu. */
+            case 'keep_open_1_on':
+            case 'keep_open_1_off':
+            case 'keep_open_2_on':
+            case 'keep_open_2_off':
+                $porte2 = (strpos($lid, 'keep_open_2') === 0);
+                $actif = (substr($lid, -3) === '_on') ? '1' : '0';
+                if ($actif === '1') {
+                    log::add('gds3710', 'warning', 'Maintien de porte ' . ($porte2 ? '2' : '1')
+                        . ' active : la porte reste deverrouillee pendant la duree configuree.');
+                }
+                if ($eqLogic->writeConfig(array(($porte2 ? 'P15455' : 'P15429') => $actif), 'sch_open_door')) {
+                    $eqLogic->refreshStates();
+                }
+                break;
+            case 'motion_on':
+            case 'motion_off':
+                $actif = ($lid === 'motion_on') ? '1' : '0';
+                if ($eqLogic->writeConfig(array('P10250' => $actif), 'event')) {
+                    $eqLogic->refreshStates();
+                }
                 break;
             case 'backlight_on':
             case 'backlight_off':

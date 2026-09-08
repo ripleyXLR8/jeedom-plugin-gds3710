@@ -20,9 +20,13 @@ require_once __DIR__  . '/../../../../core/php/core.inc.php';
 include_file('core', 'authentification', 'php');
 
 /* Le widget charge cette URL en relatif depuis une page Jeedom : le cookie de session est
- * donc transmis et isConnect() suffit. L'accès par clef API reste ouvert pour les clients
- * qui n'ont pas de session (application mobile, tuile partagée, scénario). */
-if (!isConnect() && !jeedom::apiAccess(init('apikey')) && !jeedom::apiAccess(init('apikey'), 'gds3710')) {
+ * donc transmis. L'accès par clef API reste ouvert pour les clients qui n'ont pas de
+ * session (application mobile, tuile partagée, scénario). Dans les deux cas, le droit de
+ * lecture sur l'équipement est vérifié plus bas, une fois celui-ci résolu. */
+$viaSession = isConnect();
+$viaApi = !$viaSession
+	&& (jeedom::apiAccess(init('apikey')) || jeedom::apiAccess(init('apikey'), 'gds3710'));
+if (!$viaSession && !$viaApi) {
 	log::add('gds3710', 'error', 'Accès non autorisé à camera.php depuis ' . (isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '?'));
 	header('HTTP/1.1 401 Unauthorized');
 	die();
@@ -36,15 +40,43 @@ if(!isset($_GET['id']) || $_GET['id'] == ''){
 }
 
 $eqId = $_GET['id'];
-$gds3710 = gds3710::byId($eqId, 'gds3710');
-if (!is_object($gds3710)) {
+/* eqLogic::byId() ne prend qu'un parametre : le second, « gds3710 », n'a jamais rien
+ * filtre. Le type se verifie donc explicitement, comme le fait le modal d'historique. */
+$gds3710 = gds3710::byId($eqId);
+if (!is_object($gds3710) || $gds3710->getEqType_name() !== 'gds3710') {
 	log::add('gds3710', 'error', 'No GDS3710 equipment with id : '.$eqId);
+	die();
+}
+
+/* Le bloc A avait ferme l'acces anonyme, mais pas celui d'un utilisateur sans droit sur CET
+ * equipement : tout compte Jeedom voyait le flux de toutes les portes de l'installation.
+ *
+ * Deux facons d'arriver ici, deux facons de verifier le droit :
+ *  - par session, c'est l'utilisateur connecte qui compte ;
+ *  - par clef API, jeedom::apiAccess() accepte AUSSI la clef personnelle d'un utilisateur
+ *    et publie alors son compte dans $_USER_GLOBAL. Sans ce second cas, un utilisateur
+ *    restreint contournait le controle avec sa propre clef. Une clef de plugin ou du coeur,
+ *    elle, ne designe aucun compte : c'est une autorisation machine, et c'est par la que
+ *    passent l'application mobile, la tuile partagee et les scenarios. */
+global $_USER_GLOBAL;
+$demandeur = null;
+if ($viaApi && isset($_USER_GLOBAL) && is_object($_USER_GLOBAL)) {
+	$demandeur = $_USER_GLOBAL;
+}
+$autorise = $viaSession ? $gds3710->hasRight('r')
+	: ($demandeur === null ? true : $gds3710->hasRight('r', $demandeur));
+if (!$autorise) {
+	log::add('gds3710', 'error', 'Accès refusé au flux de ' . $gds3710->getHumanName()
+		. ' : pas de droit de lecture sur cet équipement.');
+	header('HTTP/1.1 403 Forbidden');
 	die();
 }
 $ip = $gds3710->getConfiguration('ip');
 $password = $gds3710->getConfiguration('password');
 $mac = $gds3710->getConfiguration('macaddress');
-$remote_pin = 'GDS3710lDyTlHwNgZ';
+/* Le sel etait recopie ici en clair, identique a celui de la capture : deux
+ * definitions de la meme valeur magique, dans deux fichiers. */
+$remote_pin = gds3710::SEL_MEDIA;
 $auth_type = $gds3710->getConfiguration('auth_type');
 log::add('gds3710', 'debug', 'Config is : '.$mac.' | '.$ip.' | '.$auth_type);
 
@@ -75,8 +107,14 @@ if($auth_type == 'challenge'){
 
 } elseif ($auth_type == 'basic'){
 
-	$mjpeg_url = 'https://admin:'.$password.'@'.$ip.'/jpeg/stream';
-	log::add('gds3710', 'debug', 'MJPEG url is : '.gds3710::redact($mjpeg_url));
+	/* Les identifiants passaient dans l'URL (https://admin:motdepasse@ip/...). Le
+	 * resultat est le meme — le wrapper HTTP de PHP en fait un en-tete Authorization —
+	 * mais un echec de fopen() emettait un warning PHP contenant l'URL complete, mot de
+	 * passe compris, dans le log du serveur web : hors de portee de redact(), qui ne
+	 * couvre que le log du plugin. L'en-tete est donc pose explicitement, et l'URL ne
+	 * porte plus aucun secret. */
+	$mjpeg_url = 'https://'.$ip.'/jpeg/stream';
+	log::add('gds3710', 'debug', 'MJPEG url is : '.$mjpeg_url);
 
 } else {
 
@@ -84,11 +122,14 @@ if($auth_type == 'challenge'){
 
 }
 
+$headers = "Accept-language: en\r\n" . "Cookie: foo=bar\r\n";
+if ($auth_type == 'basic') {
+	$headers .= 'Authorization: Basic ' . base64_encode('admin:' . $password) . "\r\n";
+}
 $opts = array(
 	'http'=>array(
 			'method'=>"GET",
-			'header'=>"Accept-language: en\r\n" .
-			"Cookie: foo=bar\r\n"
+			'header'=>$headers
 		),
 			'ssl'=>[
 			'verify_peer' => false,
@@ -105,7 +146,9 @@ if (function_exists('apache_setenv')) {
 }
 @ini_set('zlib.output_compression', 0);
 
-$fp = fopen($mjpeg_url, 'r', false, $context);
+/* @ : l'echec est gere par la branche else ci-dessous. Sans lui, le warning PHP part
+ * dans le log du serveur web — c'est par la que l'URL a identifiants fuyait. */
+$fp = @fopen($mjpeg_url, 'r', false, $context);
 
 if ($fp) {
 	header("Cache-Control: no-cache");

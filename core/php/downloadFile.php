@@ -20,7 +20,7 @@
  	require_once dirname(__FILE__) . '/../../../../core/php/core.inc.php';
  	include_file('core', 'authentification', 'php');
 	if (!isConnect() && !jeedom::apiAccess(init('apikey'))) {
-		throw new Exception(__('401 - Accès non autorisé1', __FILE__));
+		throw new Exception(__('401 - Accès non autorisé1', __FILE__), 401);
 	}
 	$pathfile = calculPath(urldecode(init('pathfile')));
 	if(strpos($pathfile,'*') !== false){
@@ -30,10 +30,10 @@
 	}
 
 	if ($pathfile === false) {
-		throw new Exception(__('401 - Accès non autorisé2', __FILE__));
+		throw new Exception(__('401 - Accès non autorisé2', __FILE__), 401);
 	}
 	if (strpos($pathfile, '.php') !== false) {
-		throw new Exception(__('401 - Accès non autorisé3', __FILE__));
+		throw new Exception(__('401 - Accès non autorisé3', __FILE__), 401);
 	}
 
 	$rootPath = realpath(dirname(__FILE__) . '/../../');
@@ -42,24 +42,34 @@
 		if (config::byKey('recdir', 'gds3710') != '' && substr(config::byKey('recdir', 'gds3710'), 0, 1) == '/') {
 			$cameraPath = realpath(config::byKey('recdir', 'gds3710'));
 			if (strpos($pathfile, $cameraPath) === false) {
-				throw new Exception(__('401 - Accès non autorisé4', __FILE__));
+				throw new Exception(__('401 - Accès non autorisé4', __FILE__), 401);
 			}
 		} else {
-			throw new Exception(__('401 - Accès non autorisé5', __FILE__));
+			throw new Exception(__('401 - Accès non autorisé5', __FILE__), 401);
 		}
 	}
 	if (!isConnect('admin')) {
-		$adminFiles = array('log', 'backup', '.sql', 'scenario', '.tar', '.gz');
-		foreach ($adminFiles as $adminFile) {
-			if (strpos($pathfile, $adminFile) !== false) {
-				throw new Exception(__('401 - Accès non autorisé6', __FILE__));
+		/* Ces motifs etaient cherches comme sous-chaines du chemin COMPLET : le nom de
+		 * l'equipement figure dans celui de chaque capture, et un portier nomme
+		 * « Portier Logement » suffisait a faire refuser toutes ses vignettes a un
+		 * simple utilisateur — « log » etant une sous-chaine de « Logement ». On compare
+		 * desormais chaque segment du chemin aux noms proteges, et l'extension du
+		 * fichier aux extensions protegees, ce qui est ce que la liste voulait dire. */
+		$segments = explode('/', strtolower(str_replace('\\', '/', $pathfile)));
+		foreach ($segments as $segment) {
+			if (in_array($segment, array('log', 'logs', 'backup', 'backups', 'scenario'), true)) {
+				throw new Exception(__('401 - Accès non autorisé6', __FILE__), 401);
 			}
+		}
+		$extension = strtolower(pathinfo($pathfile, PATHINFO_EXTENSION));
+		if (in_array($extension, array('sql', 'tar', 'gz', 'log'), true)) {
+			throw new Exception(__('401 - Accès non autorisé6', __FILE__), 401);
 		}
 	}
 	// CAS FICHIER UNIQUE
 	if (strpos($pathfile, '*') === false) {
 		if (!file_exists($pathfile)) {
-			throw new Exception(__('Fichier non trouvé : ', __FILE__) . $pathfile);
+			throw new Exception(__('Fichier non trouvé : ', __FILE__) . $pathfile, 404);
 		}
 	} else {
 		/* Cas dun motif : « <dossier>/* » (tout le dossier) ou « <dossier>/<prefixe>* »
@@ -69,12 +79,12 @@
 		 * desormais le motif avec glob(), on revalide chaque resultat par son chemin reel,
 		 * et on echappe chaque argument. */
 		if (!isConnect('admin')) {
-			throw new Exception(__('401 - Accès non autorisé7', __FILE__));
+			throw new Exception(__('401 - Accès non autorisé7', __FILE__), 401);
 		}
 
 		$dir = realpath(dirname($pathfile));
 		if ($dir === false) {
-			throw new Exception(__('401 - Accès non autorisé9', __FILE__));
+			throw new Exception(__('401 - Accès non autorisé9', __FILE__), 401);
 		}
 
 		$allowedRoots = array(realpath(dirname(__FILE__) . '/../../'));
@@ -89,7 +99,7 @@
 			}
 		}
 		if (!$insideAllowedRoot) {
-			throw new Exception(__('401 - Accès non autorisé10', __FILE__));
+			throw new Exception(__('401 - Accès non autorisé10', __FILE__), 401);
 		}
 
 		$args = array();
@@ -100,7 +110,7 @@
 			}
 		}
 		if (count($args) === 0) {
-			throw new Exception(__('Aucun fichier a telecharger.', __FILE__));
+			throw new Exception(__('Aucun fichier a telecharger.', __FILE__), 404);
 		}
 
 		$archive = jeedom::getTmpFolder('downloads') . '/archive.tar.gz';
@@ -117,5 +127,20 @@
 	}
 	exit;
  } catch (Exception $e) {
+ 	/* Le refus repondait 200 avec le message dans le corps : pour un navigateur, pour
+ 	 * une balise <img> et pour tout appelant qui lit le statut, un acces refuse
+ 	 * ressemblait donc a un telechargement reussi. On rend le code qui convient.
+ 	 * Le code porte par l'exception evite de deduire le statut du message, qui est
+ 	 * traduit et changerait donc selon la langue. */
+ 	$codes = array(401 => 'Unauthorized', 404 => 'Not Found');
+ 	$code = (int) $e->getCode();
+ 	if (!isset($codes[$code])) {
+ 		$code = 400;
+ 		$codes[400] = 'Bad Request';
+ 	}
+ 	if (!headers_sent()) {
+ 		header('HTTP/1.1 ' . $code . ' ' . $codes[$code]);
+ 		header('Content-Type: text/plain; charset=UTF-8');
+ 	}
  	echo $e->getMessage();
  }

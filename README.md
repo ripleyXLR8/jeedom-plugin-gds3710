@@ -30,8 +30,11 @@ This plugin integrates the GrandStream GDS3710 door station into Jeedom. It can:
 - Report the door station's sensors: digital inputs and outputs, relay state, tamper switch, temperatures, uptime, firmware version and update availability.
 - Automatically purge snapshots older than a retention period.
 - Expose each event broken down into commands: code, label, date, badge, user, door, SIP number, last person in and last security alert.
-- Drive the door station's settings: keypad LED brightness, image brightness, contrast and saturation, snapshot delay, on-hook timer after a remote opening, and the white backlight schedule.
+- Drive the door station's settings: keypad LED brightness, image brightness, contrast and saturation, snapshot delay, on-hook timer after a remote opening, volumes, and the white backlight schedule.
 - Register a **SIP client** from Jeedom and answer the door station's calls on the dashboard, video and audio included.
+- Drive the **keep door open** feature: mode, duration, and since when a door is being held.
+- Arm and disarm **motion detection**, and set its sensitivity.
+- Bind a **Jeedom command to door 2**, which is what makes it usable in webrelay mode where the door station has a single relay URL.
 
 This plugin is based on the documentation published by GrandStream: http://www.grandstream.com/sites/default/files/Resources/gds37xx_http_api.pdf
 
@@ -233,6 +236,30 @@ Twelve states are reported, read from four of the door station's configuration s
 
 💡 Three of them are worth a look on a European installation: a **mains frequency** set to 60 Hz makes the picture flicker under artificial light; **daylight saving** left disabled shifts the timestamp of every event the door station reports by an hour in summer; and the **audio codec** may sit on PCMU while the SIP server offers better.
 
+# Door 2 can drive a Jeedom command instead
+
+⚠️ **In webrelay mode (`P15440=1`) the door station has a single relay URL.** Every opening — keypad, badge, remote PIN 1 *or* 2, and both of the plugin's buttons — calls that one URL and therefore performs the same action. Door 2 has no effect of its own, and the two buttons are indistinguishable.
+
+The equipment configuration can bind a **Jeedom command** to door 2. When set, "Open door 2" runs that command instead of asking the door station. That is how a gate whose door station only triggers the pedestrian leaf gets a second button for the full opening — and the button stays available in the SIP call window, which lists the equipment's visible opening commands.
+
+💡 Rename the command to match what it now does — "Full opening", say. **A command you renamed is never renamed back**: the plugin only ever fills a name that is empty.
+
+Leave the field empty to query the door station as before. "Close door 2" then has no meaning and does nothing, which is logged.
+
+# Keeping a door open, and motion detection
+
+Two groups of the door station's API the plugin used to ignore.
+
+**Keep door open.** Each door reports its mode — disabled, immediate, or scheduled — along with the hold duration in minutes and, when the door is being held, since when. Two commands switch it on and off, and a slider sets the duration (5 to 480 minutes).
+
+⚠️ **These commands are created hidden.** Switching this on *unlocks the door and leaves it unlocked* for the configured duration; that is not something to place on a dashboard by accident. Make them visible deliberately, once you know you want them.
+
+**Motion detection.** Its state, its sensitivity (0-100) and its alarm schedule are reported, and two commands arm and disarm it — which is what makes it useful from a scenario: arm on leaving, disarm on coming home. The door station already emits event type 900 when it triggers.
+
+⚠️ **Detection regions are reported but never written.** The eight regions must all be set at once and are drawn in the door station's own interface. On a device where none is defined — the factory state, all coordinates at zero — arming detection may well trigger nothing. The `Détection - régions` command exists so that this is visible instead of silently puzzling.
+
+The motion settings live in the door station's `event` section, which returns the admin password in clear in `P2`. The plugin never logs a raw section, and `redact()` masks `P2` in any case.
+
 # Commands are linked to their state
 
 Every action button points at the info command it changes, so Jeedom shows the current state on the button and renders an on/off pair as a switch rather than two buttons with no memory. When the linked state is binary the button also gets a suitable widget: the LDC pair as a **switch**, the backlight pair as a **binary button**.
@@ -265,4 +292,16 @@ If a call fails on the server side with an unexplained error, try the "Codec(s) 
 
 📖 **The complete and up-to-date documentation lives in [`docs/fr_FR/index.md`](docs/fr_FR/index.md)**, also published on the [documentation site](https://ripleyxlr8.github.io/jeedom-plugin-gds3710/fr_FR/). Should this README and the documentation disagree, the documentation wins.
 
-The in-plugin documentation is currently written in French only; the four language folders Jeedom expects hold the same text. This README is the English entry point.
+**The plugin interface is translated** into English, German and Spanish: `core/i18n/` carries a catalogue of **232 strings**, kept in step with the code by `tools/extract_i18n.py` and checked on every push. French is the source language and needs no catalogue.
+
+Command names are translated at the point where they are declared, so a fresh installation in another language gets English, German or Spanish command names. ⚠️ **Commands that already exist are never renamed** — neither by an update nor by a language change. The plugin only ever fills a name that is empty, which is also what protects a command you renamed yourself.
+
+# Unit tests
+
+`tests/` holds a **unit test suite** that runs without a Jeedom installation and without any dependency to install — no Composer, no PHPUnit. `tests/bootstrap.php` rebuilds the minimal tree the plugin class expects and loads it against stubs of the Jeedom core, so the pure functions can be exercised directly.
+
+Run them with `./.lint.sh --tests`, or `php tests/run.php` if PHP is available locally. They also run on **PHP 8.1, 8.2 and 8.3** on every push.
+
+What they cover: secret redaction before logging, the door station's malformed answers, the snapshot URL calculation, and the **consistency of the declaration tables** — the last one would have caught two defects this plugin actually shipped: a section label written both with and without its accent, which produced two identical tabs, and a command identifier colliding with another one that differed only in case, which made the equipment impossible to save.
+
+The in-plugin documentation, on the other hand, is still written in French only; the four language folders Jeedom expects hold the same text. This README is the English entry point.
