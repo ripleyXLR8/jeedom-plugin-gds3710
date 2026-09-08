@@ -8,6 +8,7 @@
 #
 #   ./.lint.sh              tout
 #   ./.lint.sh --syntaxe    syntaxe PHP et JavaScript seulement
+#   ./.lint.sh --tests      tests unitaires seulement
 #   ./.lint.sh --i18n       catalogue de traduction seulement
 #   ./.lint.sh --docs       README, documentation et langues seulement
 cd "$(dirname "$0")"
@@ -17,7 +18,7 @@ export MSYS_NO_PATHCONV=1
 ARGS="$*"
 tout=1
 for a in $ARGS; do
-  case "$a" in --syntaxe|--i18n|--docs) tout=0;; esac
+  case "$a" in --syntaxe|--tests|--i18n|--docs) tout=0;; esac
 done
 veut() {
   [ $tout -eq 1 ] && return 0
@@ -48,13 +49,21 @@ node_check() {
   fi
 }
 
+php_run() {
+  if [ -n "$PHP_NATIF" ]; then
+    php "$@"
+  else
+    docker run --rm -v "$MONTAGE":/app -w //app php:8.2-cli php "$@"
+  fi
+}
+
 if veut --syntaxe; then
   if [ -n "$PHP_NATIF" ]; then
     echo "== syntaxe PHP $(php -r 'echo PHP_VERSION;') =="
   else
     echo "== syntaxe PHP 8.2 (Docker) =="
   fi
-  FICHIERS=$(find core desktop plugin_info -name "*.php" | sort)
+  FICHIERS=$(find core desktop plugin_info tests -name "*.php" | sort)
   if php_lint $FICHIERS; then
     echo "  OK sur $(echo "$FICHIERS" | wc -l) fichier(s)"
   else
@@ -94,6 +103,19 @@ io.open(sys.argv[2], 'w', encoding='utf-8', newline='\n').write(s[i+len('<script
     fi
     rm -f /tmp/gdsjs.err
   done
+fi
+
+if veut --tests; then
+  # Le plugin n'avait aucun test : la CI ne verifiait que la syntaxe, et rien ne
+  # protegeait les fonctions qui masquent les secrets, lisent les reponses du portier ou
+  # calculent l'URL d'une capture. Ces tests tournent sans Jeedom (voir tests/bootstrap.php)
+  # et sans aucune dependance a installer.
+  echo "== tests unitaires =="
+  if php_run tests/run.php; then
+    :
+  else
+    fail=1
+  fi
 fi
 
 if veut --i18n; then
@@ -136,6 +158,7 @@ if veut --docs; then
     "Maintien de porte|Keep door open"
     "détection de mouvement|motion detection"
     "mode webrelay|webrelay mode"
+    "Tests unitaires|Unit tests"
   )
   for m in "${MARQUEURS[@]}"; do
     in_readme=0; in_doc=0
