@@ -1,5 +1,10 @@
 # Change Log - Plugin GDS 3710
 
+### 09/09/2026 (authentification factorisée)
+- **Un cookie de session pouvait repartir corrompu.** Le découpage des en-têtes `Set-Cookie` s'arrêtait au premier `;` : un cookie envoyé **sans attribut** emportait le retour chariot dans sa valeur, et l'authentification suivante était refusée sans explication. Le portier envoie `; path=/` aujourd'hui, ce qui masquait le défaut — il se serait réveillé au premier firmware qui ne le fait pas. Trouvé en écrivant les tests de cette fonction, pas à la lecture.
+- **La capture d'image portait sa propre authentification**, soixante lignes avec les options réseau recopiées trois fois, dont un paramètre posé deux fois dans le même tableau et un autre sans effet depuis PHP 5.1.3. Elle passe de 152 à 95 lignes. Les requêtes de capture ont désormais un **délai d'attente** : elles n'en avaient aucun et pouvaient bloquer indéfiniment le cron ou la page qui les avait déclenchées.
+- Les deux **sels d'authentification** du portier deviennent des constantes. Ils ne diffèrent que par quelques lettres, servent deux mécanismes distincts, et étaient recopiés en clair à trois endroits.
+
 ### 09/09/2026 (le cron interroge moins le portier)
 - **Trois sections de configuration étaient lues deux fois à chaque passage du cron.** Les réglages et les états ont chacun leur table, et « audio », « event » et « sch_open_door » figurent dans les deux : le relevé envoyait **11 requêtes là où 8 suffisent**. Sur un appareil qui ne tolère **qu'une seule session administrateur**, chaque lecture superflue est une chance de plus de couper la session d'un humain devant l'interface web du portier. Le cron fait désormais une passe unique dont il transmet le résultat.
 - Les relectures qui **suivent une écriture** sont inchangées : leur rôle est justement d'interroger l'appareil pour confirmer que la valeur a été prise.
