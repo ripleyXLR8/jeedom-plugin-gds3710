@@ -1,5 +1,10 @@
 # Change Log - Plugin GDS 3710
 
+### 09/09/2026 (masquer une commande tient enfin)
+- **Masquer une commande ne tenait que jusqu'au prochain enregistrement de l'équipement.** Vingt commandes réimposaient leur visibilité à chaque fois — dont **« Ouvrir la porte 2 »**, alors que la documentation du client SIP promet que la masquer retire son bouton de la fenêtre d'appel. La visibilité est désormais une valeur posée **à la création seulement**, comme le nom.
+- **Onze commandes réimposaient encore leur nom** : les deux boutons du planning de rétroéclairage et les neuf commandes de décomposition d'évènement. Le correctif de juillet, qui annonçait valoir pour toutes, les avait manquées.
+- En interne, les 23 commandes fixes de l'équipement sont désormais **décrites dans une table** au lieu d'être créées par autant de blocs recopiés : `postSave()` passe de 579 à 252 lignes. Aucun changement visible — mêmes identifiants, mêmes noms, mêmes gabarits, vérifiés un à un.
+
 ### 09/09/2026 (les reprises de mise à jour ne sont plus rejouées)
 - **Les trois reprises de mise à jour repartaient à chaque nouvelle version du plugin**, dont un parcours de l'intégralité des commandes de chaque équipement. Un **numéro de schéma** marque désormais le niveau atteint ; il est enregistré après chaque étape, si bien qu'une mise à jour interrompue redémarre où elle s'est arrêtée. Une installation neuve se déclare d'emblée à jour : il n'y a rien à reprendre sur des commandes qui viennent d'être créées.
 - Une distinction que le code ne faisait pas : republier l'URL du flux MJPEG **n'est pas** une reprise de version mais une réparation permanente — la valeur se perd dès qu'un vidage de cache remet les commandes à blanc, ce qui n'a aucun rapport avec la version installée. Elle continue donc de tourner à chaque mise à jour.
