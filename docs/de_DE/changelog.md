@@ -1,5 +1,9 @@
 # Change Log - Plugin GDS 3710
 
+### 09/09/2026 (les reprises de mise à jour ne sont plus rejouées)
+- **Les trois reprises de mise à jour repartaient à chaque nouvelle version du plugin**, dont un parcours de l'intégralité des commandes de chaque équipement. Un **numéro de schéma** marque désormais le niveau atteint ; il est enregistré après chaque étape, si bien qu'une mise à jour interrompue redémarre où elle s'est arrêtée. Une installation neuve se déclare d'emblée à jour : il n'y a rien à reprendre sur des commandes qui viennent d'être créées.
+- Une distinction que le code ne faisait pas : republier l'URL du flux MJPEG **n'est pas** une reprise de version mais une réparation permanente — la valeur se perd dès qu'un vidage de cache remet les commandes à blanc, ce qui n'a aucun rapport avec la version installée. Elle continue donc de tourner à chaque mise à jour.
+
 ### 09/09/2026 (authentification factorisée)
 - **Un cookie de session pouvait repartir corrompu.** Le découpage des en-têtes `Set-Cookie` s'arrêtait au premier `;` : un cookie envoyé **sans attribut** emportait le retour chariot dans sa valeur, et l'authentification suivante était refusée sans explication. Le portier envoie `; path=/` aujourd'hui, ce qui masquait le défaut — il se serait réveillé au premier firmware qui ne le fait pas. Trouvé en écrivant les tests de cette fonction, pas à la lecture.
 - **La capture d'image portait sa propre authentification**, soixante lignes avec les options réseau recopiées trois fois, dont un paramètre posé deux fois dans le même tableau et un autre sans effet depuis PHP 5.1.3. Elle passe de 152 à 95 lignes. Les requêtes de capture ont désormais un **délai d'attente** : elles n'en avaient aucun et pouvaient bloquer indéfiniment le cron ou la page qui les avait déclenchées.
