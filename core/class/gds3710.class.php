@@ -368,21 +368,47 @@ class gds3710 extends eqLogic {
         );
     }
 
-    /* Relit les sections concernees et met a jour les etats. Une seule lecture par
-     * section, quel que soit le nombre d etats qu elle porte : chaque requete pese
-     * sur un appareil qui ne tolere qu une session administrateur. */
-    public function refreshStates() {
+    /* Sections de configuration citees par une table de declaration, sans doublon. */
+    public static function sectionsDe($_table) {
         $sections = array();
-        foreach (gds3710::get_state_list() as $def) {
-            $sections[$def['section']] = true;
+        foreach ($_table as $def) {
+            if (isset($def['section']) && $def['section'] !== '') {
+                $sections[$def['section']] = true;
+            }
         }
+        return array_keys($sections);
+    }
+
+    /* Lit plusieurs sections en une passe et rend leur contenu fusionne.
+     *
+     * Les P-values des deux tables de declaration ne se recouvrent pas — un test le
+     * garantit — la fusion ne peut donc pas faire disparaitre une valeur au profit
+     * d une autre. */
+    public function lireSections($_sections) {
         $lu = array();
-        foreach (array_keys($sections) as $section) {
+        foreach ($_sections as $section) {
             $contenu = $this->readConfigSection($section);
             if (is_array($contenu)) {
                 $lu = array_merge($lu, $contenu);
             }
         }
+        return $lu;
+    }
+
+    /* Relit les sections concernees et met a jour les etats. Une seule lecture par
+     * section, quel que soit le nombre d etats qu elle porte : chaque requete pese
+     * sur un appareil qui ne tolere qu une session administrateur.
+     *
+     * $_lu permet de fournir des sections deja lues. Sans lui, refreshSettings() et
+     * refreshStates() relisaient chacun de leur cote, alors que « audio », « event » et
+     * « sch_open_door » figurent dans les DEUX tables : ces trois sections partaient
+     * donc deux fois a chaque passage du cron. Les appels qui suivent une ecriture, eux,
+     * ne passent rien et relisent bel et bien l appareil — c est precisement leur role,
+     * confirmer que la valeur a ete prise. */
+    public function refreshStates($_lu = null) {
+        $lu = is_array($_lu)
+            ? $_lu
+            : $this->lireSections(gds3710::sectionsDe(gds3710::get_state_list()));
         if (count($lu) === 0) {
             return false;
         }
@@ -762,19 +788,13 @@ class gds3710 extends eqLogic {
     }
 
     /* Relit les reglages sur le portier et met a jour les commandes info associees.
-     * Une seule lecture par section, pas une par reglage. */
-    public function refreshSettings() {
-        $sections = array();
-        foreach (gds3710::get_setting_list() as $lid => $def) {
-            $sections[$def['section']] = true;
-        }
-        $data = array();
-        foreach (array_keys($sections) as $section) {
-            $read = $this->readConfigSection($section);
-            if (is_array($read)) {
-                $data = array_merge($data, $read);
-            }
-        }
+     * Une seule lecture par section, pas une par reglage.
+     *
+     * $_lu : voir refreshStates(), meme mecanique et meme raison. */
+    public function refreshSettings($_lu = null) {
+        $data = is_array($_lu)
+            ? $_lu
+            : $this->lireSections(gds3710::sectionsDe(gds3710::get_setting_list()));
         if (count($data) === 0) {
             return false;
         }
@@ -1641,8 +1661,16 @@ class gds3710 extends eqLogic {
                 continue;
             }
 
-            $eq->refreshSettings();
-            $eq->refreshStates();
+            /* Une seule passe de lecture pour les reglages ET les etats. Les deux tables
+             * partagent trois sections (« audio », « event », « sch_open_door ») : les
+             * laisser lire chacune de leur cote envoyait 11 requetes la ou 8 suffisent,
+             * sur un appareil qui ne tolere qu une session administrateur a la fois. */
+            $lu = $eq->lireSections(array_unique(array_merge(
+                gds3710::sectionsDe(gds3710::get_setting_list()),
+                gds3710::sectionsDe(gds3710::get_state_list())
+            )));
+            $eq->refreshSettings($lu);
+            $eq->refreshStates($lu);
 
             $info = $eq->readConfigSection('sysinfo');
             if ($info === null) {
