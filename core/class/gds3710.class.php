@@ -921,8 +921,8 @@ class gds3710 extends eqLogic {
              * en fonctionnement. La famille 1500 couvre les connexions administrateur. */
             "102" => array("section" =>'Ouverture porte', 'section_icon'=>'jeedom-porte-ferme', "type" => 102, "short_name" => "UnauthorizedDoorOpeningAttempt", "message" => "Unauthorized Door Opening Attempt", "use_case" => "Indicates that someone attempted to open the door without authorization."),
             "401" => array("section" =>'Ouverture porte', 'section_icon'=>'jeedom-porte-ferme', "type" => 401, "short_name" => "OpenDoorViaSI", "message" => "Open Door via SI", "use_case" => "Indicates that door has been opened using SI (Special Input) signal."),
-            "1002" => array("section" =>'Securite', 'section_icon'=>'securite-key1', "type" => 1002, "short_name" => "DoorLockAbnormalAlarm", "message" => "Door and Lock Abnormal Alarm", "use_case" => "Indicates an abnormal state of the door or of the lock."),
-            "1110" => array("section" =>'Securite', 'section_icon'=>'securite-key1', "type" => 1110, "short_name" => "NonScheduledAccess", "message" => "Non-scheduled Access", "use_case" => "Indicates an access outside of the authorized schedule."),
+            "1002" => array("section" =>'Sécurité', 'section_icon'=>'securite-key1', "type" => 1002, "short_name" => "DoorLockAbnormalAlarm", "message" => "Door and Lock Abnormal Alarm", "use_case" => "Indicates an abnormal state of the door or of the lock."),
+            "1110" => array("section" =>'Sécurité', 'section_icon'=>'securite-key1', "type" => 1110, "short_name" => "NonScheduledAccess", "message" => "Non-scheduled Access", "use_case" => "Indicates an access outside of the authorized schedule."),
             "1500" => array("section" =>'Surveillance Logiciel', 'section_icon'=>'fas fa-exclamation-triangle', "type" => 1500, "short_name" => "AdminLogIn", "message" => "Admin Log In", "use_case" => "Indicates that an administrator signed in on the device web interface."),
             "1503" => array("section" =>'Surveillance Logiciel', 'section_icon'=>'fas fa-exclamation-triangle', "type" => 1503, "short_name" => "AdminLogOff", "message" => "Admin Log Off", "use_case" => "Indicates that an administrator session ended, by logout or timeout."),
         );
@@ -2060,6 +2060,18 @@ class gds3710Cmd extends cmd {
         curl_close ($ch);
         fclose($fp);
         log::add('gds3710', 'debug', 'Closing the file');
+
+        /* Le portier repond 200 meme quand l authentification a echoue : le corps est
+         * alors son XML d erreur, qui etait enregistre tel quel en .jpg, publie comme
+         * « dernier snapshot » et envoye par send_snapshot() le cas echeant. Une image
+         * JPEG commence par les octets FF D8 : tout autre contenu est une capture ratee. */
+        $entete = (string) @file_get_contents($output_file, false, null, 0, 2);
+        if ($entete !== "\xFF\xD8") {
+            log::add('gds3710', 'error', 'La capture recue n est pas une image JPEG '
+                . '(authentification refusee ou portier en erreur) : fichier supprime.');
+            @unlink($output_file);
+            return null;
+        }
 
         log::add('gds3710', 'debug', "Registering path to lastest picture");
         $eqLogic = $this->getEqLogic();

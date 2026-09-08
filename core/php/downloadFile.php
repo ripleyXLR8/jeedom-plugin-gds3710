@@ -49,11 +49,21 @@
 		}
 	}
 	if (!isConnect('admin')) {
-		$adminFiles = array('log', 'backup', '.sql', 'scenario', '.tar', '.gz');
-		foreach ($adminFiles as $adminFile) {
-			if (strpos($pathfile, $adminFile) !== false) {
+		/* Ces motifs etaient cherches comme sous-chaines du chemin COMPLET : le nom de
+		 * l'equipement figure dans celui de chaque capture, et un portier nomme
+		 * « Portier Logement » suffisait a faire refuser toutes ses vignettes a un
+		 * simple utilisateur — « log » etant une sous-chaine de « Logement ». On compare
+		 * desormais chaque segment du chemin aux noms proteges, et l'extension du
+		 * fichier aux extensions protegees, ce qui est ce que la liste voulait dire. */
+		$segments = explode('/', strtolower(str_replace('\\', '/', $pathfile)));
+		foreach ($segments as $segment) {
+			if (in_array($segment, array('log', 'logs', 'backup', 'backups', 'scenario'), true)) {
 				throw new Exception(__('401 - Accès non autorisé6', __FILE__), 401);
 			}
+		}
+		$extension = strtolower(pathinfo($pathfile, PATHINFO_EXTENSION));
+		if (in_array($extension, array('sql', 'tar', 'gz', 'log'), true)) {
+			throw new Exception(__('401 - Accès non autorisé6', __FILE__), 401);
 		}
 	}
 	// CAS FICHIER UNIQUE

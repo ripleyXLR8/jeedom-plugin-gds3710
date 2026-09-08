@@ -31,9 +31,14 @@ if (!isConnect()) {
         <div class="form-group">
             <label class="col-lg-4 control-label">{{Activer la protection par mot de passe : }}</label>
             <div id="div_password_protection" class="col-lg-3 tooltips" title="{{ IMPORTANT : Veuillez lire la documentation pour en savoir plus }}">
-                <input type="checkbox" id="password_protection" class="configKey" data-l1key="password_protection" placeholder="{{}}"/>
+                <!-- Pas de placeholder sur ce checkbox : l'attribut n'y a aucun sens, et
+                     sa paire d'accolades vide s'appariait avec la suite du fichier dans
+                     l'extracteur de traductions, avalant la chaine « Identifiant : ». -->
+                <input type="checkbox" id="password_protection" class="configKey" data-l1key="password_protection"/>
                 <label for="password_protection">  </label>
-                <label id="label_password_protection" style="color:red;margin-left:100px;margin-top:-15px;display:none">ATTENTION : l'activation de cette option est très fortement encouragée. Elle est obligatoire dans le cas ou des actions critiques de sécurité sont déclenchées lors d'évènements générés par le portier.</label>
+                <!-- Le texte etait en dur, hors marqueurs de traduction : seule chaine de
+                     la page a rester en francais quelle que soit la langue. -->
+                <label id="label_password_protection" style="color:red;margin-left:100px;margin-top:-15px;display:none">{{ATTENTION : l'activation de cette option est très fortement encouragée. Elle est obligatoire dans le cas où des actions critiques de sécurité sont déclenchées lors d'évènements générés par le portier.}}</label>
                 <script>
                 $( "#password_protection" ).change(function() {
                         if($( this ).value() == "1"){
@@ -52,7 +57,7 @@ if (!isConnect()) {
         </div>
 
         <div id="login-form-group" class="form-group">
-            <label class="col-lg-4 control-label">{{Idenfiant : }}<sup><i class="fa fa-question-circle tooltips" title="{{Il s'agit de l'identifiant que votre portier devra fournir pour publier ses évènements dans Jeedom.}}" style="font-size : 1em;color:grey;"></i></sup></label>
+            <label class="col-lg-4 control-label">{{Identifiant : }}<sup><i class="fa fa-question-circle tooltips" title="{{Il s'agit de l'identifiant que votre portier devra fournir pour publier ses évènements dans Jeedom.}}" style="font-size : 1em;color:grey;"></i></sup></label>
             <div class="col-lg-2">
                 <input type="text" autocomplete="off" class="configKey" data-l1key="login" />
             </div>
@@ -72,7 +77,7 @@ if (!isConnect()) {
             </div>
         </div>
 
-        <div id="reddir-form-group" class="form-group">
+        <div id="recdir-form-group" class="form-group">
             <label class="col-lg-4 control-label">{{Répertoire d'enregistrement des captures : }}<sup><i class="fa fa-question-circle tooltips" title="{{Il s'agit du répertoire dans lequel seront enregistré les captures.}}" style="font-size : 1em;color:grey;"></i></sup></label>
             <div class="col-lg-4">
                 <input type="text" autocomplete="off" class="configKey" data-l1key="recdir" />
@@ -137,19 +142,21 @@ if (!isConnect()) {
             </div>
         </div>
 
-        <div id="reddir-form-group" class="form-group">
+        <!-- Ces deux blocs partageaient l'id « reddir-form-group » avec celui du
+             repertoire : trois elements pour un meme id. Aucun code ne les designe,
+             ils n'ont pas besoin d'identifiant. -->
+        <div class="form-group">
             <label class="col-lg-4 control-label">{{Autoriser les utilisateurs à effacer les captures : }}</label>
             <div class="col-lg-2">
                 <input type="checkbox" class="configKey" data-l1key="is_user_allowed_to_delete"/>
             </div>
         </div>
 
-        <div id="reddir-form-group" class="form-group">
+        <div class="form-group">
             <label class="col-lg-4 control-label">{{Autoriser les utilisateurs limités à effacer les captures : }}</label>
             <div class="col-lg-2">
                 <input type="checkbox" class="configKey" data-l1key="is_limited_user_allowed_to_delete"/>
             </div>
         </div>
-    </div>
 </fieldset>
 </form>

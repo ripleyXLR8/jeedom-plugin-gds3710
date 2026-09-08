@@ -223,6 +223,7 @@
     },
     "plugins/gds3710/plugin_info/configuration.php": {
         " IMPORTANT : Veuillez lire la documentation pour en savoir plus ": " WICHTIG: Bitte lesen Sie die Dokumentation für weitere Informationen ",
+        "ATTENTION : l'activation de cette option est très fortement encouragée. Elle est obligatoire dans le cas où des actions critiques de sécurité sont déclenchées lors d'évènements générés par le portier.": "ACHTUNG: Die Aktivierung dieser Option wird dringend empfohlen. Sie ist zwingend erforderlich, wenn sicherheitskritische Aktionen durch Ereignisse der Türsprechstelle ausgelöst werden.",
         "Activer la protection par mot de passe : ": "Passwortschutz aktivieren: ",
         "Autoriser les utilisateurs limités à effacer les captures : ": "Eingeschränkten Benutzern das Löschen von Aufnahmen erlauben: ",
         "Autoriser les utilisateurs à effacer les captures : ": "Benutzern das Löschen von Aufnahmen erlauben: ",
@@ -233,6 +234,7 @@
         "Contrôle en cours...": "Prüfung läuft...",
         "Droits": "Rechte",
         "Désactiver le contrôle d'adresse d'origine : ": "Prüfung der Absenderadresse deaktivieren: ",
+        "Identifiant : ": "Benutzername: ",
         "Il s'agit de l'identifiant que votre portier devra fournir pour publier ses évènements dans Jeedom.": "Dies ist der Benutzername, den Ihre Türstation angeben muss, um ihre Ereignisse an Jeedom zu senden.",
         "Il s'agit du mot de passe que votre portier devra fournir pour publier ses évènements dans Jeedom.": "Dies ist das Passwort, das Ihre Türstation angeben muss, um ihre Ereignisse an Jeedom zu senden.",
         "Il s'agit du répertoire dans lequel seront enregistré les captures.": "Dies ist das Verzeichnis, in dem die Aufnahmen gespeichert werden.",
