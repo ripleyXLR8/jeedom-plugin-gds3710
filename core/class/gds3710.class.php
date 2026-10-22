@@ -1911,6 +1911,9 @@ class gds3710Cmd extends cmd {
             CURLOPT_URL => $url,
             CURLOPT_COOKIE => $cookies_string,
             CURLOPT_HEADER => false,
+            // optionsHttp() met RETURNTRANSFER a true, ce qui detourne le corps de $fp ;
+            // a placer AVANT CURLOPT_FILE : la valeur false remet la sortie sur stdout
+            CURLOPT_RETURNTRANSFER => false,
             CURLOPT_FILE => $fp,
         ));
 
